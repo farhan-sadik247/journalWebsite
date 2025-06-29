@@ -3,8 +3,10 @@
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { useState } from 'react';
-import { FiMenu, FiX, FiUser, FiLogOut, FiSettings, FiChevronDown, FiSearch, FiBook, FiInfo, FiMail, FiUsers, FiFileText } from 'react-icons/fi';
+import { FiMenu, FiX, FiUser, FiLogOut, FiSettings, FiChevronDown, FiSearch, FiBook, FiInfo, FiMail, FiUsers, FiFileText, FiDollarSign } from 'react-icons/fi';
 import styles from './Header.module.scss';
+import NotificationBar from './NotificationBar';
+import AdminPaymentConfig from './AdminPaymentConfig';
 
 export function Header() {
   const { data: session, status } = useSession();
@@ -33,6 +35,7 @@ export function Header() {
       items: [
         { name: 'About Journal', href: '/about', icon: FiInfo },
         { name: 'Editorial Board', href: '/editorial-board', icon: FiUsers },
+        { name: 'Publication Fees', href: '/publication-fees', icon: FiDollarSign },
         { name: 'Contact Us', href: '/contact', icon: FiMail },
       ]
     }
@@ -100,8 +103,11 @@ export function Header() {
             ))}
           </nav>
 
-          {/* User Menu */}
+          {/* User Section with Notifications and Admin Controls */}
           <div className={styles.userSection}>
+            {session && <NotificationBar />}
+            {session?.user?.role === 'admin' && <AdminPaymentConfig />}
+            
             {status === 'loading' ? (
               <div className="spinner" />
             ) : session ? (

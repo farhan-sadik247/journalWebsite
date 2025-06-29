@@ -758,12 +758,62 @@ export default function ManageUsersPage() {
                     <h4>Role Management</h4>
                     <p>Add or remove roles for this user:</p>
                     <div className={styles.roleActions}>
-                      {['author', 'reviewer', 'editor', 'admin'].map((role) => {
+                      {['author', 'reviewer', 'editor', 'copy-editor', 'admin'].map((role) => {
                         const hasRole = selectedUser.roles.includes(role);
                         const isSelfManagement = session?.user?.email === selectedUser.email;
+                        const isCurrentUserAdmin = session?.user?.roles?.includes('admin');
                         
-                        // Prevent non-founders from removing admin role from founder
+                        // Role promotion restrictions
                         const cannotRemoveFounderAdmin = selectedUser.isFounder && role === 'admin' && !isSelfManagement;
+                        
+                        // Copy-editor restrictions: Only admin can assign copy-editor role
+                        // Admin can make anyone copy-editor, or promote themselves
+                        const canAssignCopyEditor = role === 'copy-editor' && (
+                          isCurrentUserAdmin || 
+                          (isSelfManagement && isCurrentUserAdmin)
+                        );
+                        
+                        // Admin restrictions: Only admin can assign admin role
+                        // Admin can only promote editors to admin (must be editor first)
+                        const canAssignAdmin = role === 'admin' && isCurrentUserAdmin && (
+                          selectedUser.roles.includes('editor') || selectedUser.isFounder
+                        );
+                        
+                        // Editor restrictions: Only admin can assign editor role
+                        const canAssignEditor = role === 'editor' && isCurrentUserAdmin;
+                        
+                        // Reviewer can be assigned by admin
+                        const canAssignReviewer = role === 'reviewer' && isCurrentUserAdmin;
+                        
+                        // Author is default role, admin can manage
+                        const canAssignAuthor = role === 'author' && isCurrentUserAdmin;
+                        
+                        // Determine if action is allowed
+                        let canPerformAction = false;
+                        let disabledReason = '';
+                        
+                        if (role === 'copy-editor') {
+                          canPerformAction = canAssignCopyEditor;
+                          disabledReason = !canAssignCopyEditor ? 'Only admins can assign copy-editor role' : '';
+                        } else if (role === 'admin') {
+                          canPerformAction = canAssignAdmin;
+                          disabledReason = !canAssignAdmin ? 'User must be an editor first to become admin' : '';
+                        } else if (role === 'editor') {
+                          canPerformAction = canAssignEditor;
+                          disabledReason = !canAssignEditor ? 'Only admins can assign editor role' : '';
+                        } else if (role === 'reviewer') {
+                          canPerformAction = canAssignReviewer;
+                          disabledReason = !canAssignReviewer ? 'Only admins can assign reviewer role' : '';
+                        } else if (role === 'author') {
+                          canPerformAction = canAssignAuthor;
+                          disabledReason = !canAssignAuthor ? 'Only admins can manage author role' : '';
+                        }
+                        
+                        // Override for founder admin removal
+                        if (cannotRemoveFounderAdmin) {
+                          canPerformAction = false;
+                          disabledReason = 'Cannot remove admin role from founder';
+                        }
                         
                         return (
                           <div key={role} className={styles.roleAction}>
@@ -775,8 +825,8 @@ export default function ManageUsersPage() {
                               <button
                                 onClick={() => handleRoleChange(selectedUser._id, 'remove', role)}
                                 className="btn btn-danger btn-sm"
-                                disabled={cannotRemoveFounderAdmin}
-                                title={cannotRemoveFounderAdmin ? 'Cannot remove admin role from founder' : ''}
+                                disabled={!canPerformAction}
+                                title={disabledReason}
                               >
                                 <FiUserMinus />
                                 Remove
@@ -785,6 +835,8 @@ export default function ManageUsersPage() {
                               <button
                                 onClick={() => handleRoleChange(selectedUser._id, 'add', role)}
                                 className="btn btn-primary btn-sm"
+                                disabled={!canPerformAction}
+                                title={disabledReason}
                               >
                                 <FiUserPlus />
                                 Add

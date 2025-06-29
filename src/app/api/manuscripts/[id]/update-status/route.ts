@@ -4,6 +4,10 @@ import { authOptions } from '@/pages/api/auth/[...nextauth]';
 import dbConnect from '@/lib/mongodb';
 import Manuscript from '@/models/Manuscript';
 import Review from '@/models/Review';
+import Payment from '@/models/Payment';
+import FeeConfig from '@/models/FeeConfig';
+import User from '@/models/User';
+import { notifyManuscriptAccepted, createNotification } from '@/lib/notificationUtils';
 import mongoose from 'mongoose';
 
 // Helper function to determine manuscript status based on completed reviews
@@ -76,8 +80,25 @@ export async function POST(
     const originalStatus = manuscript.status;
     let newStatus = originalStatus;
 
-    if (completedReviews.length >= 2) {
-      newStatus = determineManuscriptStatus(completedReviews);
+    // Enhanced logic to handle both single and multiple reviews
+    if (completedReviews.length >= 1) {
+      if (completedReviews.length >= 2) {
+        // Use majority rule for 2+ reviews
+        newStatus = determineManuscriptStatus(completedReviews);
+      } else if (completedReviews.length === 1) {
+        // Handle single review cases - be more responsive
+        const singleRecommendation = completedReviews[0].recommendation;
+        if (singleRecommendation === 'accept') {
+          newStatus = 'accepted';
+        } else if (singleRecommendation === 'reject') {
+          newStatus = 'rejected';
+        } else if (singleRecommendation === 'major-revision') {
+          newStatus = 'major-revision-requested';
+        } else if (singleRecommendation === 'minor-revision') {
+          newStatus = 'minor-revision-requested';
+        }
+        // For unclear recommendations with single review, keep current status
+      }
       
       if (newStatus !== originalStatus) {
         // Update the manuscript status
@@ -98,6 +119,9 @@ export async function POST(
         });
 
         await manuscript.save();
+
+        // Handle notifications based on status change
+        await handleStatusChangeNotifications(manuscript, originalStatus, newStatus, session.user);
       }
     }
 
@@ -117,5 +141,99 @@ export async function POST(
       { error: 'Internal server error' },
       { status: 500 }
     );
+  }
+}
+
+// Helper function to handle notifications for status changes
+async function handleStatusChangeNotifications(manuscript: any, oldStatus: string, newStatus: string, currentUser: any) {
+  try {
+    const author = await User.findById(manuscript.submittedBy);
+    if (!author) return;
+
+    const manuscriptTitle = manuscript.title;
+    const manuscriptId = manuscript._id.toString();
+
+    switch (newStatus) {
+      case 'accepted':
+        // Get fee configuration to determine payment amount
+        const feeConfig = await FeeConfig.findOne({ isActive: true });
+        const apcAmount = feeConfig ? feeConfig.amount : 200; // Default amount
+        
+        // Create payment record
+        const payment = new Payment({
+          manuscriptId: manuscript._id,
+          userId: author._id,
+          amount: apcAmount,
+          currency: 'USD',
+          status: 'pending',
+          paymentMethod: 'pending',
+          description: `APC payment for manuscript: ${manuscriptTitle}`,
+          dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+          createdBy: currentUser.id
+        });
+        
+        await payment.save();
+
+        // Update manuscript with payment info
+        await Manuscript.findByIdAndUpdate(manuscript._id, {
+          requiresPayment: true,
+          paymentStatus: 'pending',
+          apcAmount: apcAmount,
+          paymentDeadline: payment.dueDate,
+          paymentId: payment._id
+        });
+
+        // Notify author about acceptance and payment requirement
+        await notifyManuscriptAccepted(
+          author.email,
+          manuscriptId,
+          manuscriptTitle,
+          apcAmount,
+          payment._id.toString()
+        );
+        break;
+
+      case 'rejected':
+        await createNotification({
+          recipientEmail: author.email,
+          type: 'manuscript_status',
+          title: 'Manuscript Decision: Rejected',
+          message: `Unfortunately, your manuscript "${manuscriptTitle}" has not been accepted for publication. Please review the feedback provided by the reviewers.`,
+          manuscriptId,
+          priority: 'medium',
+          actionUrl: `/dashboard/manuscripts/${manuscriptId}`,
+          createdBy: currentUser.email
+        });
+        break;
+
+      case 'major-revision-requested':
+        await createNotification({
+          recipientEmail: author.email,
+          type: 'manuscript_status',
+          title: 'Manuscript Decision: Major Revision Required',
+          message: `Your manuscript "${manuscriptTitle}" requires major revisions before it can be accepted. Please review the reviewer comments and resubmit.`,
+          manuscriptId,
+          priority: 'high',
+          actionUrl: `/dashboard/manuscripts/${manuscriptId}`,
+          createdBy: currentUser.email
+        });
+        break;
+
+      case 'minor-revision-requested':
+        await createNotification({
+          recipientEmail: author.email,
+          type: 'manuscript_status',
+          title: 'Manuscript Decision: Minor Revision Required',
+          message: `Your manuscript "${manuscriptTitle}" requires minor revisions. Please address the reviewer comments and resubmit.`,
+          manuscriptId,
+          priority: 'medium',
+          actionUrl: `/dashboard/manuscripts/${manuscriptId}`,
+          createdBy: currentUser.email
+        });
+        break;
+    }
+  } catch (error) {
+    console.error('Error sending status change notifications:', error);
+    // Don't throw error to avoid breaking the main workflow
   }
 }

@@ -77,7 +77,15 @@ export default function ReviewAssignmentsPage() {
       const response = await fetch('/api/reviews');
       if (response.ok) {
         const data = await response.json();
-        setReviews(data.reviews || []);
+        // Additional client-side filtering to ensure valid manuscript data
+        const validReviews = (data.reviews || []).filter((review: Review) => {
+          if (!review.manuscriptId || !review.manuscriptId.title) {
+            console.warn('Filtered out review with null/invalid manuscriptId:', review._id);
+            return false;
+          }
+          return true;
+        });
+        setReviews(validReviews);
       } else {
         toast.error('Failed to fetch review assignments');
       }
@@ -138,6 +146,11 @@ export default function ReviewAssignmentsPage() {
 
   const filteredAndSortedReviews = reviews
     .filter(review => {
+      // First check if review has valid manuscript data
+      if (!review.manuscriptId || !review.manuscriptId.title) {
+        return false;
+      }
+      
       // Filter by status
       if (filter !== 'all' && review.status !== filter) return false;
       
@@ -146,10 +159,10 @@ export default function ReviewAssignmentsPage() {
         const searchLower = searchTerm.toLowerCase();
         return (
           review.manuscriptId.title.toLowerCase().includes(searchLower) ||
-          review.manuscriptId.authors.some(author => 
+          (review.manuscriptId.authors || []).some(author => 
             author.name.toLowerCase().includes(searchLower)
           ) ||
-          review.manuscriptId.category.toLowerCase().includes(searchLower)
+          (review.manuscriptId.category || '').toLowerCase().includes(searchLower)
         );
       }
       
@@ -167,7 +180,7 @@ export default function ReviewAssignmentsPage() {
           const priorityOrder = { high: 3, medium: 2, low: 1 };
           return (priorityOrder[bPriority as keyof typeof priorityOrder] || 0) - (priorityOrder[aPriority as keyof typeof priorityOrder] || 0);
         case 'title':
-          return a.manuscriptId.title.localeCompare(b.manuscriptId.title);
+          return (a.manuscriptId?.title || '').localeCompare(b.manuscriptId?.title || '');
         default:
           return 0;
       }
@@ -308,13 +321,20 @@ export default function ReviewAssignmentsPage() {
             </p>
           </div>
         ) : (
-          filteredAndSortedReviews.map((review) => (
+          filteredAndSortedReviews.map((review) => {
+            // Skip reviews with null/undefined manuscriptId or invalid populated manuscript
+            if (!review.manuscriptId || !review.manuscriptId.title) {
+              console.warn('Review found with null/invalid manuscriptId:', review._id);
+              return null;
+            }
+            
+            return (
             <div key={review._id} className={styles.reviewCard}>
               <div className={styles.reviewHeader}>
                 <div className={styles.titleSection}>
-                  <h3>{review.manuscriptId.title}</h3>
+                  <h3>{review.manuscriptId.title || 'Untitled Manuscript'}</h3>
                   <div className={styles.metadata}>
-                    <span className={styles.category}>{review.manuscriptId.category}</span>
+                    <span className={styles.category}>{review.manuscriptId.category || 'Unknown Category'}</span>
                     <span className={styles.reviewType}>{review.type} Review</span>
                     <span 
                       className={styles.priority}
@@ -338,10 +358,10 @@ export default function ReviewAssignmentsPage() {
               <div className={styles.reviewBody}>
                 <div className={styles.manuscriptInfo}>
                   <p className={styles.authors}>
-                    <FiUser /> {review.manuscriptId.authors.map((a: any) => a.name).join(', ')}
+                    <FiUser /> {review.manuscriptId.authors?.map((a: any) => a.name).join(', ') || 'Unknown Authors'}
                   </p>
                   <p className={styles.abstract}>
-                    {review.manuscriptId.abstract?.substring(0, 200)}...
+                    {review.manuscriptId.abstract?.substring(0, 200) || 'No abstract available'}...
                   </p>
                 </div>
 
@@ -375,7 +395,8 @@ export default function ReviewAssignmentsPage() {
               <div className={styles.reviewActions}>
                 <button
                   className={styles.secondaryButton}
-                  onClick={() => handleViewManuscript(review.manuscriptId._id)}
+                  onClick={() => handleViewManuscript(review.manuscriptId?._id || '')}
+                  disabled={!review.manuscriptId?._id}
                 >
                   <FiEye />
                   View Manuscript
@@ -399,7 +420,8 @@ export default function ReviewAssignmentsPage() {
                 )}
               </div>
             </div>
-          ))
+          );
+          }).filter(Boolean) // Filter out null values
         )}
       </div>
     </div>

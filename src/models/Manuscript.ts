@@ -258,6 +258,24 @@ const manuscriptSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
+  // Author copy-edit review
+  authorCopyEditReview: {
+    approval: {
+      type: String,
+      enum: ['approved', 'revision-requested'],
+    },
+    comments: {
+      type: String,
+      default: '',
+    },
+    reviewedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    reviewDate: {
+      type: Date,
+    },
+  },
 }, {
   timestamps: true,
 });

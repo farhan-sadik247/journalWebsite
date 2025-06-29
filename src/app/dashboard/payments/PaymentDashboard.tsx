@@ -333,6 +333,15 @@ export default function PaymentDashboard() {
                   </td>
                   <td>
                     <div className={styles.actionsCell}>
+                      {payment.status === 'pending' && payment.amount > 0 && (
+                        <button
+                          onClick={() => router.push(`/dashboard/payments/portal?paymentId=${payment._id}`)}
+                          className={`${styles.actionButton} ${styles.payButton}`}
+                          title="Proceed to Payment"
+                        >
+                          <FiCreditCard />
+                        </button>
+                      )}
                       <button
                         onClick={() => router.push(`/dashboard/payments/${payment._id}`)}
                         className={`${styles.actionButton} ${styles.viewButton}`}

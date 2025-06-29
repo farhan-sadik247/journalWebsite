@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/pages/api/auth/[...nextauth]';
-import connectToDatabase from '@/lib/mongodb';
+import dbConnect from '@/lib/mongodb';
 import Manuscript from '@/models/Manuscript';
 import Volume from '@/models/Volume';
-import { sendEmail } from '@/lib/email';
+import { notifyPublicationComplete } from '@/lib/notificationUtils';
 
 export async function POST(
   request: NextRequest,
@@ -30,18 +30,18 @@ export async function POST(
       }, { status: 400 });
     }
 
-    await connectToDatabase();
+    await dbConnect();
 
-    const manuscript = await Manuscript.findById(params.id).populate('submittedBy authors.user');
+    const manuscript = await Manuscript.findById(params.id).populate('submittedBy', 'name email');
 
     if (!manuscript) {
       return NextResponse.json({ error: 'Manuscript not found' }, { status: 404 });
     }
 
-    // Check if manuscript is ready for publication
-    if (manuscript.copyEditingStage !== 'ready-for-publication') {
+    // Check if manuscript is ready for publication (should be author-approved)
+    if (manuscript.draftStatus !== 'approved-by-author') {
       return NextResponse.json({ 
-        error: 'Manuscript is not ready for publication' 
+        error: 'Manuscript must be approved by author before publication' 
       }, { status: 400 });
     }
 
@@ -85,53 +85,30 @@ export async function POST(
       params.id,
       updateData,
       { new: true }
-    ).populate('submittedBy authors.user');
+    ).populate('submittedBy', 'name email');
 
-    // Send publication notification emails
-    const emailSubject = `Your manuscript has been published - ${manuscript.title}`;
-    const emailContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2>🎉 Congratulations! Your manuscript has been published</h2>
-        <p>Dear Author(s),</p>
-        
-        <p>We are pleased to inform you that your manuscript "<strong>${manuscript.title}</strong>" has been successfully published!</p>
-        
-        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <h3>Publication Details:</h3>
-          <ul style="list-style: none; padding: 0;">
-            <li><strong>Volume:</strong> ${volume}</li>
-            ${issue ? `<li><strong>Issue:</strong> ${issue}</li>` : ''}
-            <li><strong>Pages:</strong> ${pages}</li>
-            ${doi ? `<li><strong>DOI:</strong> <a href="https://doi.org/${doi}">${doi}</a></li>` : ''}
-            <li><strong>Published Date:</strong> ${new Date(publishedDate).toLocaleDateString()}</li>
-          </ul>
-        </div>
-        
-        <p>Your article is now available online and can be accessed by the research community worldwide.</p>
-        
-        <p><a href="${process.env.NEXTAUTH_URL}/articles/${manuscript._id}" 
-           style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
-           View Published Article
-        </a></p>
-        
-        <p>Thank you for choosing our journal for your research publication.</p>
-        
-        <p>Best regards,<br>Editorial Team</p>
-      </div>
-    `;
-
-    // Send emails to all authors
-    const authorEmails = manuscript.authors.map((author: any) => author.email);
+    // Send notification to all authors
+    const volumeInfo = `Volume ${volume}${issue ? `, Issue ${issue}` : ''}`;
     
-    for (const email of authorEmails) {
-      try {
-        await sendEmail({
-          to: email,
-          subject: emailSubject,
-          html: emailContent,
-        });
-      } catch (emailError) {
-        console.error('Failed to send publication notification email:', emailError);
+    // Notify primary author
+    await notifyPublicationComplete(
+      manuscript.submittedBy.email,
+      params.id,
+      manuscript.title,
+      volumeInfo
+    );
+    
+    // Notify co-authors if they exist
+    if (manuscript.authors && manuscript.authors.length > 0) {
+      for (const author of manuscript.authors) {
+        if (author.email && author.email !== manuscript.submittedBy.email) {
+          await notifyPublicationComplete(
+            author.email,
+            params.id,
+            manuscript.title,
+            volumeInfo
+          );
+        }
       }
     }
 
@@ -165,7 +142,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await connectToDatabase();
+    await dbConnect();
 
     const manuscript = await Manuscript.findById(params.id)
       .populate('submittedBy', 'name email')

@@ -1,0 +1,425 @@
+.paymentConfigContainer {
+  position: relative;
+  display: inline-block;
+  margin-right: 1rem;
+}
+
+.paymentConfigButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: 1px solid #ddd;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #333;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: #f8f9fa;
+    border-color: #007bff;
+  }
+
+  span {
+    font-weight: 500;
+  }
+}
+
+.chevron {
+  transition: transform 0.2s ease;
+
+  &.open {
+    transform: rotate(180deg);
+  }
+}
+
+.paymentConfigDropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 450px;
+  max-width: 90vw;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  max-height: 500px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.configHeader {
+  padding: 1rem;
+  border-bottom: 1px solid #eee;
+  background-color: #f8f9fa;
+
+  h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+  }
+}
+
+.configList {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 350px;
+}
+
+.configItem {
+  padding: 1rem;
+  border-bottom: 1px solid #f1f1f1;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.configDisplay {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.configInfo {
+  flex: 1;
+}
+
+.configName {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  color: #333;
+}
+
+.configAmount {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nextPhase {
+  color: #007bff;
+  font-weight: 500;
+}
+
+.configStatus {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.editButton {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background: #0056b3;
+  }
+}
+
+.editForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.editInput {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+
+  &:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+  }
+}
+
+.amountInputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+
+  label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #666;
+  }
+}
+
+.editActions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.saveButton {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background: #218838;
+  }
+}
+
+.cancelButton {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background: #545b62;
+  }
+}
+
+.configFooter {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid #eee;
+  background-color: #f8f9fa;
+  text-align: center;
+}
+
+.manageLink {
+  color: #007bff;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.loading, .empty {
+  padding: 2rem;
+  text-align: center;
+  color: #666;
+  font-style: italic;
+}
+
+// New styles for updated component structure
+.configContent {
+  padding: 0;
+}
+
+.configSection {
+  padding: 1rem;
+  border-bottom: 1px solid #f0f0f0;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  h4 {
+    margin: 0 0 0.75rem 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #333;
+  }
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+
+  h4 {
+    margin: 0;
+    flex: 1;
+  }
+}
+
+.configValue {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #007bff;
+}
+
+.inputGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+
+  .currency {
+    font-weight: 500;
+    color: #666;
+    font-size: 0.9rem;
+  }
+}
+
+.editActions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.saveButton {
+  padding: 0.4rem 0.8rem;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: #218838;
+  }
+}
+
+.feeList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.feeItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid #f5f5f5;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.feeType {
+  font-size: 0.85rem;
+  color: #666;
+  text-transform: capitalize;
+}
+
+.feeAmount {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.moreItems {
+  font-size: 0.8rem;
+  color: #888;
+  font-style: italic;
+  text-align: center;
+  padding: 0.5rem 0;
+}
+
+.summaryStats {
+  display: flex;
+  gap: 1rem;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  min-width: 80px;
+}
+
+.statValue {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #007bff;
+}
+
+.statLabel {
+  font-size: 0.75rem;
+  color: #666;
+  text-align: center;
+  margin-top: 0.25rem;
+}
+
+.configDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.detailItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.3rem 0;
+}
+
+.detailLabel {
+  font-size: 0.85rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.detailValue {
+  font-size: 0.85rem;
+  color: #333;
+  font-weight: 500;
+}
+
+.linkIcon {
+  margin-right: 0.4rem;
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .paymentConfigDropdown {
+    width: 350px;
+    max-width: calc(100vw - 2rem);
+    right: -1rem;
+  }
+
+  .amountInputs {
+    grid-template-columns: 1fr;
+  }
+
+  .configDisplay {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .editActions {
+    justify-content: stretch;
+
+    button {
+      flex: 1;
+    }
+  }
+}

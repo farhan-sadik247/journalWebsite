@@ -186,7 +186,7 @@ export async function GET(
     await dbConnect();
 
     // Build filter based on user role
-    let filter: any = { _id: new mongoose.Types.ObjectId(params.id) };
+    const filter: any = { _id: new mongoose.Types.ObjectId(params.id) };
     
     // Authors can only see their own manuscripts
     if (session.user.role === 'author' || session.user.roles?.includes('author')) {

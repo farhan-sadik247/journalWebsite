@@ -5,7 +5,9 @@ import dbConnect from '@/lib/mongodb';
 import Review from '@/models/Review';
 import Manuscript from '@/models/Manuscript';
 import User from '@/models/User';
+import Notification from '@/models/Notification';
 import { sendEmail } from '@/lib/email';
+import { notifyManuscriptAcceptedWithFee } from '@/lib/notificationUtils';
 
 // GET /api/reviews/[id] - Get specific review details
 export async function GET(
@@ -111,9 +113,38 @@ export async function PUT(
     const allReviews = await Review.find({ manuscriptId: review.manuscriptId._id });
     const completedReviews = allReviews.filter(r => r.status === 'completed');
 
-    // Auto-update manuscript status based on reviews when sufficient reviews are completed
-    if (completedReviews.length >= 2) { // Assuming minimum 2 reviews needed
-      const newStatus = determineManuscriptStatus(completedReviews);
+    // Auto-update manuscript status based on reviews - more flexible thresholds
+    let shouldUpdateStatus = false;
+    let newStatus = manuscript.status;
+    
+    if (completedReviews.length >= 1) { // At least 1 review completed
+      // If we have 2+ reviews, use majority rule
+      if (completedReviews.length >= 2) {
+        newStatus = determineManuscriptStatus(completedReviews);
+        shouldUpdateStatus = true;
+      } 
+      // If we have only 1 review but it's a strong recommendation (accept/reject), consider updating
+      else if (completedReviews.length === 1) {
+        const singleRecommendation = completedReviews[0].recommendation;
+        if (singleRecommendation === 'accept') {
+          newStatus = 'accepted';
+          shouldUpdateStatus = true;
+        } else if (singleRecommendation === 'reject') {
+          newStatus = 'rejected';
+          shouldUpdateStatus = true;
+        } else if (singleRecommendation === 'major-revision') {
+          newStatus = 'major-revision-requested';
+          shouldUpdateStatus = true;
+        } else if (singleRecommendation === 'minor-revision') {
+          newStatus = 'minor-revision-requested';
+          shouldUpdateStatus = true;
+        }
+        // For mixed or unclear recommendations with single review, keep current status
+      }
+    }
+    
+    if (shouldUpdateStatus && newStatus !== manuscript.status) {
+      const previousStatus = manuscript.status;
       manuscript.status = newStatus;
       
       // Add timeline entry for status change
@@ -122,10 +153,11 @@ export async function PUT(
         description: `Status changed to ${newStatus} based on review recommendations`,
         performedBy: null, // System-generated
         metadata: {
-          previousStatus: manuscript.status,
+          previousStatus: previousStatus,
           newStatus: newStatus,
           reviewCount: completedReviews.length,
-          recommendations: completedReviews.map(r => r.recommendation)
+          recommendations: completedReviews.map(r => r.recommendation),
+          triggeredBy: 'review-completion'
         }
       });
       
@@ -134,6 +166,17 @@ export async function PUT(
       // If accepted, trigger additional workflow steps
       if (newStatus === 'accepted') {
         await handleAcceptedManuscript(manuscript);
+      }
+    }
+
+    // IMPORTANT: Also trigger notifications if this specific review is "accept" 
+    // regardless of overall manuscript status change
+    if (recommendation === 'accept') {
+      try {
+        await handleAcceptedManuscript(manuscript);
+      } catch (notificationError) {
+        console.error('Error sending accept review notifications:', notificationError);
+        // Continue with the request even if notification fails
       }
     }
 
@@ -201,6 +244,30 @@ function determineManuscriptStatus(completedReviews: any[]): string {
 // Helper function to handle accepted manuscripts and trigger publishing workflow
 async function handleAcceptedManuscript(manuscript: any) {
   try {
+    // Get corresponding author info first
+    const correspondingAuthor = manuscript.authors.find((author: any) => author.isCorresponding);
+    if (!correspondingAuthor) {
+      throw new Error('No corresponding author found for accepted manuscript');
+    }
+
+    // Check if acceptance notifications have already been sent for this manuscript
+    const existingAcceptanceNotifications = await Notification.find({
+      relatedManuscript: manuscript._id,
+      type: { $in: ['manuscript_status', 'payment_required'] },
+      title: { $regex: /accepted|payment/i }
+    }).sort({ createdAt: -1 }).limit(5);
+
+    // Check if recent notifications were already sent (within last 24 hours)
+    const recentNotifications = existingAcceptanceNotifications.filter(notif => {
+      const timeDiff = Date.now() - new Date(notif.createdAt).getTime();
+      return timeDiff < 24 * 60 * 60 * 1000; // 24 hours
+    });
+
+    if (recentNotifications.length >= 2) {
+      console.log('Acceptance notifications already sent recently, skipping duplicate notifications');
+      return;
+    }
+
     // Add accepted manuscript to publishing queue
     manuscript.timeline.push({
       event: 'accepted',
@@ -208,33 +275,55 @@ async function handleAcceptedManuscript(manuscript: any) {
       performedBy: null, // System-generated
       metadata: {
         acceptedDate: new Date(),
-        nextStep: 'copy-editing'
+        nextStep: 'payment-required'
       }
     });
     
     // Update status to show next step in publishing pipeline
-    manuscript.status = 'accepted-awaiting-copy-edit';
+    manuscript.status = 'accepted';
     
     await manuscript.save();
-    
-    // Send notification to author about acceptance
+
+    // Prepare manuscript data for fee calculation
+    const manuscriptData = {
+      articleType: manuscript.category || 'research',
+      authorCountry: correspondingAuthor.country || 'US',
+      institutionName: correspondingAuthor.affiliation
+    };
+
+    // Send notifications with fee calculation
     try {
-      const authorEmail = manuscript.authors.find((author: any) => author.isCorresponding)?.email;
-      if (authorEmail) {
-        await sendEmail({
-          to: authorEmail,
-          subject: `Manuscript Accepted - ${manuscript.title}`,
-          html: `
-            <h2>Congratulations! Your Manuscript Has Been Accepted</h2>
-            <p>We are pleased to inform you that your manuscript "<strong>${manuscript.title}</strong>" has been accepted for publication.</p>
-            <p>Your manuscript will now proceed through the copy-editing and production process.</p>
-            <p>You will receive updates on the publication progress through your dashboard.</p>
-            <p><a href="${process.env.NEXTAUTH_URL}/dashboard/manuscripts/${manuscript._id}">View Manuscript Status</a></p>
-            <p>Congratulations and thank you for your contribution!</p>
-            <p>Best regards,<br>Editorial Team</p>
-          `
-        });
-      }
+      const notificationResult = await notifyManuscriptAcceptedWithFee(
+        correspondingAuthor.email,
+        manuscript._id.toString(),
+        manuscript.title,
+        manuscriptData
+      );
+      
+      console.log('Acceptance notifications sent successfully:', {
+        acceptance: notificationResult.acceptanceNotification?._id,
+        payment: notificationResult.paymentNotification?._id,
+        feeWaived: notificationResult.feeCalculation?.isWaiver || false
+      });
+    } catch (notificationError) {
+      console.error('Error sending acceptance notifications:', notificationError);
+      // Continue with fallback email notification
+    }
+    
+    // Send fallback email notification to author about acceptance
+    try {
+      await sendEmail({
+        to: correspondingAuthor.email,
+        subject: `Manuscript Accepted - ${manuscript.title}`,
+        html: `
+          <h2>Congratulations! Your Manuscript Has Been Accepted</h2>
+          <p>We are pleased to inform you that your manuscript "<strong>${manuscript.title}</strong>" has been accepted for publication.</p>
+          <p>Please check your dashboard for payment information and next steps in the publication process.</p>
+          <p><a href="${process.env.NEXTAUTH_URL}/dashboard/manuscripts/${manuscript._id}">View Manuscript Status</a></p>
+          <p>Congratulations and thank you for your contribution!</p>
+          <p>Best regards,<br>Editorial Team</p>
+        `
+      });
     } catch (emailError) {
       console.log('Acceptance email notification failed (non-critical):', (emailError as Error).message);
     }

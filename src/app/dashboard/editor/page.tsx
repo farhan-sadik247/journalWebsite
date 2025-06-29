@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import styles from './EditorDashboard.module.scss';
+import Link from 'next/link';
+import { FiBook, FiEdit3 } from 'react-icons/fi';
 
 interface Manuscript {
   _id: string;
@@ -504,6 +506,18 @@ export default function EditorDashboard() {
           </div>
         </div>
       )}
+
+      {/* Navigation Links for Publication Dashboard and Corrections */}
+      <div className={styles.actions}>
+        <Link href="/dashboard/publication" className={styles.actionButton}>
+          <FiBook />
+          <span>Publication Dashboard</span>
+        </Link>
+        <Link href="/dashboard/corrections" className={styles.actionButton}>
+          <FiEdit3 />
+          <span>Corrections</span>
+        </Link>
+      </div>
     </div>
   );
 }

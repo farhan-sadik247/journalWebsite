@@ -15,7 +15,7 @@ import {
   FiPlus,
   FiArchive
 } from 'react-icons/fi';
-import styles from './PublicationDashboard.module.scss';
+import styles from './Publication.module.scss';
 
 interface Manuscript {
   _id: string;

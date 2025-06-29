@@ -1,0 +1,523 @@
+.container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 2rem 0;
+}
+
+.loading, .error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  text-align: center;
+  color: white;
+
+  .spinner {
+    width: 3rem;
+    height: 3rem;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top: 3px solid white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+  }
+
+  .errorIcon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.7;
+  }
+
+  h2 {
+    margin: 0 0 1rem 0;
+    font-size: 1.5rem;
+  }
+
+  p {
+    margin: 0 0 2rem 0;
+    opacity: 0.8;
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.header {
+  max-width: 1200px;
+  margin: 0 auto 2rem auto;
+  padding: 0 1rem;
+
+  .headerContent {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    padding: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+    .headerIcon {
+      font-size: 3rem;
+      color: #2563eb;
+      min-width: 3rem;
+    }
+
+    h1 {
+      margin: 0;
+      color: #1f2937;
+      font-size: 2.5rem;
+      font-weight: 700;
+    }
+
+    p {
+      margin: 0.5rem 0 0 0;
+      color: #6b7280;
+      font-size: 1.1rem;
+    }
+  }
+}
+
+.content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.section {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+  h2 {
+    margin: 0 0 1.5rem 0;
+    color: #1f2937;
+    font-size: 1.8rem;
+    font-weight: 600;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #e5e7eb;
+  }
+
+  .sectionDescription {
+    margin: 0 0 1.5rem 0;
+    color: #6b7280;
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+}
+
+.overviewCard {
+  p {
+    margin: 0 0 2rem 0;
+    color: #374151;
+    font-size: 1.1rem;
+    line-height: 1.6;
+  }
+
+  .keyInfo {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .infoItem {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+
+    .infoIcon {
+      font-size: 1.5rem;
+      color: #2563eb;
+      margin-top: 0.25rem;
+      min-width: 1.5rem;
+    }
+
+    strong {
+      display: block;
+      color: #1f2937;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    p {
+      margin: 0;
+      color: #6b7280;
+      font-size: 0.9rem;
+    }
+  }
+}
+
+.feeTable, .discountTable {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+
+  .tableHeader {
+    display: grid;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e5e7eb;
+    font-weight: 600;
+    color: #374151;
+    padding: 1rem;
+  }
+
+  .tableRow {
+    display: grid;
+    padding: 1rem;
+    border-bottom: 1px solid #f1f3f4;
+    align-items: center;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &:hover {
+      background: #f8f9fa;
+    }
+  }
+}
+
+.feeTable {
+  .tableHeader, .tableRow {
+    grid-template-columns: 1fr auto;
+    gap: 2rem;
+  }
+
+  .articleType {
+    font-weight: 500;
+    color: #374151;
+  }
+
+  .fee {
+    font-weight: 600;
+    color: #059669;
+    font-size: 1.1rem;
+  }
+}
+
+.discountTable {
+  .tableHeader, .tableRow {
+    grid-template-columns: 200px 150px 120px 1fr;
+    gap: 1rem;
+  }
+
+  .country {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+    color: #374151;
+
+    .countryIcon {
+      color: #2563eb;
+    }
+  }
+
+  .discountType {
+    font-weight: 500;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    background: #dbeafe;
+    color: #1e40af;
+    text-align: center;
+  }
+
+  .discountAmount {
+    font-weight: 600;
+    color: #059669;
+    text-align: center;
+  }
+
+  .description {
+    color: #6b7280;
+    font-size: 0.9rem;
+  }
+}
+
+.waiverCountries {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+
+  .waiverCountry {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: #dcfce7;
+    border: 1px solid #bbf7d0;
+    border-radius: 6px;
+    color: #166534;
+    font-weight: 500;
+
+    .countryIcon {
+      color: #059669;
+    }
+  }
+}
+
+.paymentMethods {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+
+  .paymentMethod {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    color: #374151;
+    font-weight: 500;
+
+    .paymentIcon {
+      font-size: 1.5rem;
+      color: #2563eb;
+    }
+  }
+}
+
+.infoBox {
+  .infoItem {
+    margin-bottom: 2rem;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    h3 {
+      margin: 0 0 0.5rem 0;
+      color: #1f2937;
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+
+    p {
+      margin: 0;
+      color: #6b7280;
+      line-height: 1.6;
+
+      a {
+        color: #2563eb;
+        text-decoration: none;
+        font-weight: 500;
+
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+    }
+  }
+}
+
+.baseFeeInfo {
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+  border-radius: 12px;
+  padding: 2rem;
+  margin: 2rem 0;
+  text-align: center;
+  color: white;
+
+  h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+
+  .baseFeeAmount {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin: 1rem 0;
+
+    .currency {
+      font-size: 1.5rem;
+      font-weight: 600;
+      opacity: 0.9;
+    }
+
+    .amount {
+      font-size: 3rem;
+      font-weight: 700;
+    }
+  }
+
+  .baseFeeNote {
+    margin: 1rem 0 0 0;
+    opacity: 0.9;
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem 0;
+  }
+
+  .header {
+    padding: 0 0.5rem;
+
+    .headerContent {
+      padding: 1.5rem;
+      flex-direction: column;
+      text-align: center;
+      gap: 1rem;
+
+      .headerIcon {
+        font-size: 2.5rem;
+      }
+
+      h1 {
+        font-size: 2rem;
+      }
+
+      p {
+        font-size: 1rem;
+      }
+    }
+  }
+
+  .content {
+    padding: 0 0.5rem;
+  }
+
+  .section {
+    padding: 1.5rem;
+
+    h2 {
+      font-size: 1.5rem;
+    }
+  }
+
+  .overviewCard .keyInfo {
+    grid-template-columns: 1fr;
+  }
+
+  .discountTable {
+    .tableHeader, .tableRow {
+      grid-template-columns: 1fr;
+      gap: 0.5rem;
+    }
+
+    .tableHeader {
+      display: none; // Hide headers on mobile, make it more card-like
+    }
+
+    .tableRow {
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      margin-bottom: 1rem;
+      padding: 1rem;
+
+      &:hover {
+        background: white;
+      }
+
+      .country, .discountType, .discountAmount, .description {
+        display: block;
+        margin-bottom: 0.5rem;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+
+      .country::before {
+        content: "Country: ";
+        font-weight: 600;
+        color: #6b7280;
+      }
+
+      .discountType::before {
+        content: "Type: ";
+        font-weight: 600;
+        color: #6b7280;
+      }
+
+      .discountAmount::before {
+        content: "Amount: ";
+        font-weight: 600;
+        color: #6b7280;
+      }
+
+      .description::before {
+        content: "Description: ";
+        font-weight: 600;
+        color: #6b7280;
+      }
+    }
+  }
+
+  .feeTable {
+    .tableHeader, .tableRow {
+      grid-template-columns: 1fr;
+      gap: 0.5rem;
+    }
+
+    .tableHeader {
+      display: none;
+    }
+
+    .tableRow {
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      margin-bottom: 1rem;
+
+      .articleType, .fee {
+        display: block;
+        margin-bottom: 0.5rem;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+
+      .articleType::before {
+        content: "Article Type: ";
+        font-weight: 600;
+        color: #6b7280;
+      }
+
+      .fee::before {
+        content: "Fee: ";
+        font-weight: 600;
+        color: #6b7280;
+      }
+    }
+  }
+
+  .waiverCountries {
+    grid-template-columns: 1fr;
+  }
+
+  .paymentMethods {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .header .headerContent {
+    padding: 1rem;
+
+    h1 {
+      font-size: 1.5rem;
+    }
+  }
+
+  .section {
+    padding: 1rem;
+  }
+}

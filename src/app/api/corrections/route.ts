@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const filter = searchParams.get('filter') || 'all';
 
-    let query: any = {};
+    const query: any = {};
 
     // Apply filters
     switch (filter) {

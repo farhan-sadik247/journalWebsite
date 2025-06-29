@@ -3,14 +3,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { FiSave, FiUser, FiMail, FiMapPin, FiBook, FiExternalLink, FiEdit, FiImage, FiUpload } from 'react-icons/fi';
+import { FiSave, FiUser, FiMail, FiMapPin, FiBook, FiExternalLink, FiEdit, FiImage, FiUpload, FiAward } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+import RoleApplicationForm from '@/components/RoleApplicationForm';
 import styles from './Profile.module.scss';
 
 interface ProfileData {
   name: string;
   email: string;
   affiliation: string;
+  country: string;
   bio: string;
   expertise: string[];
   orcid: string;
@@ -24,6 +26,7 @@ export default function ProfilePage() {
     name: '',
     email: '',
     affiliation: '',
+    country: '',
     bio: '',
     expertise: [],
     orcid: '',
@@ -34,6 +37,7 @@ export default function ProfilePage() {
   const [newExpertise, setNewExpertise] = useState('');
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
+  const [showRoleApplication, setShowRoleApplication] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -60,6 +64,7 @@ export default function ProfilePage() {
           name: user.name || '',
           email: user.email || '',
           affiliation: user.affiliation || '',
+          country: user.country || '',
           bio: user.bio || '',
           expertise: user.expertise || [],
           orcid: user.orcid || '',
@@ -132,6 +137,7 @@ export default function ProfilePage() {
         body: JSON.stringify({
           name: formData.name,
           affiliation: formData.affiliation,
+          country: formData.country,
           bio: formData.bio,
           expertise: formData.expertise,
           orcid: formData.orcid,
@@ -251,8 +257,20 @@ export default function ProfilePage() {
     <div className={styles.profilePage}>
       <div className="container">
         <div className={styles.profileHeader}>
-          <h1>Profile Settings</h1>
-          <p>Manage your personal information and academic profile</p>
+          <div className={styles.headerContent}>
+            <h1>Profile Settings</h1>
+            <p>Manage your personal information and academic profile</p>
+          </div>
+          <div className={styles.headerActions}>
+            <button
+              onClick={() => setShowRoleApplication(true)}
+              className="btn btn-secondary"
+              type="button"
+            >
+              <FiAward />
+              Apply for Role Promotion
+            </button>
+          </div>
         </div>
 
         <div className={styles.profileContent}>
@@ -355,6 +373,83 @@ export default function ProfilePage() {
                     className={styles.formInput}
                     placeholder="University, Institution, or Organization"
                   />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>
+                    <FiMapPin />
+                    Country
+                  </label>
+                  <select
+                    value={formData.country}
+                    onChange={(e) => handleInputChange('country', e.target.value)}
+                    className={styles.formInput}
+                  >
+                    <option value="">Select Country</option>
+                    <option value="US">United States</option>
+                    <option value="CA">Canada</option>
+                    <option value="GB">United Kingdom</option>
+                    <option value="AU">Australia</option>
+                    <option value="DE">Germany</option>
+                    <option value="FR">France</option>
+                    <option value="IN">India</option>
+                    <option value="CN">China</option>
+                    <option value="JP">Japan</option>
+                    <option value="KR">South Korea</option>
+                    <option value="BR">Brazil</option>
+                    <option value="MX">Mexico</option>
+                    <option value="IT">Italy</option>
+                    <option value="ES">Spain</option>
+                    <option value="NL">Netherlands</option>
+                    <option value="SE">Sweden</option>
+                    <option value="NO">Norway</option>
+                    <option value="DK">Denmark</option>
+                    <option value="FI">Finland</option>
+                    <option value="CH">Switzerland</option>
+                    <option value="AT">Austria</option>
+                    <option value="BE">Belgium</option>
+                    <option value="IE">Ireland</option>
+                    <option value="PL">Poland</option>
+                    <option value="CZ">Czech Republic</option>
+                    <option value="HU">Hungary</option>
+                    <option value="GR">Greece</option>
+                    <option value="PT">Portugal</option>
+                    <option value="RU">Russia</option>
+                    <option value="TR">Turkey</option>
+                    <option value="IL">Israel</option>
+                    <option value="ZA">South Africa</option>
+                    <option value="EG">Egypt</option>
+                    <option value="NG">Nigeria</option>
+                    <option value="KE">Kenya</option>
+                    <option value="GH">Ghana</option>
+                    <option value="TH">Thailand</option>
+                    <option value="VN">Vietnam</option>
+                    <option value="ID">Indonesia</option>
+                    <option value="MY">Malaysia</option>
+                    <option value="SG">Singapore</option>
+                    <option value="PH">Philippines</option>
+                    <option value="PK">Pakistan</option>
+                    <option value="BD">Bangladesh</option>
+                    <option value="LK">Sri Lanka</option>
+                    <option value="NP">Nepal</option>
+                    <option value="AF">Afghanistan</option>
+                    <option value="IR">Iran</option>
+                    <option value="IQ">Iraq</option>
+                    <option value="SA">Saudi Arabia</option>
+                    <option value="AE">United Arab Emirates</option>
+                    <option value="QA">Qatar</option>
+                    <option value="KW">Kuwait</option>
+                    <option value="BH">Bahrain</option>
+                    <option value="OM">Oman</option>
+                    <option value="JO">Jordan</option>
+                    <option value="LB">Lebanon</option>
+                    <option value="SY">Syria</option>
+                    <option value="YE">Yemen</option>
+                    <option value="OTHER">Other</option>
+                  </select>
+                  <small className={styles.formHint}>
+                    Select your country for fee calculation and waiver eligibility
+                  </small>
                 </div>
 
                 <div className={styles.formGroup}>
@@ -469,6 +564,17 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
+
+      {/* Role Application Form */}
+      <RoleApplicationForm
+        isOpen={showRoleApplication}
+        onClose={() => setShowRoleApplication(false)}
+        currentRoles={session?.user?.roles || ['author']}
+        onApplicationSubmitted={() => {
+          setShowRoleApplication(false);
+          // Optionally refresh user data or show success message
+        }}
+      />
     </div>
   );
 }

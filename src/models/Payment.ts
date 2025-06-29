@@ -28,7 +28,7 @@ const paymentSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
-    enum: ['stripe', 'paypal', 'bank_transfer', 'waiver'],
+    enum: ['stripe', 'paypal', 'bank_transfer', 'waiver', 'card'],
     required: true,
   },
   paymentIntentId: {

@@ -79,7 +79,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const { name, affiliation, bio, expertise, orcid, profileImage } = await request.json();
+    const { name, affiliation, country, bio, expertise, orcid, profileImage } = await request.json();
 
     await dbConnect();
     
@@ -88,6 +88,7 @@ export async function PUT(request: NextRequest) {
       {
         name,
         affiliation,
+        country,
         bio,
         expertise,
         orcid,

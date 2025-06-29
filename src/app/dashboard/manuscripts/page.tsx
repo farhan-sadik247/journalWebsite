@@ -260,7 +260,22 @@ export default function ManuscriptsPage() {
                     )}
                     {manuscript.status === 'accepted-awaiting-copy-edit' && (
                       <span className={styles.productionStatus}>
-                        🔄 In publication pipeline
+                        🔄 Awaiting copy editing
+                      </span>
+                    )}
+                    {manuscript.status === 'in-copy-editing' && (
+                      <span className={styles.productionStatus}>
+                        ✏️ In copy editing process
+                      </span>
+                    )}
+                    {manuscript.status === 'copy-editing-complete' && (
+                      <span className={styles.productionStatus}>
+                        📝 Copy editing complete
+                      </span>
+                    )}
+                    {manuscript.status === 'in-production' && (
+                      <span className={styles.productionStatus}>
+                        🏭 In production pipeline
                       </span>
                     )}
                   </div>

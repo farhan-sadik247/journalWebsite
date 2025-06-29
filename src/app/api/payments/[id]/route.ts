@@ -5,6 +5,7 @@ import dbConnect from '@/lib/mongodb';
 import Payment from '@/models/Payment';
 import Manuscript from '@/models/Manuscript';
 import User from '@/models/User';
+import { notifyPaymentConfirmed } from '@/lib/notificationUtils';
 
 // GET /api/payments/[id] - Get specific payment
 export async function GET(
@@ -91,6 +92,17 @@ export async function PUT(
           status: 'in-production',
           paymentStatus: 'completed'
         });
+
+        // Notify author that payment is confirmed and copy-editing can begin
+        const user = await User.findById(payment.userId);
+        if (user) {
+          await notifyPaymentConfirmed(
+            user.email,
+            payment.manuscriptId._id.toString(),
+            payment.manuscriptId.title,
+            payment._id.toString()
+          );
+        }
       } else if (status === 'failed') {
         // Update manuscript payment status
         await Manuscript.findByIdAndUpdate(payment.manuscriptId._id, {

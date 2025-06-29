@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     const recent = searchParams.get('recent');
 
     // Build filter for published articles
-    let filter: any = { 
+    const filter: any = { 
       status: 'published',
       publicationDate: { $exists: true }
     };

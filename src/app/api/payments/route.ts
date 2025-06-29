@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
 
-    let query: any = {};
+    const query: any = {};
 
     // Filter by user role
     if (session.user.role === 'admin' || session.user.role === 'editor') {
@@ -80,10 +80,39 @@ export async function POST(request: NextRequest) {
       waiverReason
     } = await request.json();
 
-    if (!manuscriptId || !paymentMethod || !billingAddress) {
+    if (!manuscriptId || !paymentMethod) {
       return NextResponse.json({
-        error: 'Manuscript ID, payment method, and billing address are required'
+        error: 'Manuscript ID and payment method are required'
       }, { status: 400 });
+    }
+
+    // Validate and normalize billing address
+    console.log('Received billing address:', billingAddress);
+    
+    if (!billingAddress) {
+      console.error('No billing address provided');
+      return NextResponse.json({
+        error: 'Billing address is required'
+      }, { status: 400 });
+    }
+    
+    // Ensure all required billing address fields have default values
+    const normalizedBillingAddress = {
+      name: (billingAddress.name && billingAddress.name.trim()) || 'Author Name Not Provided',
+      institution: billingAddress.institution || '',
+      address: billingAddress.address || 'Address not provided',
+      city: billingAddress.city || 'City not provided',
+      state: billingAddress.state || '',
+      country: billingAddress.country || 'US',
+      postalCode: billingAddress.postalCode || '',
+    };
+
+    console.log('Normalized billing address:', normalizedBillingAddress);
+    
+    // Final validation
+    if (!normalizedBillingAddress.name || normalizedBillingAddress.name.trim() === '') {
+      normalizedBillingAddress.name = 'Payment Author';
+      console.log('FORCED name because still empty:', normalizedBillingAddress.name);
     }
 
     await dbConnect();
@@ -140,7 +169,7 @@ export async function POST(request: NextRequest) {
       discountAmount: feeCalculation.discountAmount,
       discountReason: feeCalculation.discountReason,
       paymentMethod,
-      billingAddress,
+      billingAddress: normalizedBillingAddress,
       dueDate: new Date(Date.now() + feeConfig.paymentDeadlineDays * 24 * 60 * 60 * 1000),
     };
 

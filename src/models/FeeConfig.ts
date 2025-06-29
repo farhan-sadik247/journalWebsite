@@ -171,19 +171,38 @@ feeConfigSchema.statics.getDefaultConfig = async function() {
 
 // Calculate fee for a manuscript
 feeConfigSchema.methods.calculateFee = function(articleType: string, authorCountry: string, institutionName?: string) {
+  console.log('Calculating fee for:', { articleType, authorCountry, institutionName });
+  
+  // Start with base fee
   let fee = this.baseFee;
   
-  // Check article type specific fee
+  // Check article type specific fee (this overrides base fee if found)
   const articleTypeFee = this.articleTypeFees.find((af: any) => af.articleType === articleType);
   if (articleTypeFee) {
     fee = articleTypeFee.fee;
+    console.log(`Article type fee found: ${articleType} = ${fee}`);
+  } else {
+    console.log(`No specific fee for article type: ${articleType}, using base fee: ${fee}`);
   }
   
   let discountAmount = 0;
   let discountReason = '';
   
+  // If no country provided or empty, return full base fee
+  if (!authorCountry || authorCountry.trim() === '') {
+    console.log('No country provided, returning full base fee');
+    return {
+      baseFee: fee,
+      finalFee: fee,
+      discountAmount: 0,
+      discountReason: '',
+      isWaiver: false,
+    };
+  }
+  
   // Check for automatic waiver countries
   if (this.automaticWaiverCountries.includes(authorCountry)) {
+    console.log(`Automatic waiver applied for country: ${authorCountry}`);
     return {
       baseFee: fee,
       finalFee: 0,
@@ -196,6 +215,7 @@ feeConfigSchema.methods.calculateFee = function(articleType: string, authorCount
   // Check country-based discounts
   const countryDiscount = this.countryDiscounts.find((cd: any) => cd.country === authorCountry);
   if (countryDiscount) {
+    console.log(`Country discount found for ${authorCountry}:`, countryDiscount);
     if (countryDiscount.discountType === 'waiver') {
       return {
         baseFee: fee,
@@ -207,20 +227,26 @@ feeConfigSchema.methods.calculateFee = function(articleType: string, authorCount
     } else if (countryDiscount.discountType === 'percentage') {
       discountAmount = Math.round(fee * (countryDiscount.discountValue / 100));
       discountReason = countryDiscount.description || `${countryDiscount.discountValue}% country-based discount`;
+      console.log(`Percentage discount applied: ${discountAmount} (${countryDiscount.discountValue}%)`);
     } else if (countryDiscount.discountType === 'fixed_amount') {
       discountAmount = Math.min(countryDiscount.discountValue, fee);
       discountReason = countryDiscount.description || `$${countryDiscount.discountValue} country-based discount`;
+      console.log(`Fixed amount discount applied: ${discountAmount}`);
     }
+  } else {
+    console.log(`No country discount found for: ${authorCountry}`);
   }
   
   // Check institution-based discounts (if no country discount applied)
   if (!discountAmount && institutionName) {
+    console.log(`Checking institution discount for: ${institutionName}`);
     const institutionDiscount = this.institutionDiscounts.find((id: any) => 
       id.institutionName.toLowerCase() === institutionName.toLowerCase() &&
       (!id.validUntil || new Date(id.validUntil) > new Date())
     );
     
     if (institutionDiscount) {
+      console.log(`Institution discount found:`, institutionDiscount);
       if (institutionDiscount.discountType === 'percentage') {
         discountAmount = Math.round(fee * (institutionDiscount.discountValue / 100));
         discountReason = institutionDiscount.description || `${institutionDiscount.discountValue}% institutional discount`;
@@ -228,16 +254,21 @@ feeConfigSchema.methods.calculateFee = function(articleType: string, authorCount
         discountAmount = Math.min(institutionDiscount.discountValue, fee);
         discountReason = institutionDiscount.description || `$${institutionDiscount.discountValue} institutional discount`;
       }
+    } else {
+      console.log('No institution discount found');
     }
   }
   
-  return {
+  const finalResult = {
     baseFee: fee,
     finalFee: Math.max(0, fee - discountAmount),
     discountAmount,
     discountReason,
     isWaiver: false,
   };
+  
+  console.log('Final calculation result:', finalResult);
+  return finalResult;
 };
 
 export default (mongoose.models.FeeConfig as FeeConfigModel) || mongoose.model<any, FeeConfigModel>('FeeConfig', feeConfigSchema);

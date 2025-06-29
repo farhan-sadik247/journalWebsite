@@ -101,7 +101,7 @@ export async function POST(
       const authorName = manuscriptData.submittedBy?.name;
 
       if (authorEmail && authorName) {
-        let emailContent = generateDecisionEmail(
+        const emailContent = generateDecisionEmail(
           authorName,
           manuscriptData.title,
           decision,

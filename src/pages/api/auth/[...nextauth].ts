@@ -40,8 +40,8 @@ export const authOptions: NextAuthOptions = {
             email: user.email,
             name: user.name,
             role: user.role,
-            roles: user.roles || [user.role],
-            currentActiveRole: user.currentActiveRole || user.role,
+            roles: user.roles || ['author'],
+            currentActiveRole: 'author', // Always login as author
             isFounder: user.isFounder || false,
             image: user.profileImage,
           };
@@ -82,8 +82,8 @@ export const authOptions: NextAuthOptions = {
           }
           
           user.role = existingUser.role;
-          user.roles = existingUser.roles || [existingUser.role];
-          user.currentActiveRole = existingUser.currentActiveRole || existingUser.role;
+          user.roles = existingUser.roles || ['author'];
+          user.currentActiveRole = 'author'; // Always login as author
           user.isFounder = existingUser.isFounder || false;
           user.id = existingUser._id.toString();
           
@@ -108,9 +108,10 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (token && session.user) {
         session.user.id = token.id as string;
-        session.user.role = token.role as 'author' | 'reviewer' | 'editor' | 'admin';
-        session.user.roles = token.roles as ('author' | 'reviewer' | 'editor' | 'admin')[];
-        session.user.currentActiveRole = token.currentActiveRole as 'author' | 'reviewer' | 'editor' | 'admin';
+        session.user.role = token.role as 'author' | 'reviewer' | 'editor' | 'copy-editor' | 'admin';
+        session.user.roles = token.roles as ('author' | 'reviewer' | 'editor' | 'copy-editor' | 'admin')[];
+        // Users always login as 'author' - they can only use other roles from dashboard
+        session.user.currentActiveRole = 'author';
         session.user.isFounder = token.isFounder as boolean;
       }
       return session;

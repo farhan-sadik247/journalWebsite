@@ -58,7 +58,7 @@ export default function CopyEditorDashboard() {
 
   const fetchManuscripts = async () => {
     try {
-      const response = await fetch('/api/manuscripts?status=accepted&copyEditing=true');
+      const response = await fetch('/api/manuscripts?copyEditing=true');
       if (response.ok) {
         const data = await response.json();
         setManuscripts(data.manuscripts || []);

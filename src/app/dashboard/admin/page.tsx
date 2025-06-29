@@ -224,6 +224,18 @@ export default function AdminDashboard() {
             </button>
             <button
               className={styles.actionButton}
+              onClick={() => router.push('/dashboard/admin/role-applications')}
+            >
+              Role Applications
+            </button>
+            <button
+              className={styles.actionButton}
+              onClick={() => router.push('/dashboard/admin/fee-config')}
+            >
+              Publication Fees
+            </button>
+            <button
+              className={styles.actionButton}
               onClick={() => alert('System settings feature coming soon!')}
             >
               System Settings

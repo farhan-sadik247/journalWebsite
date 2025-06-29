@@ -31,7 +31,7 @@ export async function GET(
     await dbConnect();
 
     // Build filter based on user role
-    let filter: any = { _id: new mongoose.Types.ObjectId(params.id) };
+    const filter: any = { _id: new mongoose.Types.ObjectId(params.id) };
     
     // Authors can only see their own manuscripts
     if (session.user.role === 'author') {
@@ -64,75 +64,112 @@ export async function GET(
       {
         $addFields: {
           completedReviewsCount: { $size: '$completedReviews' },
-          // Dynamically determine status based on completed reviews
+          // Dynamically determine status based on completed reviews - updated for single reviews
           dynamicStatus: {
             $cond: {
-              if: { $gte: ['$completedReviewsCount', 2] },
+              if: { $gte: ['$completedReviewsCount', 1] }, // Check for 1+ reviews instead of 2+
               then: {
-                $let: {
-                  vars: {
-                    recommendations: {
-                      $map: {
-                        input: '$completedReviews',
-                        as: 'review',
-                        in: '$$review.recommendation'
+                $cond: {
+                  if: { $gte: ['$completedReviewsCount', 2] }, // 2+ reviews - use majority rule
+                  then: {
+                    $let: {
+                      vars: {
+                        recommendations: {
+                          $map: {
+                            input: '$completedReviews',
+                            as: 'review',
+                            in: '$$review.recommendation'
+                          }
+                        }
+                      },
+                      in: {
+                        $let: {
+                          vars: {
+                            acceptCount: {
+                              $size: {
+                                $filter: {
+                                  input: '$$recommendations',
+                                  cond: { $eq: ['$$this', 'accept'] }
+                                }
+                              }
+                            },
+                            rejectCount: {
+                              $size: {
+                                $filter: {
+                                  input: '$$recommendations',
+                                  cond: { $eq: ['$$this', 'reject'] }
+                                }
+                              }
+                            },
+                            majorRevisionCount: {
+                              $size: {
+                                $filter: {
+                                  input: '$$recommendations',
+                                  cond: { $eq: ['$$this', 'major-revision'] }
+                                }
+                              }
+                            },
+                            minorRevisionCount: {
+                              $size: {
+                                $filter: {
+                                  input: '$$recommendations',
+                                  cond: { $eq: ['$$this', 'minor-revision'] }
+                                }
+                              }
+                            },
+                            totalReviews: { $size: '$$recommendations' }
+                          },
+                          in: {
+                            $cond: {
+                              if: { $gte: ['$$acceptCount', { $ceil: { $divide: ['$$totalReviews', 2] } }] },
+                              then: 'accepted',
+                              else: {
+                                $cond: {
+                                  if: { $gte: ['$$rejectCount', { $ceil: { $divide: ['$$totalReviews', 2] } }] },
+                                  then: 'rejected',
+                                  else: {
+                                    $cond: {
+                                      if: { $gt: ['$$majorRevisionCount', 0] },
+                                      then: 'major-revision-requested',
+                                      else: {
+                                        $cond: {
+                                          if: { $gt: ['$$minorRevisionCount', 0] },
+                                          then: 'minor-revision-requested',
+                                          else: 'under-editorial-review'
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
                       }
                     }
                   },
-                  in: {
+                  else: { // Single review logic
                     $let: {
                       vars: {
-                        acceptCount: {
-                          $size: {
-                            $filter: {
-                              input: '$$recommendations',
-                              cond: { $eq: ['$$this', 'accept'] }
-                            }
-                          }
-                        },
-                        rejectCount: {
-                          $size: {
-                            $filter: {
-                              input: '$$recommendations',
-                              cond: { $eq: ['$$this', 'reject'] }
-                            }
-                          }
-                        },
-                        majorRevisionCount: {
-                          $size: {
-                            $filter: {
-                              input: '$$recommendations',
-                              cond: { $eq: ['$$this', 'major-revision'] }
-                            }
-                          }
-                        },
-                        minorRevisionCount: {
-                          $size: {
-                            $filter: {
-                              input: '$$recommendations',
-                              cond: { $eq: ['$$this', 'minor-revision'] }
-                            }
-                          }
-                        },
-                        totalReviews: { $size: '$$recommendations' }
+                        singleRecommendation: { $arrayElemAt: ['$completedReviews.recommendation', 0] }
                       },
                       in: {
                         $cond: {
-                          if: { $gte: ['$$acceptCount', { $ceil: { $divide: ['$$totalReviews', 2] } }] },
+                          if: { $eq: ['$$singleRecommendation', 'accept'] },
                           then: 'accepted',
                           else: {
                             $cond: {
-                              if: { $gte: ['$$rejectCount', { $ceil: { $divide: ['$$totalReviews', 2] } }] },
+                              if: { $eq: ['$$singleRecommendation', 'reject'] },
                               then: 'rejected',
                               else: {
                                 $cond: {
-                                  if: { $gt: ['$$majorRevisionCount', 0] },
+                                  if: { $eq: ['$$singleRecommendation', 'major-revision'] },
                                   then: 'major-revision-requested',
                                   else: {
                                     $cond: {
-                                      if: { $gt: ['$$minorRevisionCount', 0] },
+                                      if: { $eq: ['$$singleRecommendation', 'minor-revision'] },
                                       then: 'minor-revision-requested',
-                                      else: 'under-editorial-review'
+                                      else: '$status' // Keep current status for unclear recommendations
                                     }
                                   }
                                 }
@@ -152,10 +189,10 @@ export async function GET(
       },
       {
         $addFields: {
-          // Use dynamic status if we have enough completed reviews, otherwise keep original status
+          // Use dynamic status if we have completed reviews, otherwise keep original status
           finalStatus: {
             $cond: {
-              if: { $gte: ['$completedReviewsCount', 2] },
+              if: { $gte: ['$completedReviewsCount', 1] }, // Updated threshold
               then: '$dynamicStatus',
               else: '$status'
             }
@@ -194,7 +231,7 @@ export async function GET(
     ];
 
     const manuscripts = await Manuscript.aggregate(manuscriptPipeline);
-    let manuscript = manuscripts[0];
+    const manuscript = manuscripts[0];
 
     if (!manuscript) {
       return NextResponse.json(
