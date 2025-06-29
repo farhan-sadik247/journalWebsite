@@ -1,0 +1,467 @@
+@import '../../styles/variables';
+
+.header {
+  background: white;
+  box-shadow: $shadow-md;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  border-bottom: 1px solid #e5e7eb;
+  
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+    
+    @media (max-width: 768px) {
+      padding: 0 0.75rem;
+    }
+  }
+  
+  .headerContent {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 80px;
+    padding: 1rem 0;
+    gap: var(--spacing-md);
+    flex-wrap: nowrap;
+    
+    @media (max-width: 480px) {
+      min-height: 70px;
+      padding: 0.75rem 0;
+    }
+  }
+  
+  .logo {
+    flex-shrink: 0;
+    
+    h1 {
+      font-size: 1.875rem; // 2xl
+      font-weight: 700;
+      color: $primary-color;
+      margin: 0;
+      white-space: nowrap;
+      
+      @media (max-width: 768px) {
+        font-size: 1.5rem; // xl
+      }
+      
+      @media (max-width: 480px) {
+        font-size: 1.25rem;
+      }
+    }
+  }
+  
+  .nav {
+    display: none;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    flex: 1;
+    justify-content: center;
+    
+    @media (min-width: 1024px) {
+      display: flex;
+      gap: 1.5rem;
+    }
+    
+    @media (min-width: 768px) and (max-width: 1023px) {
+      display: flex;
+      gap: 0.75rem;
+    }
+    
+    @media (min-width: 768px) and (max-width: 900px) {
+      gap: 0.5rem;
+    }
+  }
+  
+  .navLink {
+    padding: 0.5rem 0.75rem;
+    font-weight: 500;
+    color: $text-light;
+    transition: color $transition-fast;
+    border-radius: $radius-md;
+    white-space: nowrap;
+    font-size: 0.875rem;
+    text-align: center;
+    flex-shrink: 0;
+    line-height: 1.4;
+    
+    &:hover {
+      color: $primary-color;
+      background-color: $background-light;
+    }
+    
+    @media (min-width: 1024px) {
+      font-size: 1rem;
+      padding: 0.75rem 1rem;
+    }
+    
+    @media (min-width: 768px) and (max-width: 1023px) {
+      font-size: 0.875rem;
+      padding: 0.5rem 0.75rem;
+    }
+    
+    @media (min-width: 768px) and (max-width: 900px) {
+      padding: 0.5rem;
+      font-size: 0.8rem;
+    }
+    
+    @media (min-width: 901px) and (max-width: 1023px) {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.9rem;
+    }
+  }
+  
+  .userSection {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    position: relative;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  
+  .authButtons {
+    display: none;
+    gap: var(--spacing-xs);
+    align-items: center;
+    flex-shrink: 0;
+    
+    @media (min-width: 768px) {
+      display: flex;
+    }
+    
+    .btn {
+      white-space: nowrap;
+      font-size: var(--font-size-sm);
+      padding: 0.5rem 0.75rem;
+      
+      @media (min-width: 1024px) {
+        font-size: var(--font-size-base);
+        padding: 0.75rem 1.25rem;
+      }
+    }
+  }
+  
+  .userMenu {
+    position: relative;
+  }
+  
+  .userButton {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    background: none;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+    
+    &:hover {
+      background-color: var(--gray-50);
+    }
+  }
+  
+  .avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-full);
+    object-fit: cover;
+  }
+  
+  .avatarIcon {
+    width: 24px;
+    height: 24px;
+    color: var(--gray-600);
+  }
+  
+  .userName {
+    font-weight: 500;
+    color: var(--gray-900);
+    display: none;
+    
+    @media (min-width: 640px) {
+      display: block;
+    }
+  }
+  
+  .userDropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    padding: var(--spacing-sm);
+    min-width: 200px;
+    z-index: 60;
+  }
+  
+  // Navigation Dropdown Styles
+  .dropdown {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .dropdownTrigger {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    font-weight: 500;
+    color: $text-light;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: all $transition-fast;
+    border-radius: $radius-md;
+    white-space: nowrap;
+    font-size: 0.875rem;
+    
+    &:hover {
+      color: $primary-color;
+      background-color: $background-light;
+    }
+    
+    @media (min-width: 1024px) {
+      font-size: 1rem;
+      padding: 0.75rem 1rem;
+    }
+  }
+
+  .navIcon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+
+  .chevron {
+    width: 14px;
+    height: 14px;
+    transition: transform var(--transition-fast);
+    
+    &.open {
+      transform: rotate(180deg);
+    }
+  }
+
+  .dropdownMenu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.05);
+    min-width: 200px;
+    padding: 0.5rem 0;
+    z-index: 1000;
+    animation: dropdownAppear 0.2s ease-out;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      top: -8px;
+      left: 20px;
+      width: 0;
+      height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-bottom: 8px solid var(--gray-200);
+    }
+    
+    &::after {
+      content: '';
+      position: absolute;
+      top: -7px;
+      left: 20px;
+      width: 0;
+      height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-bottom: 8px solid white;
+    }
+  }
+
+  .dropdownItem {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    color: var(--gray-700);
+    font-weight: 500;
+    transition: all var(--transition-fast);
+    text-decoration: none;
+    
+    &:hover {
+      background-color: var(--gray-50);
+      color: var(--primary-color);
+      
+      .itemIcon {
+        color: var(--primary-color);
+      }
+    }
+  }
+
+  .itemIcon {
+    width: 16px;
+    height: 16px;
+    color: var(--gray-500);
+    transition: color var(--transition-fast);
+  }
+
+  @keyframes dropdownAppear {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .authButtons {
+    display: none;
+    gap: var(--spacing-sm);
+    
+    @media (min-width: 640px) {
+      display: flex;
+    }
+  }
+  
+  .mobileMenuButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: none;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+    
+    @media (min-width: 768px) {
+      display: none;
+    }
+    
+    &:hover {
+      background-color: var(--gray-50);
+    }
+    
+    svg {
+      width: 24px;
+      height: 24px;
+      color: var(--gray-700);
+    }
+  }
+
+  .mobileNav {
+    display: flex;
+    flex-direction: column;
+    padding: var(--spacing-md) 0;
+    border-top: 1px solid var(--gray-200);
+    background: var(--white);
+    
+    @media (min-width: 768px) {
+      display: none;
+    }
+  }
+  
+  .mobileNavLink {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    color: var(--gray-700);
+    font-weight: 500;
+    transition: all var(--transition-fast);
+    text-decoration: none;
+    border-bottom: 1px solid var(--gray-100);
+    
+    &:hover {
+      background-color: var(--gray-50);
+      color: var(--primary-color);
+      
+      .navIcon {
+        color: var(--primary-color);
+      }
+    }
+    
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+  
+  // Mobile Navigation Group Styles
+  .mobileNavGroup {
+    border-bottom: 1px solid var(--gray-100);
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    
+    &:last-of-type {
+      border-bottom: none;
+      margin-bottom: 0;
+    }
+  }
+
+  .mobileNavGroupTitle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    color: var(--gray-800);
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background-color: var(--gray-50);
+    border-radius: var(--radius-md);
+    margin-bottom: 0.25rem;
+  }
+
+  .mobileNavSubLink {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem 0.75rem 2rem;
+    color: var(--gray-600);
+    font-weight: 500;
+    transition: all var(--transition-fast);
+    text-decoration: none;
+    border-radius: var(--radius-md);
+    margin: 0.125rem 0;
+    
+    &:hover {
+      background-color: var(--gray-50);
+      color: var(--primary-color);
+      
+      .itemIcon {
+        color: var(--primary-color);
+      }
+    }
+  }
+  
+  .mobileAuthButtons {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+    border-top: 1px solid var(--gray-200);
+    margin-top: var(--spacing-sm);
+    
+    .btn {
+      width: 100%;
+      text-align: center;
+      font-size: var(--font-size-base);
+      padding: 0.75rem 1rem;
+    }
+  }
+}

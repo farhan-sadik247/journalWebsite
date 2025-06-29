@@ -1,0 +1,352 @@
+@import '../../../../styles/variables';
+
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid $border-color;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+}
+
+.backButton {
+  background: none;
+  border: 1px solid $border-color;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  color: $text-light;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: $background-light;
+    color: $primary-color;
+    border-color: $primary-color;
+  }
+}
+
+.reviewStatus {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.status {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+
+  &.pending {
+    background: lighten(orange, 35%);
+    color: darken(orange, 20%);
+  }
+
+  &.in_progress {
+    background: lighten(blue, 35%);
+    color: darken(blue, 20%);
+  }
+
+  &.completed {
+    background: lighten($success-color, 35%);
+    color: darken($success-color, 20%);
+  }
+
+  &.overdue {
+    background: lighten($danger-color, 35%);
+    color: darken($danger-color, 20%);
+  }
+}
+
+.type {
+  background: lighten($primary-color, 40%);
+  color: $primary-color;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.manuscript {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: $card-shadow;
+  border: 1px solid $border-color;
+
+  h1 {
+    color: $text-dark;
+    margin-bottom: 1rem;
+    line-height: 1.3;
+  }
+
+  .authors {
+    color: $text-light;
+    font-style: italic;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+  }
+
+  .metadata {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 2rem;
+    color: $text-light;
+    font-size: 0.9rem;
+
+    @media (max-width: 768px) {
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+  }
+
+  .abstract {
+    margin-bottom: 2rem;
+
+    h3 {
+      color: $primary-color;
+      margin-bottom: 1rem;
+    }
+
+    p {
+      line-height: 1.6;
+      color: $text-dark;
+    }
+  }
+
+  .keywords {
+    margin-bottom: 2rem;
+
+    h3 {
+      color: $primary-color;
+      margin-bottom: 1rem;
+    }
+  }
+
+  .keywordList {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .keyword {
+    background: $background-light;
+    padding: 0.25rem 0.75rem;
+    border-radius: 15px;
+    font-size: 0.875rem;
+    color: $text-dark;
+    border: 1px solid $border-color;
+  }
+
+  .files {
+    h3 {
+      color: $primary-color;
+      margin-bottom: 1rem;
+    }
+  }
+
+  .fileLink {
+    display: inline-block;
+    padding: 0.75rem 1rem;
+    background: $background-light;
+    border: 1px solid $border-color;
+    border-radius: 8px;
+    color: $primary-color;
+    text-decoration: none;
+    margin-right: 1rem;
+    margin-bottom: 0.5rem;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: lighten($primary-color, 45%);
+      border-color: $primary-color;
+    }
+  }
+}
+
+.reviewForm {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: $card-shadow;
+  border: 1px solid $border-color;
+
+  h2 {
+    color: $primary-color;
+    margin-bottom: 2rem;
+    text-align: center;
+  }
+}
+
+.formGroup {
+  margin-bottom: 2rem;
+
+  label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: $text-dark;
+  }
+
+  select, textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid $border-color;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.2s ease;
+
+    &:focus {
+      outline: none;
+      border-color: $primary-color;
+      box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+    }
+
+    &:disabled {
+      background: $background-light;
+      color: $text-light;
+      cursor: not-allowed;
+    }
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 100px;
+    line-height: 1.5;
+  }
+}
+
+.scores {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: $background-light;
+  border-radius: 8px;
+  border: 1px solid $border-color;
+
+  h3 {
+    color: $primary-color;
+    margin-bottom: 1.5rem;
+    text-align: center;
+  }
+}
+
+.scoreGroup {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  label {
+    min-width: 120px;
+    margin-bottom: 0;
+    font-weight: 500;
+    color: $text-dark;
+  }
+
+  input[type="range"] {
+    flex: 1;
+    margin: 0;
+    height: 6px;
+    background: $border-color;
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+
+    &::-webkit-slider-thumb {
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      background: $primary-color;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    &::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      background: $primary-color;
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  span {
+    min-width: 40px;
+    text-align: center;
+    font-weight: 600;
+    color: $primary-color;
+  }
+}
+
+.submitButton {
+  width: 100%;
+  padding: 1rem 2rem;
+  background: $primary-color;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: darken($primary-color, 10%);
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+.completedNotice {
+  text-align: center;
+  padding: 1rem;
+  background: lighten($success-color, 40%);
+  color: darken($success-color, 20%);
+  border-radius: 8px;
+  font-weight: 600;
+  border: 1px solid lighten($success-color, 20%);
+}
+
+.loading, .error {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
+  font-size: 1.25rem;
+  color: $text-light;
+}
+
+.error {
+  color: $danger-color;
+}

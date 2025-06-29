@@ -1,0 +1,656 @@
+// Profile page styles with theme support
+.profilePage {
+  min-height: 100vh;
+  background: var(--bg-secondary);
+  padding: var(--spacing-xl) 0;
+  color: var(--text-primary);
+
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 var(--spacing-md);
+  }
+}
+
+.profileHeader {
+  text-align: center;
+  margin-bottom: var(--spacing-2xl);
+
+  h1 {
+    font-size: var(--font-size-3xl);
+    font-weight: 700;
+    color: var(--text-primary) !important;
+    margin-bottom: var(--spacing-sm);
+  }
+
+  p {
+    font-size: var(--font-size-lg);
+    color: var(--text-secondary) !important;
+  }
+}
+
+.profileContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+}
+
+.profileCard, .roleCard {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  color: var(--text-primary);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-lg);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+
+  .cardIcon {
+    width: 1.25rem;
+    height: 1.25rem;
+    color: var(--primary-color);
+  }
+
+  h2 {
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    color: var(--text-primary) !important;
+    margin: 0;
+  }
+}
+
+.profileForm {
+  padding: var(--spacing-lg);
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+  }
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.formLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary) !important;
+
+  svg {
+    width: 1rem;
+    height: 1rem;
+    color: var(--text-muted);
+  }
+}
+
+.formInput, .formTextarea {
+  padding: var(--spacing-sm);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+  &:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+
+  &.disabled {
+    background: var(--bg-secondary);
+    color: var(--text-muted);
+    cursor: not-allowed;
+  }
+
+  &::placeholder {
+    color: var(--text-muted);
+  }
+}
+
+.formTextarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.formHint {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  margin-top: var(--spacing-xs);
+}
+
+.expertiseInput {
+  display: flex;
+  gap: var(--spacing-sm);
+
+  input {
+    flex: 1;
+  }
+
+  button {
+    flex-shrink: 0;
+  }
+}
+
+.expertiseTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-sm);
+}
+
+.expertiseTag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  background: var(--primary-light);
+  color: var(--primary-color);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: 20px;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+
+  .removeTag {
+    background: none;
+    border: none;
+    color: var(--primary-color);
+    cursor: pointer;
+    font-size: 1.2em;
+    line-height: 1;
+    padding: 0;
+    margin-left: var(--spacing-xs);
+
+    &:hover {
+      color: var(--error-color);
+    }
+  }
+}
+
+.formActions {
+  margin-top: var(--spacing-xl);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--gray-200);
+
+  button {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin: 0 auto;
+
+    svg {
+      width: 1rem;
+      height: 1rem;
+    }
+  }
+}
+
+.roleCard {
+  .roleInfo {
+    padding: var(--spacing-lg);
+
+    p {
+      margin-bottom: var(--spacing-sm);
+      font-size: var(--font-size-base);
+      color: var(--text-secondary) !important;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      strong {
+        font-weight: 600;
+        color: var(--text-primary) !important;
+      }
+    }
+    
+    .roleSwitchNote {
+      margin-top: var(--spacing-lg);
+      padding: var(--spacing-sm) var(--spacing-md);
+      background-color: var(--primary-light);
+      color: var(--primary-dark) !important;
+      border-radius: var(--radius-md);
+      font-size: var(--font-size-sm);
+      
+      strong {
+        color: var(--primary-dark) !important;
+      }
+    }
+  }
+}
+
+.profileImageSection {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+  padding-bottom: var(--spacing-lg);
+  border-bottom: 1px solid var(--border-color);
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+}
+
+.currentImage {
+  flex-shrink: 0;
+}
+
+.profileImagePreview {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--gray-200);
+}
+
+.profileImagePlaceholder {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: var(--gray-100);
+  border: 3px solid var(--gray-200);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-600);
+
+  svg {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+}
+
+.imageUploadControls {
+  flex: 1;
+}
+
+.fileInput {
+  display: none;
+}
+
+.uploadButton {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-sm);
+
+  svg {
+    width: 1rem;
+    height: 1rem;
+  }
+}
+
+.selectedFile {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  margin: var(--spacing-xs) 0;
+  font-style: italic;
+}
+
+// Role Switcher in Profile
+.roleSwitcherSection {
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--border-color);
+
+  h3 {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--text-primary) !important;
+    margin-bottom: var(--spacing-sm);
+  }
+
+  p {
+    color: var(--text-secondary) !important;
+    margin-bottom: var(--spacing-lg);
+  }
+}
+
+.roleSwitcherProfile {
+  // Custom styles for profile role switcher
+  .roleButton {
+    padding: var(--spacing-md) var(--spacing-lg);
+    font-size: var(--font-size-base);
+  }
+}
+
+// User Management Styles
+.userManagement {
+  padding: var(--spacing-lg);
+
+  p {
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-lg);
+  }
+}
+
+.usersList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.userItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: var(--gray-100);
+    border-color: var(--gray-300);
+  }
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex: 1;
+}
+
+.userAvatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--gray-200);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  svg {
+    width: 24px;
+    height: 24px;
+    color: var(--text-muted);
+  }
+}
+
+.userDetails {
+  flex: 1;
+
+  h4 {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-xs);
+  }
+
+  p {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-xs);
+  }
+}
+
+.userRoles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
+.userActions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+// Modal Styles
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--spacing-md);
+}
+
+.modalContent {
+  background: var(--bg-primary);
+  border-radius: 12px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-xl);
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-lg);
+  border-bottom: 1px solid var(--border-color);
+
+  h3 {
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+  }
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: var(--spacing-xs);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+  }
+}
+
+.modalBody {
+  padding: var(--spacing-lg);
+}
+
+.userModalInfo {
+  margin-bottom: var(--spacing-xl);
+  padding-bottom: var(--spacing-lg);
+  border-bottom: 1px solid var(--border-color);
+
+  p {
+    margin-bottom: var(--spacing-sm);
+    color: var(--text-secondary);
+
+    strong {
+      color: var(--text-primary);
+    }
+  }
+}
+
+.founderNote {
+  background: var(--warning-color);
+  color: white;
+  padding: var(--spacing-sm);
+  border-radius: 6px;
+  font-size: var(--font-size-sm);
+}
+
+.roleManagement {
+  h4 {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--gray-900);
+    margin-bottom: var(--spacing-md);
+  }
+}
+
+.roleActions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-xl);
+}
+
+.roleAction {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-sm);
+  background: var(--gray-50);
+  border-radius: 6px;
+}
+
+.roleName {
+  font-weight: 500;
+  color: var(--gray-900);
+}
+
+.dangerZone {
+  border-top: 1px solid var(--gray-200);
+  padding-top: var(--spacing-lg);
+
+  h4 {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--error-color);
+    margin-bottom: var(--spacing-md);
+  }
+}
+
+.restrictedAccess {
+  text-align: center;
+  padding: var(--spacing-xl);
+  background: var(--gray-50);
+  border-radius: 8px;
+  color: var(--gray-600);
+}
+
+// Dark mode support - only applies when user has dark mode preference
+@media (prefers-color-scheme: dark) {
+  .profilePage {
+    background: var(--gray-900);
+    color: var(--gray-100);
+  }
+
+  .profileCard, .roleCard {
+    background: var(--gray-800);
+    border-color: var(--gray-700);
+    color: var(--gray-100);
+  }
+
+  .cardHeader {
+    background: var(--gray-700);
+    border-color: var(--gray-600);
+    
+    h2 {
+      color: var(--gray-100);
+    }
+  }
+
+  .profileHeader {
+    h1 {
+      color: var(--gray-100);
+    }
+    
+    p {
+      color: var(--gray-300);
+    }
+  }
+
+  .formLabel {
+    color: var(--gray-200);
+  }
+
+  .formInput, .formTextarea {
+    background: var(--gray-700);
+    border-color: var(--gray-600);
+    color: var(--gray-100);
+
+    &.disabled {
+      background: var(--gray-800);
+      color: var(--gray-400);
+    }
+
+    &::placeholder {
+      color: var(--gray-400);
+    }
+  }
+
+  .roleInfo p {
+    color: var(--gray-300);
+    
+    strong {
+      color: var(--gray-100);
+    }
+  }
+}
+
+// Mobile responsiveness
+@media (max-width: 480px) {
+  .profilePage {
+    padding: var(--spacing-lg) 0;
+
+    .container {
+      padding: 0 var(--spacing-sm);
+    }
+  }
+
+  .profileHeader {
+    margin-bottom: var(--spacing-lg);
+
+    h1 {
+      font-size: var(--font-size-2xl);
+    }
+
+    p {
+      font-size: var(--font-size-base);
+    }
+  }
+
+  .cardHeader, .profileForm {
+    padding: var(--spacing-md);
+  }
+
+  .expertiseInput {
+    flex-direction: column;
+
+    button {
+      align-self: flex-start;
+    }
+  }
+}

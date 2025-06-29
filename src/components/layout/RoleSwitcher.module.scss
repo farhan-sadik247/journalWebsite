@@ -1,0 +1,158 @@
+.roleSwitcher {
+  position: relative;
+  display: inline-block;
+}
+
+.roleButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: var(--primary-dark);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+}
+
+.roleIcon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.roleLabel {
+  white-space: nowrap;
+}
+
+.chevron {
+  width: 1rem;
+  height: 1rem;
+  transition: transform 0.2s ease;
+
+  &.open {
+    transform: rotate(180deg);
+  }
+}
+
+.roleDropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  min-width: 180px;
+  margin-top: 0.25rem;
+}
+
+.dropdownHeader {
+  padding: 0.75rem 1rem 0.5rem;
+  border-bottom: 1px solid var(--gray-100);
+  
+  span {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--gray-600);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+}
+
+.roleOption {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  color: var(--gray-900);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background: var(--gray-50);
+  }
+
+  &.active {
+    background: var(--primary-light);
+    color: var(--primary-color);
+    font-weight: 500;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  span {
+    flex: 1;
+    text-align: left;
+  }
+}
+
+.activeBadge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--primary-color);
+  background: var(--primary-light);
+  padding: 0.125rem 0.375rem;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+// Dark mode support
+@media (prefers-color-scheme: dark) {
+  .roleDropdown {
+    background: var(--gray-800);
+    border-color: var(--gray-700);
+  }
+
+  .roleOption {
+    color: var(--gray-100);
+
+    &:hover {
+      background: var(--gray-700);
+    }
+
+    &.active {
+      background: var(--primary-dark);
+      color: white;
+    }
+  }
+}
+
+// Mobile responsiveness
+@media (max-width: 768px) {
+  .roleButton {
+    padding: 0.375rem 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  .roleLabel {
+    display: none;
+  }
+
+  .roleDropdown {
+    right: auto;
+    left: 0;
+    min-width: 160px;
+  }
+}

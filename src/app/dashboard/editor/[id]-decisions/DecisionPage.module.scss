@@ -1,0 +1,356 @@
+$primary-color: #2563eb;
+$success-color: #10b981;
+$warning-color: #f59e0b;
+$danger-color: #ef4444;
+$text-dark: #1f2937;
+$text-light: #6b7280;
+$border-color: #e5e7eb;
+$card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+
+.container {
+  min-height: 100vh;
+  background: #f9fafb;
+  padding: 2rem;
+}
+
+.header {
+  margin-bottom: 2rem;
+  
+  .backButton {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: none;
+    border: none;
+    color: $primary-color;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-bottom: 1rem;
+    
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+  
+  h1 {
+    color: $text-dark;
+    margin: 0;
+  }
+}
+
+.content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  gap: 2rem;
+}
+
+.manuscriptSection,
+.reviewSection,
+.decisionSection {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: $card-shadow;
+  border: 1px solid $border-color;
+  
+  h2 {
+    color: $text-dark;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid $primary-color;
+  }
+}
+
+.manuscriptCard {
+  h3 {
+    color: $text-dark;
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+  }
+  
+  .authors {
+    color: $text-light;
+    font-style: italic;
+    margin-bottom: 1rem;
+  }
+  
+  .metadata {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    
+    span {
+      color: $text-light;
+      font-size: 0.9rem;
+    }
+  }
+  
+  .keywords {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    
+    .keyword {
+      background: lighten($primary-color, 45%);
+      color: $primary-color;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+  }
+}
+
+.reviewSummary {
+  margin-bottom: 2rem;
+  
+  .summaryStats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    
+    .stat {
+      text-align: center;
+      padding: 1rem;
+      background: lighten($primary-color, 48%);
+      border-radius: 8px;
+      
+      h4 {
+        font-size: 2rem;
+        color: $primary-color;
+        margin: 0;
+      }
+      
+      p {
+        color: $text-light;
+        margin: 0.5rem 0 0 0;
+        font-size: 0.9rem;
+      }
+    }
+  }
+  
+  .recommendations {
+    h4 {
+      color: $text-dark;
+      margin-bottom: 0.5rem;
+    }
+    
+    .recommendationList {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      
+      .recommendation {
+        background: lighten($warning-color, 35%);
+        color: darken($warning-color, 20%);
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-weight: 500;
+        text-transform: capitalize;
+      }
+    }
+  }
+}
+
+.reviewsList {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.reviewCard {
+  border: 1px solid $border-color;
+  border-radius: 8px;
+  padding: 1.5rem;
+  background: #fafbfc;
+  
+  .reviewHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    
+    h4 {
+      color: $text-dark;
+      margin: 0;
+    }
+    
+    .recommendationBadge {
+      color: white;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: capitalize;
+    }
+  }
+  
+  .ratings {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    
+    span {
+      color: $text-light;
+      font-size: 0.9rem;
+    }
+  }
+  
+  .comments {
+    .comment {
+      margin-bottom: 1rem;
+      
+      h5 {
+        color: $text-dark;
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+      }
+      
+      p {
+        color: $text-light;
+        line-height: 1.6;
+        background: white;
+        padding: 1rem;
+        border-radius: 6px;
+        border-left: 3px solid $primary-color;
+      }
+    }
+  }
+}
+
+.decisionForm {
+  .formGroup {
+    margin-bottom: 1.5rem;
+    
+    label {
+      display: block;
+      color: $text-dark;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      
+      &:has(input[type="checkbox"]) {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: normal;
+        
+        input {
+          margin: 0;
+        }
+      }
+    }
+    
+    select,
+    textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid $border-color;
+      border-radius: 6px;
+      font-size: 1rem;
+      
+      &:focus {
+        outline: none;
+        border-color: $primary-color;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+      }
+    }
+    
+    textarea {
+      resize: vertical;
+      min-height: 120px;
+    }
+  }
+  
+  .formActions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 2rem;
+    
+    .btn {
+      padding: 0.75rem 2rem;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s ease;
+      
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      
+      &.btn-secondary {
+        background: #f3f4f6;
+        color: $text-dark;
+        
+        &:hover:not(:disabled) {
+          background: #e5e7eb;
+        }
+      }
+      
+      &.btn-primary {
+        background: $primary-color;
+        color: white;
+        
+        &:hover:not(:disabled) {
+          background: darken($primary-color, 10%);
+        }
+      }
+    }
+  }
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  font-size: 1.1rem;
+  color: $text-light;
+}
+
+.error {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  font-size: 1.1rem;
+  color: $danger-color;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+  
+  .manuscriptSection,
+  .reviewSection,
+  .decisionSection {
+    padding: 1.5rem;
+  }
+  
+  .summaryStats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .metadata {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .formActions {
+    flex-direction: column;
+    
+    .btn {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+}

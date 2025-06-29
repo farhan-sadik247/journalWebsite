@@ -1,0 +1,617 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { FiUser, FiShield, FiTrash2, FiUserPlus, FiUserMinus, FiEdit, FiArrowLeft, FiSearch, FiAward, FiPlus } from 'react-icons/fi';
+import toast from 'react-hot-toast';
+import Link from 'next/link';
+import styles from './ManageUsers.module.scss';
+
+interface User {
+  _id: string;
+  name: string;
+  email: string;
+  roles: string[];
+  currentActiveRole: string;
+  isFounder: boolean;
+  affiliation?: string;
+  profileImage?: string;
+  createdAt: string;
+  designation?: string;
+}
+
+interface Designation {
+  _id: string;
+  name: string;
+}
+
+export default function ManageUsersPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [users, setUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [designations, setDesignations] = useState<Designation[]>([]);
+  const [newDesignation, setNewDesignation] = useState('');
+  const [showDesignationModal, setShowDesignationModal] = useState(false);
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/auth/signin');
+      return;
+    }
+
+    if (status === 'authenticated' && !session?.user?.roles?.includes('admin')) {
+      router.push('/dashboard');
+      return;
+    }
+
+    if (session?.user?.roles?.includes('admin')) {
+      fetchUsers();
+      fetchDesignations();
+    }
+  }, [session, status, router]);
+
+  useEffect(() => {
+    // Filter users based on search term and role filter
+    let filtered = users;
+
+    if (searchTerm) {
+      filtered = filtered.filter(user => 
+        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.affiliation?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    if (roleFilter !== 'all') {
+      filtered = filtered.filter(user => user.roles.includes(roleFilter));
+    }
+
+    setFilteredUsers(filtered);
+  }, [users, searchTerm, roleFilter]);
+
+  const fetchUsers = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/admin/users');
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(data.users);
+      } else {
+        toast.error('Failed to fetch users');
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      toast.error('Failed to fetch users');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const fetchDesignations = async () => {
+    try {
+      const response = await fetch('/api/designations');
+      if (response.ok) {
+        const data = await response.json();
+        setDesignations(data.designations);
+      } else {
+        console.error('Failed to fetch designations');
+      }
+    } catch (error) {
+      console.error('Error fetching designations:', error);
+    }
+  };
+
+  const handleRoleChange = async (userId: string, action: 'add' | 'remove', role: string) => {
+    try {
+      const response = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          action,
+          role,
+        }),
+      });
+
+      if (response.ok) {
+        toast.success(`User role ${action === 'add' ? 'added' : 'removed'} successfully`);
+        fetchUsers(); // Refresh user list
+        
+        // Update selected user if it's currently being viewed
+        if (selectedUser?._id === userId) {
+          const updatedUser = users.find(u => u._id === userId);
+          if (updatedUser) {
+            setSelectedUser({
+              ...updatedUser,
+              roles: action === 'add' 
+                ? [...updatedUser.roles, role]
+                : updatedUser.roles.filter(r => r !== role)
+            });
+          }
+        }
+      } else {
+        const data = await response.json();
+        toast.error(data.error || 'Failed to update user role');
+      }
+    } catch (error) {
+      console.error('Error updating user role:', error);
+      toast.error('Failed to update user role');
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/admin/users', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId }),
+      });
+
+      if (response.ok) {
+        toast.success('User deleted successfully');
+        fetchUsers(); // Refresh user list
+        setShowUserModal(false);
+      } else {
+        const data = await response.json();
+        toast.error(data.error || 'Failed to delete user');
+      }
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast.error('Failed to delete user');
+    }
+  };
+  
+  const handleCreateDesignation = async () => {
+    if (!newDesignation.trim()) {
+      toast.error('Designation name cannot be empty');
+      return;
+    }
+    
+    try {
+      const response = await fetch('/api/designations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: newDesignation.trim() }),
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        toast.success('Designation created successfully');
+        setNewDesignation('');
+        fetchDesignations();
+      } else {
+        toast.error(data.error || 'Failed to create designation');
+      }
+    } catch (error) {
+      console.error('Error creating designation:', error);
+      toast.error('Failed to create designation');
+    }
+  };
+  
+  const handleDeleteDesignation = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this designation?')) {
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/api/designations?id=${id}`, {
+        method: 'DELETE',
+      });
+      
+      if (response.ok) {
+        toast.success('Designation deleted successfully');
+        fetchDesignations();
+      } else {
+        const data = await response.json();
+        toast.error(data.error || 'Failed to delete designation');
+      }
+    } catch (error) {
+      console.error('Error deleting designation:', error);
+      toast.error('Failed to delete designation');
+    }
+  };
+  
+  const handleUpdateDesignation = async (userId: string, designation: string) => {
+    try {
+      const response = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          designation
+        }),
+      });
+
+      if (response.ok) {
+        toast.success('Designation updated successfully');
+        fetchUsers(); // Refresh user list
+        
+        // Update selected user if it's currently being viewed
+        if (selectedUser?._id === userId) {
+          setSelectedUser({
+            ...selectedUser,
+            designation
+          });
+        }
+      } else {
+        const data = await response.json();
+        toast.error(data.error || 'Failed to update designation');
+      }
+    } catch (error) {
+      console.error('Error updating designation:', error);
+      toast.error('Failed to update designation');
+    }
+  };
+
+  const openUserModal = (user: User) => {
+    setSelectedUser(user);
+    setShowUserModal(true);
+  };
+
+  if (status === 'loading' || isLoading) {
+    return (
+      <div className={styles.managePage}>
+        <div className="container">
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="spinner" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === 'unauthenticated' || !session?.user?.roles?.includes('admin')) {
+    return null;
+  }
+
+  return (
+    <div className={styles.managePage}>
+      <div className="container">
+        <div className={styles.pageHeader}>
+          <div className={styles.headerTop}>
+            <Link href="/dashboard/admin" className={styles.backButton}>
+              <FiArrowLeft />
+              Back to Admin Dashboard
+            </Link>
+          </div>
+          <h1>Manage Users</h1>
+          <p>Manage user accounts, roles, and permissions</p>
+        </div>
+
+        <div className={styles.content}>
+          {/* Filters */}
+          <div className={styles.filters}>
+            <div className={styles.searchBox}>
+              <FiSearch className={styles.searchIcon} />
+              <input
+                type="text"
+                placeholder="Search users by name, email, or affiliation..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className={styles.searchInput}
+              />
+            </div>
+            <div className={styles.roleFilter}>
+              <select
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+                className={styles.filterSelect}
+              >
+                <option value="all">All Roles</option>
+                <option value="author">Authors</option>
+                <option value="reviewer">Reviewers</option>
+                <option value="editor">Editors</option>
+                <option value="admin">Administrators</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className={styles.stats}>
+            <div className={styles.statCard}>
+              <h3>{users.length}</h3>
+              <p>Total Users</p>
+            </div>
+            <div className={styles.statCard}>
+              <h3>{users.filter(u => u.roles.includes('admin')).length}</h3>
+              <p>Administrators</p>
+            </div>
+            <div className={styles.statCard}>
+              <h3>{users.filter(u => u.roles.includes('editor')).length}</h3>
+              <p>Editors</p>
+            </div>
+            <div className={styles.statCard}>
+              <h3>{users.filter(u => u.roles.includes('reviewer')).length}</h3>
+              <p>Reviewers</p>
+            </div>
+          </div>
+
+          {/* Users List */}
+          <div className={styles.usersCard}>
+            <div className={styles.cardHeader}>
+              <h2>Users ({filteredUsers.length})</h2>
+            </div>
+            
+            {filteredUsers.length === 0 ? (
+              <div className={styles.emptyState}>
+                <FiUser className={styles.emptyIcon} />
+                <h3>No users found</h3>
+                <p>Try adjusting your search or filter criteria.</p>
+              </div>
+            ) : (
+              <div className={styles.usersList}>
+                {filteredUsers.map((user) => (
+                  <div key={user._id} className={styles.userItem}>
+                    <div className={styles.userInfo}>
+                      <div className={styles.userAvatar}>
+                        {user.profileImage ? (
+                          <img src={user.profileImage} alt={user.name} />
+                        ) : (
+                          <FiUser />
+                        )}
+                      </div>
+                      <div className={styles.userDetails}>
+                        <h4>{user.name}</h4>
+                        <p className={styles.userEmail}>{user.email}</p>
+                        {user.affiliation && (
+                          <p className={styles.userAffiliation}>{user.affiliation}</p>
+                        )}
+                        <div className={styles.userRoles}>
+                          {user.roles.map((role) => (
+                            <span key={role} className={`status-badge status-${role}`}>
+                              {role}
+                            </span>
+                          ))}
+                          {user.isFounder && (
+                            <span className="status-badge status-founder">Founder</span>
+                          )}
+                          {user.designation && user.roles.includes('editor') && (
+                            <span className={styles.designation}>{user.designation}</span>
+                          )}
+                        </div>
+                        <p className={styles.memberSince}>
+                          Member since {new Date(user.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className={styles.userActions}>
+                      <button
+                        onClick={() => openUserModal(user)}
+                        className="btn btn-secondary"
+                        disabled={user.isFounder && session?.user?.email !== user.email}
+                      >
+                        <FiEdit />
+                        Manage
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Designation Management Modal */}
+        {showDesignationModal && (
+          <div className={styles.modal}>
+            <div className={styles.modalContent}>
+              <div className={styles.modalHeader}>
+                <h3>Manage Designations</h3>
+                <button
+                  onClick={() => setShowDesignationModal(false)}
+                  className={styles.closeButton}
+                >
+                  ×
+                </button>
+              </div>
+              <div className={styles.modalBody}>
+                <div className={styles.addDesignationForm}>
+                  <h4>Add New Designation</h4>
+                  <div className={styles.designationForm}>
+                    <input
+                      type="text"
+                      placeholder="Enter designation name"
+                      value={newDesignation}
+                      onChange={(e) => setNewDesignation(e.target.value)}
+                      className={styles.designationInput}
+                    />
+                    <button
+                      onClick={handleCreateDesignation}
+                      className="btn btn-primary"
+                      disabled={!newDesignation.trim()}
+                    >
+                      <FiPlus />
+                      Add Designation
+                    </button>
+                  </div>
+                </div>
+                
+                <div className={styles.designationsList}>
+                  <h4>Current Designations</h4>
+                  {designations.length === 0 ? (
+                    <p>No designations available. Add one above.</p>
+                  ) : (
+                    <ul className={styles.designationItems}>
+                      {designations.map((designation) => (
+                        <li key={designation._id} className={styles.designationItem}>
+                          <span className={styles.designationName}>{designation.name}</span>
+                          <button
+                            onClick={() => handleDeleteDesignation(designation._id)}
+                            className="btn btn-danger btn-sm"
+                          >
+                            <FiTrash2 />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* User Management Modal */}
+        {showUserModal && selectedUser && (
+          <div className={styles.modal}>
+            <div className={styles.modalContent}>
+              <div className={styles.modalHeader}>
+                <h3>Manage User: {selectedUser.name}</h3>
+                <button
+                  onClick={() => setShowUserModal(false)}
+                  className={styles.closeButton}
+                >
+                  ×
+                </button>
+              </div>
+              <div className={styles.modalBody}>
+                <div className={styles.userModalInfo}>
+                  <div className={styles.modalUserAvatar}>
+                    {selectedUser.profileImage ? (
+                      <img src={selectedUser.profileImage} alt={selectedUser.name} />
+                    ) : (
+                      <FiUser />
+                    )}
+                  </div>
+                  <div className={styles.modalUserDetails}>
+                    <h4>{selectedUser.name}</h4>
+                    <p><strong>Email:</strong> {selectedUser.email}</p>
+                    {selectedUser.affiliation && (
+                      <p><strong>Affiliation:</strong> {selectedUser.affiliation}</p>
+                    )}
+                    <p><strong>Registration Role:</strong> {selectedUser.currentActiveRole}</p>
+                    <p><strong>Current Roles:</strong> {selectedUser.roles.join(', ')}</p>
+                    <p><strong>Active Role:</strong> {selectedUser.currentActiveRole}</p>
+                    {selectedUser.roles.includes('editor') && (
+                      <p>
+                        <strong>Designation:</strong> {selectedUser.designation || 'None'}
+                      </p>
+                    )}
+                    <p><strong>Member Since:</strong> {new Date(selectedUser.createdAt).toLocaleDateString()}</p>
+                    {selectedUser.isFounder && (
+                      <div className={styles.founderNote}>
+                        <FiShield />
+                        <span><strong>Founder:</strong> This user is the founder and can only be modified by themselves.</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {(!selectedUser.isFounder || session?.user?.email === selectedUser.email) ? (
+                  <div className={styles.roleManagement}>
+                    <h4>Role Management</h4>
+                    <p>Add or remove roles for this user:</p>
+                    <div className={styles.roleActions}>
+                      {['author', 'reviewer', 'editor', 'admin'].map((role) => {
+                        const hasRole = selectedUser.roles.includes(role);
+                        const isSelfManagement = session?.user?.email === selectedUser.email;
+                        
+                        // Prevent non-founders from removing admin role from founder
+                        const cannotRemoveFounderAdmin = selectedUser.isFounder && role === 'admin' && !isSelfManagement;
+                        
+                        return (
+                          <div key={role} className={styles.roleAction}>
+                            <div className={styles.roleInfo}>
+                              <span className={styles.roleName}>{role.charAt(0).toUpperCase() + role.slice(1)}</span>
+                              <span className={`status-badge status-${role}`}>{role}</span>
+                            </div>
+                            {hasRole ? (
+                              <button
+                                onClick={() => handleRoleChange(selectedUser._id, 'remove', role)}
+                                className="btn btn-danger btn-sm"
+                                disabled={cannotRemoveFounderAdmin}
+                                title={cannotRemoveFounderAdmin ? 'Cannot remove admin role from founder' : ''}
+                              >
+                                <FiUserMinus />
+                                Remove
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleRoleChange(selectedUser._id, 'add', role)}
+                                className="btn btn-primary btn-sm"
+                              >
+                                <FiUserPlus />
+                                Add
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    
+                    {/* Designation Management for editors */}
+                    {selectedUser.roles.includes('editor') && (
+                      <div className={styles.designationManagement}>
+                        <h4>Editor Designation</h4>
+                        <p>Assign a special designation for this editor:</p>
+                        <div className={styles.designationActions}>
+                          <select
+                            value={selectedUser.designation || ''}
+                            onChange={(e) => handleUpdateDesignation(selectedUser._id, e.target.value)}
+                            className={styles.designationSelect}
+                          >
+                            <option value="">No Designation</option>
+                            {designations.map((designation) => (
+                              <option key={designation._id} value={designation.name}>
+                                {designation.name}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            onClick={() => setShowDesignationModal(true)}
+                            className="btn btn-secondary btn-sm mt-2"
+                          >
+                            <FiAward /> Manage Designations
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {!selectedUser.isFounder && (
+                      <div className={styles.dangerZone}>
+                        <h4>Danger Zone</h4>
+                        <p>Permanently delete this user account. This action cannot be undone.</p>
+                        <button
+                          onClick={() => handleDeleteUser(selectedUser._id)}
+                          className="btn btn-danger"
+                        >
+                          <FiTrash2 />
+                          Delete User Account
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className={styles.restrictedAccess}>
+                    <FiShield />
+                    <p>You cannot modify the founder's account unless you are the founder.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

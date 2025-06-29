@@ -1,0 +1,607 @@
+@import '../../../styles/variables';
+
+.paymentDashboard {
+  padding: 2rem 0;
+  min-height: 100vh;
+  background-color: var(--background-secondary);
+
+  .header {
+    margin-bottom: 2rem;
+
+    .headerContent {
+      h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+      }
+
+      p {
+        color: var(--text-secondary);
+        margin: 0;
+      }
+    }
+  }
+
+  .statsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+
+    .statCard {
+      background: var(--background-primary);
+      border-radius: 12px;
+      padding: 1.5rem;
+      border: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
+
+      .statIcon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        flex-shrink: 0;
+
+        svg {
+          width: 24px;
+          height: 24px;
+        }
+      }
+
+      .statInfo {
+        h3 {
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: var(--text-primary);
+          margin-bottom: 0.25rem;
+        }
+
+        p {
+          color: var(--text-secondary);
+          margin: 0;
+          font-size: 0.875rem;
+        }
+      }
+    }
+  }
+
+  .filtersSection {
+    background: var(--background-primary);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid var(--border-color);
+    margin-bottom: 2rem;
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+    flex-wrap: wrap;
+
+    .filterGroup,
+    .searchGroup {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+
+      svg {
+        color: var(--text-secondary);
+        width: 18px;
+        height: 18px;
+      }
+    }
+
+    .filterSelect,
+    .searchInput {
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background: #ffffff;
+      color: #1f2937;
+      font-size: 0.875rem;
+      
+      @media (prefers-color-scheme: dark) {
+        background: #374151;
+        color: #f9fafb;
+        border-color: #4b5563;
+      }
+
+      &:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.1);
+      }
+      
+      // Ensure dropdown options have proper contrast
+      option {
+        background: #ffffff;
+        color: #1f2937;
+        
+        @media (prefers-color-scheme: dark) {
+          background: #374151;
+          color: #f9fafb;
+        }
+      }
+    }
+
+    .searchInput {
+      min-width: 300px;
+    }
+  }
+
+  .tableContainer {
+    background: var(--background-primary);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+    margin-bottom: 2rem;
+
+    .paymentsTable {
+      width: 100%;
+      border-collapse: collapse;
+
+      thead {
+        background: var(--background-secondary);
+
+        th {
+          padding: 1rem;
+          text-align: left;
+          font-weight: 600;
+          color: var(--text-primary);
+          border-bottom: 1px solid var(--border-color);
+          font-size: 0.875rem;
+        }
+      }
+
+      tbody {
+        tr {
+          border-bottom: 1px solid var(--border-color);
+          transition: background-color 0.2s ease;
+
+          &:hover {
+            background: var(--background-secondary);
+          }
+
+          &:last-child {
+            border-bottom: none;
+          }
+        }
+
+        td {
+          padding: 1rem;
+          vertical-align: top;
+        }
+      }
+    }
+
+    .invoiceCell {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+
+      svg {
+        color: var(--primary-color);
+        width: 16px;
+        height: 16px;
+      }
+
+      span {
+        font-family: 'Courier New', monospace;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+    }
+
+    .manuscriptCell {
+      h4 {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.25rem;
+        line-height: 1.4;
+      }
+
+      span {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+      }
+    }
+
+    .amountCell {
+      strong {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        display: block;
+        margin-bottom: 0.25rem;
+      }
+
+      .discountInfo {
+        display: flex;
+        flex-direction: column;
+        gap: 0.125rem;
+
+        small {
+          font-size: 0.75rem;
+          color: var(--text-secondary);
+        }
+
+        .discountText {
+          color: #10b981;
+          font-weight: 500;
+          
+          @media (prefers-color-scheme: dark) {
+            color: #34d399;
+          }
+        }
+      }
+    }
+
+    .statusBadge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.375rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 500;
+
+      svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      &.statusSuccess {
+        background: rgba(16, 185, 129, 0.15);
+        color: #10b981;
+        border: 1px solid rgba(16, 185, 129, 0.2);
+        
+        // Dark theme adjustments
+        @media (prefers-color-scheme: dark) {
+          background: rgba(16, 185, 129, 0.2);
+          color: #34d399;
+          border-color: rgba(16, 185, 129, 0.3);
+        }
+      }
+
+      &.statusWarning {
+        background: rgba(245, 158, 11, 0.15);
+        color: #f59e0b;
+        border: 1px solid rgba(245, 158, 11, 0.2);
+        
+        @media (prefers-color-scheme: dark) {
+          background: rgba(245, 158, 11, 0.2);
+          color: #fbbf24;
+          border-color: rgba(245, 158, 11, 0.3);
+        }
+      }
+
+      &.statusDanger {
+        background: rgba(239, 68, 68, 0.15);
+        color: #ef4444;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+        
+        @media (prefers-color-scheme: dark) {
+          background: rgba(239, 68, 68, 0.2);
+          color: #f87171;
+          border-color: rgba(239, 68, 68, 0.3);
+        }
+      }
+
+      &.statusInfo {
+        background: rgba(59, 130, 246, 0.15);
+        color: #3b82f6;
+        border: 1px solid rgba(59, 130, 246, 0.2);
+        
+        @media (prefers-color-scheme: dark) {
+          background: rgba(59, 130, 246, 0.2);
+          color: #60a5fa;
+          border-color: rgba(59, 130, 246, 0.3);
+        }
+      }
+
+      &.statusSecondary {
+        background: rgba(107, 114, 128, 0.15);
+        color: #6b7280;
+        border: 1px solid rgba(107, 114, 128, 0.2);
+        
+        @media (prefers-color-scheme: dark) {
+          background: rgba(107, 114, 128, 0.2);
+          color: #9ca3af;
+          border-color: rgba(107, 114, 128, 0.3);
+        }
+      }
+    }
+
+    .methodCell {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+
+      svg {
+        color: var(--text-secondary);
+        width: 16px;
+        height: 16px;
+      }
+
+      span {
+        font-size: 0.875rem;
+        color: var(--text-primary);
+      }
+    }
+
+    .dateCell {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+
+      svg {
+        color: var(--text-secondary);
+        width: 16px;
+        height: 16px;
+      }
+
+      span {
+        font-size: 0.875rem;
+        color: var(--text-primary);
+      }
+
+      .overdueIndicator {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        color: #ef4444;
+        font-size: 0.75rem;
+        font-weight: 500;
+        margin-top: 0.25rem;
+        
+        @media (prefers-color-scheme: dark) {
+          color: #f87171;
+        }
+
+        svg {
+          width: 12px;
+          height: 12px;
+        }
+      }
+    }
+
+    .actionsCell {
+      display: flex;
+      gap: 0.5rem;
+
+      .actionButton {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        border: 1px solid var(--border-color);
+        background: var(--background-primary);
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover {
+          border-color: var(--primary-color);
+          color: var(--primary-color);
+        }
+
+        svg {
+          width: 16px;
+          height: 16px;
+        }
+
+        &.viewButton:hover {
+          background: rgba(59, 130, 246, 0.1);
+          color: #3b82f6;
+          border-color: #3b82f6;
+          
+          @media (prefers-color-scheme: dark) {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            border-color: #60a5fa;
+          }
+        }
+
+        &.downloadButton:hover {
+          background: rgba(16, 185, 129, 0.1);
+          color: #10b981;
+          border-color: #10b981;
+          
+          @media (prefers-color-scheme: dark) {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border-color: #34d399;
+          }
+        }
+      }
+    }
+
+    .emptyState {
+      text-align: center;
+      padding: 3rem;
+      color: var(--text-secondary);
+
+      svg {
+        width: 48px;
+        height: 48px;
+        margin-bottom: 1rem;
+        color: var(--text-tertiary);
+      }
+
+      h3 {
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+      }
+
+      p {
+        margin: 0;
+      }
+    }
+  }
+
+  .pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+
+    .pageButton {
+      padding: 0.5rem 1rem;
+      border: 1px solid var(--border-color);
+      background: var(--background-primary);
+      color: var(--text-primary);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 0.875rem;
+
+      &:hover:not(.disabled) {
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+      }
+
+      &.active {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+      }
+
+      &.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+
+    .pageNumbers {
+      display: flex;
+      gap: 0.25rem;
+    }
+  }
+
+  // Icons
+  .iconSuccess {
+    color: #10b981;
+    
+    @media (prefers-color-scheme: dark) {
+      color: #34d399;
+    }
+  }
+
+  .iconWarning {
+    color: #f59e0b;
+    
+    @media (prefers-color-scheme: dark) {
+      color: #fbbf24;
+    }
+  }
+
+  .iconDanger {
+    color: #ef4444;
+    
+    @media (prefers-color-scheme: dark) {
+      color: #f87171;
+    }
+  }
+
+  .iconInfo {
+    color: #3b82f6;
+    
+    @media (prefers-color-scheme: dark) {
+      color: #60a5fa;
+    }
+  }
+
+  .iconSecondary {
+    color: var(--text-secondary);
+  }
+}
+
+// Responsive design
+@media (max-width: 1024px) {
+  .paymentDashboard {
+    .filtersSection {
+      flex-direction: column;
+      align-items: stretch;
+
+      .filterGroup,
+      .searchGroup {
+        justify-content: flex-start;
+      }
+
+      .searchInput {
+        min-width: auto;
+        width: 100%;
+      }
+    }
+
+    .tableContainer {
+      overflow-x: auto;
+
+      .paymentsTable {
+        min-width: 800px;
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .paymentDashboard {
+    padding: 1rem 0;
+
+    .header {
+      margin-bottom: 1.5rem;
+
+      .headerContent h1 {
+        font-size: 1.5rem;
+      }
+    }
+
+    .statsGrid {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+
+      .statCard {
+        padding: 1rem;
+      }
+    }
+
+    .filtersSection {
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .tableContainer {
+      margin-bottom: 1.5rem;
+
+      .paymentsTable {
+        thead th,
+        tbody td {
+          padding: 0.75rem 0.5rem;
+          font-size: 0.8rem;
+        }
+      }
+    }
+
+    .pagination {
+      .pageNumbers {
+        max-width: 200px;
+        overflow-x: auto;
+      }
+    }
+  }
+}
