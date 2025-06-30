@@ -16,6 +16,8 @@ interface Manuscript {
   lastModified: string;
   reviewsCount: number;
   completedReviews: number;
+  requiresPayment: boolean;
+  paymentStatus: 'not-required' | 'pending' | 'processing' | 'completed' | 'failed' | 'waived';
 }
 
 interface Review {
@@ -49,11 +51,16 @@ export default function EditorDashboard() {
   const [manuscripts, setManuscripts] = useState<Manuscript[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [reviewers, setReviewers] = useState<User[]>([]);
+  const [copyEditors, setCopyEditors] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'manuscripts' | 'reviews' | 'assign'>('manuscripts');
+  const [activeTab, setActiveTab] = useState<'manuscripts' | 'reviews' | 'assign' | 'copy-edit'>('manuscripts');
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showCopyEditorModal, setShowCopyEditorModal] = useState(false);
   const [selectedManuscript, setSelectedManuscript] = useState<string>('');
   const [selectedReviewers, setSelectedReviewers] = useState<string[]>([]);
+  const [selectedCopyEditor, setSelectedCopyEditor] = useState<string>('');
+  const [copyEditorDueDate, setCopyEditorDueDate] = useState<string>('');
+  const [copyEditorNotes, setCopyEditorNotes] = useState<string>('');
   const [reviewType, setReviewType] = useState<'single_blind' | 'double_blind'>('double_blind');
   const [reviewerSearchTerm, setReviewerSearchTerm] = useState<string>('');
   const [showReviewerSearch, setShowReviewerSearch] = useState<boolean>(false);
@@ -106,10 +113,74 @@ export default function EditorDashboard() {
       const reviewersResponse = await fetch('/api/users?role=reviewer');
       const reviewersData = await reviewersResponse.json();
       setReviewers(reviewersData.users || []);
+
+      // Fetch copy editors
+      const copyEditorsResponse = await fetch('/api/users?role=copy-editor');
+      const copyEditorsData = await copyEditorsResponse.json();
+      setCopyEditors(copyEditorsData.users || []);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAssignCopyEditor = async () => {
+    if (!selectedManuscript || !selectedCopyEditor) return;
+
+    try {
+      const response = await fetch(`/api/manuscripts/${selectedManuscript}/simple-copy-edit`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'assign-copy-editor',
+          copyEditorId: selectedCopyEditor,
+        }),
+      });
+
+      if (response.ok) {
+        setShowCopyEditorModal(false);
+        setSelectedManuscript('');
+        setSelectedCopyEditor('');
+        setCopyEditorDueDate('');
+        setCopyEditorNotes('');
+        fetchData(); // Refresh data
+        alert('Copy editor assigned successfully!');
+      } else {
+        const errorData = await response.json();
+        alert(`Error: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error('Error assigning copy editor:', error);
+      alert('Error assigning copy editor');
+    }
+  };
+
+  const handlePublishManuscript = async (manuscriptId: string) => {
+    if (!confirm('Are you sure you want to publish this manuscript? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/manuscripts/${manuscriptId}/publish`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        alert('Manuscript published successfully!');
+        fetchData(); // Refresh the data
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to publish manuscript: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error('Error publishing manuscript:', error);
+      alert('Error publishing manuscript');
     }
   };
 
@@ -263,13 +334,19 @@ export default function EditorDashboard() {
         >
           Assign Reviews
         </button>
+        <button 
+          className={`${styles.tab} ${activeTab === 'copy-edit' ? styles.active : ''}`}
+          onClick={() => setActiveTab('copy-edit')}
+        >
+          Assign Copy Editors
+        </button>
       </div>
 
       {/* Manuscripts Tab */}
       {activeTab === 'manuscripts' && (
         <div className={styles.manuscriptsList}>
           <div className={styles.sectionHeader}>
-            <h2>Manuscripts</h2>
+            <h2 style={{ color: 'white' }}>Manuscripts</h2>
           </div>
           {!Array.isArray(manuscripts) || manuscripts.length === 0 ? (
             <div className={styles.emptyState}>
@@ -314,6 +391,46 @@ export default function EditorDashboard() {
                   >
                     Assign Review
                   </button>
+                  {['accepted', 'accepted-awaiting-copy-edit', 'in-copy-editing'].includes(manuscript.status) && (
+                    <>
+                      {(!manuscript.requiresPayment || 
+                        manuscript.paymentStatus === 'completed' || 
+                        manuscript.paymentStatus === 'not-required' || 
+                        manuscript.paymentStatus === 'waived') ? (
+                        <button
+                          className={styles.copyEditButton}
+                          onClick={() => {
+                            setSelectedManuscript(manuscript._id);
+                            setActiveTab('copy-edit');
+                          }}
+                        >
+                          Assign Copy Editor
+                        </button>
+                      ) : (
+                        <button
+                          className={styles.copyEditButton}
+                          disabled
+                          title="Payment must be completed before copy editor assignment"
+                          style={{ 
+                            opacity: 0.5, 
+                            cursor: 'not-allowed',
+                            backgroundColor: '#ccc',
+                            color: '#666'
+                          }}
+                        >
+                          Payment Required
+                        </button>
+                      )}
+                    </>
+                  )}
+                  {manuscript.status === 'ready-for-publication' && (
+                    <button
+                      className={styles.publishButton}
+                      onClick={() => handlePublishManuscript(manuscript._id)}
+                    >
+                      Publish Manuscript
+                    </button>
+                  )}
                 </div>
               </div>
             ))
@@ -493,6 +610,126 @@ export default function EditorDashboard() {
         </div>
       )}
 
+      {/* Copy Editor Assignment Tab */}
+      {activeTab === 'copy-edit' && (
+        <div className={styles.assignSection}>
+          <div className={styles.sectionHeader}>
+            <h2 style={{ color: 'white' }}>Assign Copy Editors</h2>
+            <p>Assign copy editors to accepted manuscripts ready for copy editing</p>
+            <div style={{ 
+              background: 'rgba(255, 255, 255, 0.1)', 
+              padding: '0.75rem', 
+              borderRadius: '6px', 
+              marginTop: '0.5rem',
+              fontSize: '0.9rem'
+            }}>
+              <strong>Requirements:</strong> Manuscripts must be <em>accepted</em> and have <em>payment completed</em> (or not required/waived) before copy editor assignment.
+            </div>
+          </div>
+
+          <div className={styles.assignForm}>
+            <div className={styles.formGroup}>
+              <label>Select Manuscript</label>
+              <select
+                value={selectedManuscript}
+                onChange={(e) => setSelectedManuscript(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                  fontSize: '1rem'
+                }}
+              >
+                <option value="">Choose a manuscript...</option>
+                {Array.isArray(manuscripts) && manuscripts
+                  .filter(m => {
+                    // Must be accepted status
+                    const isAccepted = ['accepted', 'accepted-awaiting-copy-edit', 'in-copy-editing'].includes(m.status);
+                    
+                    // Must have payment completed, not required, or waived
+                    const isPaymentComplete = !m.requiresPayment || 
+                      m.paymentStatus === 'completed' || 
+                      m.paymentStatus === 'not-required' || 
+                      m.paymentStatus === 'waived';
+                    
+                    return isAccepted && isPaymentComplete;
+                  })
+                  .map((manuscript) => (
+                    <option key={manuscript._id} value={manuscript._id}>
+                      {manuscript.title} - {manuscript.authors.map(a => a.name).join(', ')}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>Select Copy Editor</label>
+              <select
+                value={selectedCopyEditor}
+                onChange={(e) => setSelectedCopyEditor(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                  fontSize: '1rem'
+                }}
+              >
+                <option value="">Choose a copy editor...</option>
+                {Array.isArray(copyEditors) && copyEditors.map((editor) => (
+                  <option key={editor._id} value={editor._id}>
+                    {editor.name} ({editor.email})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>Due Date (Optional)</label>
+              <input
+                type="date"
+                value={copyEditorDueDate}
+                onChange={(e) => setCopyEditorDueDate(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                  fontSize: '1rem'
+                }}
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>Assignment Notes (Optional)</label>
+              <textarea
+                value={copyEditorNotes}
+                onChange={(e) => setCopyEditorNotes(e.target.value)}
+                placeholder="Enter any special instructions or notes for the copy editor..."
+                rows={4}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                  fontSize: '1rem',
+                  resize: 'vertical'
+                }}
+              />
+            </div>
+
+            <button
+              className={styles.assignButton}
+              onClick={handleAssignCopyEditor}
+              disabled={!selectedManuscript || !selectedCopyEditor}
+            >
+              Assign Copy Editor
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Assignment Confirmation Modal */}
       {showAssignModal && (
         <div className={styles.modal}>
@@ -502,6 +739,20 @@ export default function EditorDashboard() {
             <div className={styles.modalActions}>
               <button onClick={() => setShowAssignModal(false)}>Cancel</button>
               <button onClick={handleAssignReview}>Confirm</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Copy Editor Assignment Confirmation Modal */}
+      {showCopyEditorModal && (
+        <div className={styles.modal}>
+          <div className={styles.modalContent}>
+            <h3>Confirm Copy Editor Assignment</h3>
+            <p>Are you sure you want to assign this copy editor to the selected manuscript?</p>
+            <div className={styles.modalActions}>
+              <button onClick={() => setShowCopyEditorModal(false)}>Cancel</button>
+              <button onClick={handleAssignCopyEditor}>Confirm</button>
             </div>
           </div>
         </div>

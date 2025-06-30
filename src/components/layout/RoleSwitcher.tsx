@@ -60,10 +60,14 @@ export function RoleSwitcher({ className }: RoleSwitcherProps) {
 
         toast.success(`Switched to ${targetRole} role`);
         
+        // Force refresh to ensure the new role is reflected
+        router.refresh();
+        
         // Redirect to role-specific dashboard
         const roleRoutes = {
           admin: '/dashboard/admin',
           editor: '/dashboard/editor', 
+          'copy-editor': '/dashboard/copy-editor',
           reviewer: '/dashboard/reviewer',
           author: '/dashboard'
         };
@@ -92,6 +96,8 @@ export function RoleSwitcher({ className }: RoleSwitcherProps) {
         return <FiShield className={styles.roleIcon} />;
       case 'editor':
         return <FiEdit className={styles.roleIcon} />;
+      case 'copy-editor':
+        return <FiEdit className={styles.roleIcon} />;
       default:
         return <FiUser className={styles.roleIcon} />;
     }
@@ -103,6 +109,8 @@ export function RoleSwitcher({ className }: RoleSwitcherProps) {
         return 'Administrator';
       case 'editor':
         return 'Editor';
+      case 'copy-editor':
+        return 'Copy Editor';
       case 'reviewer':
         return 'Reviewer';
       case 'author':

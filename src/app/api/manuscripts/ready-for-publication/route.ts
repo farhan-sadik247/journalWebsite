@@ -22,15 +22,15 @@ export async function GET(
     await dbConnect();
 
     // Find manuscripts that are either:
-    // 1. In copy-editing stage 'ready-for-publication'
-    // 2. Have draft status 'approved-by-author' and are not yet published
+    // 1. Have status 'ready-for-publication' 
+    // 2. Have copyEditingStage 'author-approved' and are not yet published
     const manuscripts = await Manuscript.find({
       $or: [
-        { copyEditingStage: 'ready-for-publication', status: { $ne: 'published' } },
-        { draftStatus: 'approved-by-author', status: { $ne: 'published' } }
+        { status: 'ready-for-publication', publishedDate: { $exists: false } },
+        { copyEditingStage: 'author-approved', status: { $ne: 'published' } }
       ]
     })
-    .select('_id title authors copyEditingStage draftStatus status lastModified submittedBy')
+    .select('_id title authors copyEditingStage status lastModified submittedBy submissionDate latestManuscriptFiles authorCopyEditReview category')
     .populate('submittedBy', 'name email')
     .sort({ lastModified: -1 });
 

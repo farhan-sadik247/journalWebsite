@@ -522,7 +522,7 @@ export default function ManageUsersPage() {
                     <h4>Role Management</h4>
                     <p>Add or remove roles for this user:</p>
                     <div className={styles.roleActions}>
-                      {['author', 'reviewer', 'editor', 'admin'].map((role) => {
+                      {['author', 'reviewer', 'editor', 'copy-editor', 'admin'].map((role) => {
                         const hasRole = selectedUser.roles.includes(role);
                         const isSelfManagement = session?.user?.email === selectedUser.email;
                         

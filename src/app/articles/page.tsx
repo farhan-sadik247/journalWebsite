@@ -13,13 +13,11 @@ interface Article {
   authors: Array<{ name: string; email: string; affiliation: string }>;
   category: string;
   keywords: string[];
-  publicationDate: string;
-  publication: {
-    volume: number;
-    issue: number;
-    pages: string;
-    doi: string;
-  };
+  publishedDate: string; // Changed from publicationDate to match API
+  volume?: number; // Made optional and moved from nested object
+  issue?: number; // Made optional and moved from nested object
+  pages?: string; // Made optional and moved from nested object
+  doi?: string; // Made optional and moved from nested object
   metrics: {
     views: number;
     downloads: number;
@@ -165,9 +163,13 @@ export default function ArticlesPage() {
                 <div key={article._id} className={styles.articleCard}>
                   <div className={styles.articleHeader}>
                     <span className={styles.category}>{article.category}</span>
-                    <div className={styles.publication}>
-                      Vol. {article.publication.volume}, No. {article.publication.issue}
-                    </div>
+                    {(article.volume || article.issue) && (
+                      <div className={styles.publication}>
+                        {article.volume && `Vol. ${article.volume}`}
+                        {article.volume && article.issue && ', '}
+                        {article.issue && `No. ${article.issue}`}
+                      </div>
+                    )}
                   </div>
 
                   <h3 className={styles.title}>
@@ -206,11 +208,13 @@ export default function ArticlesPage() {
                     <div className={styles.metadata}>
                       <span className={styles.date}>
                         <FiCalendar />
-                        {formatDate(article.publicationDate)}
+                        {formatDate(article.publishedDate)}
                       </span>
-                      <span className={styles.doi}>
-                        DOI: {article.publication.doi}
-                      </span>
+                      {article.doi && (
+                        <span className={styles.doi}>
+                          DOI: {article.doi}
+                        </span>
+                      )}
                     </div>
 
                     <div className={styles.metrics}>

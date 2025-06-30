@@ -13,70 +13,32 @@ interface FeeConfig {
     articleType: string;
     fee: number;
   }[];
-  countryDiscounts: {
-    country: string;
-    discountType: 'percentage' | 'fixed_amount' | 'waiver';
-    discountValue: number;
-    description: string;
-  }[];
   paymentDeadlineDays: number;
-  allowWaiverRequests: boolean;
   supportedPaymentMethods: string[];
-  automaticWaiverCountries: string[];
+  requirePaymentBeforeProduction: boolean;
 }
-
-const COUNTRY_NAMES: { [key: string]: string } = {
-  'US': 'United States',
-  'GB': 'United Kingdom', 
-  'CA': 'Canada',
-  'AU': 'Australia',
-  'DE': 'Germany',
-  'FR': 'France',
-  'IN': 'India',
-  'CN': 'China',
-  'JP': 'Japan',
-  'BR': 'Brazil',
-  'BD': 'Bangladesh',
-  'AF': 'Afghanistan',
-  'ET': 'Ethiopia',
-  'NP': 'Nepal',
-  'RW': 'Rwanda',
-  'MX': 'Mexico',
-  'AR': 'Argentina',
-  'CL': 'Chile',
-  'CO': 'Colombia',
-  'PE': 'Peru',
-  'ZA': 'South Africa',
-  'NG': 'Nigeria',
-  'KE': 'Kenya',
-  'GH': 'Ghana',
-  'TH': 'Thailand',
-  'VN': 'Vietnam',
-  'PH': 'Philippines',
-  'ID': 'Indonesia',
-  'MY': 'Malaysia',
-  'SG': 'Singapore',
-  'PK': 'Pakistan',
-  'LK': 'Sri Lanka',
-  'MM': 'Myanmar',
-  'KH': 'Cambodia',
-  'LA': 'Laos'
-};
 
 const ARTICLE_TYPE_LABELS: { [key: string]: string } = {
   'research': 'Research Articles',
   'review': 'Review Articles', 
+  'meta-analysis': 'Meta-Analysis',
+  'systematic-review': 'Systematic Review',
   'case-study': 'Case Studies',
+  'commentary': 'Commentary',
   'editorial': 'Editorials',
   'letter': 'Letters to Editor',
-  'brief-communication': 'Brief Communications'
+  'opinion': 'Opinion Articles',
+  'perspective': 'Perspective',
+  'brief-communication': 'Brief Communications',
+  'methodology': 'Methodology',
+  'technical-note': 'Technical Notes',
+  'short-report': 'Short Reports'
 };
 
 const PAYMENT_METHOD_LABELS: { [key: string]: string } = {
   'stripe': 'Credit/Debit Cards (Stripe)',
   'paypal': 'PayPal',
-  'bank_transfer': 'Bank Transfer',
-  'waiver': 'Fee Waiver'
+  'bank_transfer': 'Bank Transfer'
 };
 
 export default function PublicationFeesPage() {
@@ -93,11 +55,11 @@ export default function PublicationFeesPage() {
       setLoading(true);
       setError(null);
       
-      const response = await fetch('/api/fee-config');
+      const response = await fetch('/api/fee-config/public');
       if (response.ok) {
         const data = await response.json();
-        if (data.feeConfig) {
-          setFeeConfig(data.feeConfig);
+        if (data.config) {
+          setFeeConfig(data.config);
         } else {
           setError('Fee configuration not available');
         }
@@ -117,10 +79,6 @@ export default function PublicationFeesPage() {
       style: 'currency',
       currency: currency
     }).format(amount);
-  };
-
-  const getCountryName = (countryCode: string) => {
-    return COUNTRY_NAMES[countryCode] || countryCode;
   };
 
   const getArticleTypeLabel = (type: string) => {
@@ -185,7 +143,7 @@ export default function PublicationFeesPage() {
                 <span className={styles.amount}>{feeConfig.baseFee.toFixed(2)}</span>
               </div>
               <p className={styles.baseFeeNote}>
-                This is the standard article processing charge. Fees may vary by article type and discounts may apply based on author location.
+                This is the standard article processing charge. Final fees are determined by article type with transparent, fixed pricing for all authors globally.
               </p>
             </div>
             <div className={styles.keyInfo}>
@@ -206,8 +164,8 @@ export default function PublicationFeesPage() {
               <div className={styles.infoItem}>
                 <FiFileText className={styles.infoIcon} />
                 <div>
-                  <strong>Waiver Requests</strong>
-                  <p>{feeConfig.allowWaiverRequests ? 'Available' : 'Not Available'}</p>
+                  <strong>Pricing Model</strong>
+                  <p>Fixed fees by article type</p>
                 </div>
               </div>
             </div>
@@ -235,63 +193,6 @@ export default function PublicationFeesPage() {
           </div>
         </section>
 
-        {/* Country-based Discounts */}
-        {feeConfig.countryDiscounts.length > 0 && (
-          <section className={styles.section}>
-            <h2>Country-based Discounts and Waivers</h2>
-            <p className={styles.sectionDescription}>
-              We offer reduced fees or complete waivers for authors from certain countries to promote global research accessibility.
-            </p>
-            <div className={styles.discountTable}>
-              <div className={styles.tableHeader}>
-                <span>Country</span>
-                <span>Discount Type</span>
-                <span>Discount Amount</span>
-                <span>Description</span>
-              </div>
-              {feeConfig.countryDiscounts.map((discount, index) => (
-                <div key={index} className={styles.tableRow}>
-                  <span className={styles.country}>
-                    <FiGlobe className={styles.countryIcon} />
-                    {getCountryName(discount.country)}
-                  </span>
-                  <span className={styles.discountType}>
-                    {discount.discountType === 'waiver' && 'Full Waiver'}
-                    {discount.discountType === 'percentage' && 'Percentage Discount'}
-                    {discount.discountType === 'fixed_amount' && 'Fixed Amount Discount'}
-                  </span>
-                  <span className={styles.discountAmount}>
-                    {discount.discountType === 'waiver' && '100%'}
-                    {discount.discountType === 'percentage' && `${discount.discountValue}%`}
-                    {discount.discountType === 'fixed_amount' && formatCurrency(discount.discountValue, feeConfig.currency)}
-                  </span>
-                  <span className={styles.description}>
-                    {discount.description || 'No description provided'}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Automatic Waivers */}
-        {feeConfig.automaticWaiverCountries.length > 0 && (
-          <section className={styles.section}>
-            <h2>Automatic Fee Waivers</h2>
-            <p className={styles.sectionDescription}>
-              Authors from the following countries automatically receive full fee waivers:
-            </p>
-            <div className={styles.waiverCountries}>
-              {feeConfig.automaticWaiverCountries.map((countryCode, index) => (
-                <div key={index} className={styles.waiverCountry}>
-                  <FiGlobe className={styles.countryIcon} />
-                  {getCountryName(countryCode)}
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
         {/* Payment Methods */}
         <section className={styles.section}>
           <h2>Accepted Payment Methods</h2>
@@ -317,15 +218,13 @@ export default function PublicationFeesPage() {
               <h3>Payment deadline</h3>
               <p>Authors have {feeConfig.paymentDeadlineDays} days from the acceptance notification to complete payment. Extensions may be available upon request.</p>
             </div>
-            {feeConfig.allowWaiverRequests && (
-              <div className={styles.infoItem}>
-                <h3>Fee waiver requests</h3>
-                <p>Authors who cannot afford the publication fee may request a waiver. Waiver requests are evaluated on a case-by-case basis.</p>
-              </div>
-            )}
+            <div className={styles.infoItem}>
+              <h3>Transparent pricing</h3>
+              <p>Our journal uses a fixed fee structure based solely on article type. All authors pay the same rate for each category, ensuring fairness and transparency in our publication process.</p>
+            </div>
             <div className={styles.infoItem}>
               <h3>Questions about fees?</h3>
-              <p>If you have questions about publication fees, discounts, or payment options, please <a href="/contact">contact our editorial team</a>.</p>
+              <p>If you have questions about publication fees or payment options, please <a href="/contact">contact our editorial team</a>.</p>
             </div>
           </div>
         </section>

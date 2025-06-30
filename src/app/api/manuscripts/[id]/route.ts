@@ -30,15 +30,44 @@ export async function GET(
 
     await dbConnect();
 
-    // Build filter based on user role
+    // Build filter based on user role using multi-role logic
     const filter: any = { _id: new mongoose.Types.ObjectId(params.id) };
     
-    // Authors can only see their own manuscripts
-    if (session.user.role === 'author') {
+    // Get user role information
+    const userRole = session.user.currentActiveRole || session.user.role || 'author';
+    const userRoles = session.user.roles || [userRole];
+    
+    // Check if user has any of these roles
+    const isAuthor = userRole === 'author' || userRoles.includes('author');
+    const isCopyEditor = userRole === 'copy-editor' || userRoles.includes('copy-editor');
+    const isReviewer = userRole === 'reviewer' || userRoles.includes('reviewer');
+    const isEditor = userRole === 'editor' || userRoles.includes('editor');
+    const isAdmin = userRole === 'admin' || userRoles.includes('admin');
+    
+    // Authors can only see their own manuscripts (unless they have other roles)
+    if (userRole === 'author' && !isEditor && !isAdmin && !isCopyEditor && !isReviewer) {
       filter.submittedBy = new mongoose.Types.ObjectId(session.user.id);
     }
+    // Copy editors can see manuscripts assigned to them (unless they have editor/admin roles)
+    else if (userRole === 'copy-editor' && !isEditor && !isAdmin) {
+      filter.assignedCopyEditor = new mongoose.Types.ObjectId(session.user.id);
+    }
+    // Reviewers can only see manuscripts they are assigned to review (unless they have editor/admin roles)
+    else if (userRole === 'reviewer' && !isEditor && !isAdmin) {
+      // Check if this reviewer has been assigned to review this manuscript
+      const hasReviewAssignment = await Review.findOne({
+        manuscriptId: new mongoose.Types.ObjectId(params.id),
+        reviewerId: new mongoose.Types.ObjectId(session.user.id)
+      });
+      
+      if (!hasReviewAssignment) {
+        return NextResponse.json(
+          { error: 'You are not assigned to review this manuscript' },
+          { status: 403 }
+        );
+      }
+    }
     // Editors and admins can see all manuscripts
-    // Reviewers would need additional logic based on review assignments
 
     // Use aggregation pipeline to get manuscript with dynamic status
     const manuscriptPipeline = [

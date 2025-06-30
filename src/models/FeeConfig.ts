@@ -21,7 +21,7 @@ const feeConfigSchema = new mongoose.Schema({
     required: true,
     default: 'USD',
   },
-  // Article type specific fees
+  // Article type specific fees (main fee structure)
   articleTypeFees: [{
     articleType: {
       type: String,
@@ -31,51 +31,6 @@ const feeConfigSchema = new mongoose.Schema({
       type: Number,
       required: true,
       min: 0,
-    },
-  }],
-  // Country-based discounts/waivers
-  countryDiscounts: [{
-    country: {
-      type: String,
-      required: true,
-    },
-    discountType: {
-      type: String,
-      enum: ['percentage', 'fixed_amount', 'waiver'],
-      required: true,
-    },
-    discountValue: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
-    description: {
-      type: String,
-      default: '',
-    },
-  }],
-  // Institution-based discounts
-  institutionDiscounts: [{
-    institutionName: {
-      type: String,
-      required: true,
-    },
-    discountType: {
-      type: String,
-      enum: ['percentage', 'fixed_amount'],
-      required: true,
-    },
-    discountValue: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
-    validUntil: {
-      type: Date,
-    },
-    description: {
-      type: String,
-      default: '',
     },
   }],
   // Payment deadlines
@@ -89,10 +44,6 @@ const feeConfigSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
-  allowWaiverRequests: {
-    type: Boolean,
-    default: true,
-  },
   requirePaymentBeforeProduction: {
     type: Boolean,
     default: true,
@@ -100,12 +51,9 @@ const feeConfigSchema = new mongoose.Schema({
   // Supported payment methods
   supportedPaymentMethods: [{
     type: String,
-    enum: ['stripe', 'paypal', 'bank_transfer', 'waiver'],
+    enum: ['stripe', 'paypal', 'bank_transfer'],
   }],
-  // Additional settings
-  automaticWaiverCountries: [{
-    type: String, // ISO country codes
-  }],
+  // Admin tracking
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -120,7 +68,6 @@ const feeConfigSchema = new mongoose.Schema({
 });
 
 // Indexes
-feeConfigSchema.index({ name: 1 });
 feeConfigSchema.index({ isActive: 1 });
 
 // Define interface for the static method
@@ -142,24 +89,23 @@ feeConfigSchema.statics.getDefaultConfig = async function() {
       articleTypeFees: [
         { articleType: 'research', fee: 2000 },
         { articleType: 'review', fee: 1500 },
+        { articleType: 'meta-analysis', fee: 1800 },
+        { articleType: 'systematic-review', fee: 1600 },
         { articleType: 'case-study', fee: 1200 },
-        { articleType: 'editorial', fee: 0 },
-        { articleType: 'letter', fee: 500 },
-      ],
-      countryDiscounts: [
-        { country: 'AF', discountType: 'waiver', discountValue: 100, description: 'Low-income country waiver' },
-        { country: 'BD', discountType: 'waiver', discountValue: 100, description: 'Low-income country waiver' },
-        { country: 'ET', discountType: 'waiver', discountValue: 100, description: 'Low-income country waiver' },
-        { country: 'IN', discountType: 'percentage', discountValue: 50, description: 'Developing country discount' },
-        { country: 'CN', discountType: 'percentage', discountValue: 30, description: 'Developing country discount' },
-        { country: 'BR', discountType: 'percentage', discountValue: 40, description: 'Developing country discount' },
+        { articleType: 'commentary', fee: 800 },
+        { articleType: 'editorial', fee: 500 },
+        { articleType: 'letter', fee: 400 },
+        { articleType: 'opinion', fee: 600 },
+        { articleType: 'perspective', fee: 700 },
+        { articleType: 'brief-communication', fee: 500 },
+        { articleType: 'methodology', fee: 1400 },
+        { articleType: 'technical-note', fee: 900 },
+        { articleType: 'short-report', fee: 800 },
       ],
       paymentDeadlineDays: 30,
       isActive: true,
-      allowWaiverRequests: true,
       requirePaymentBeforeProduction: true,
-      supportedPaymentMethods: ['stripe', 'paypal', 'bank_transfer', 'waiver'],
-      automaticWaiverCountries: ['AF', 'BD', 'ET', 'NP', 'RW'],
+      supportedPaymentMethods: ['stripe', 'paypal', 'bank_transfer'],
       createdBy: new mongoose.Types.ObjectId(), // Will need to be set properly
     });
     
@@ -169,106 +115,35 @@ feeConfigSchema.statics.getDefaultConfig = async function() {
   return config;
 };
 
-// Calculate fee for a manuscript
-feeConfigSchema.methods.calculateFee = function(articleType: string, authorCountry: string, institutionName?: string) {
-  console.log('Calculating fee for:', { articleType, authorCountry, institutionName });
+// Calculate fee for a manuscript based only on article type
+feeConfigSchema.methods.calculateFee = function(articleType: string) {
+  console.log('Calculating fixed fee for article type:', articleType);
   
-  // Start with base fee
-  let fee = this.baseFee;
-  
-  // Check article type specific fee (this overrides base fee if found)
+  // Find the specific fee for the article type
   const articleTypeFee = this.articleTypeFees.find((af: any) => af.articleType === articleType);
+  
   if (articleTypeFee) {
-    fee = articleTypeFee.fee;
-    console.log(`Article type fee found: ${articleType} = ${fee}`);
-  } else {
-    console.log(`No specific fee for article type: ${articleType}, using base fee: ${fee}`);
-  }
-  
-  let discountAmount = 0;
-  let discountReason = '';
-  
-  // If no country provided or empty, return full base fee
-  if (!authorCountry || authorCountry.trim() === '') {
-    console.log('No country provided, returning full base fee');
+    console.log(`Fixed fee for ${articleType}: $${articleTypeFee.fee}`);
     return {
-      baseFee: fee,
-      finalFee: fee,
+      baseFee: articleTypeFee.fee,
+      finalFee: articleTypeFee.fee,
       discountAmount: 0,
       discountReason: '',
-      isWaiver: false,
+      articleType: articleType,
+      currency: this.currency || 'USD'
     };
   }
   
-  // Check for automatic waiver countries
-  if (this.automaticWaiverCountries.includes(authorCountry)) {
-    console.log(`Automatic waiver applied for country: ${authorCountry}`);
-    return {
-      baseFee: fee,
-      finalFee: 0,
-      discountAmount: fee,
-      discountReason: 'Automatic waiver for low-income country',
-      isWaiver: true,
-    };
-  }
-  
-  // Check country-based discounts
-  const countryDiscount = this.countryDiscounts.find((cd: any) => cd.country === authorCountry);
-  if (countryDiscount) {
-    console.log(`Country discount found for ${authorCountry}:`, countryDiscount);
-    if (countryDiscount.discountType === 'waiver') {
-      return {
-        baseFee: fee,
-        finalFee: 0,
-        discountAmount: fee,
-        discountReason: countryDiscount.description || 'Country-based waiver',
-        isWaiver: true,
-      };
-    } else if (countryDiscount.discountType === 'percentage') {
-      discountAmount = Math.round(fee * (countryDiscount.discountValue / 100));
-      discountReason = countryDiscount.description || `${countryDiscount.discountValue}% country-based discount`;
-      console.log(`Percentage discount applied: ${discountAmount} (${countryDiscount.discountValue}%)`);
-    } else if (countryDiscount.discountType === 'fixed_amount') {
-      discountAmount = Math.min(countryDiscount.discountValue, fee);
-      discountReason = countryDiscount.description || `$${countryDiscount.discountValue} country-based discount`;
-      console.log(`Fixed amount discount applied: ${discountAmount}`);
-    }
-  } else {
-    console.log(`No country discount found for: ${authorCountry}`);
-  }
-  
-  // Check institution-based discounts (if no country discount applied)
-  if (!discountAmount && institutionName) {
-    console.log(`Checking institution discount for: ${institutionName}`);
-    const institutionDiscount = this.institutionDiscounts.find((id: any) => 
-      id.institutionName.toLowerCase() === institutionName.toLowerCase() &&
-      (!id.validUntil || new Date(id.validUntil) > new Date())
-    );
-    
-    if (institutionDiscount) {
-      console.log(`Institution discount found:`, institutionDiscount);
-      if (institutionDiscount.discountType === 'percentage') {
-        discountAmount = Math.round(fee * (institutionDiscount.discountValue / 100));
-        discountReason = institutionDiscount.description || `${institutionDiscount.discountValue}% institutional discount`;
-      } else if (institutionDiscount.discountType === 'fixed_amount') {
-        discountAmount = Math.min(institutionDiscount.discountValue, fee);
-        discountReason = institutionDiscount.description || `$${institutionDiscount.discountValue} institutional discount`;
-      }
-    } else {
-      console.log('No institution discount found');
-    }
-  }
-  
-  const finalResult = {
-    baseFee: fee,
-    finalFee: Math.max(0, fee - discountAmount),
-    discountAmount,
-    discountReason,
-    isWaiver: false,
+  // Fallback to base fee if article type not found
+  console.log(`Article type ${articleType} not found, using base fee: $${this.baseFee}`);
+  return {
+    baseFee: this.baseFee,
+    finalFee: this.baseFee,
+    discountAmount: 0,
+    discountReason: '',
+    articleType: articleType,
+    currency: this.currency || 'USD'
   };
-  
-  console.log('Final calculation result:', finalResult);
-  return finalResult;
 };
 
 export default (mongoose.models.FeeConfig as FeeConfigModel) || mongoose.model<any, FeeConfigModel>('FeeConfig', feeConfigSchema);

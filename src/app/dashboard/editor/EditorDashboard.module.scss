@@ -175,7 +175,7 @@
   text-align: center;
 }
 
-.assignButton, .viewButton, .decisionButton {
+.assignButton, .viewButton, .decisionButton, .copyEditButton, .publishButton {
   padding: 0.5rem 1rem;
   border: none;
   border-radius: 6px;
@@ -203,6 +203,24 @@
 
   &:hover:not(:disabled) {
     background: darken($primary-color, 10%);
+  }
+}
+
+.copyEditButton {
+  background: #ff6b35;
+  color: white;
+
+  &:hover:not(:disabled) {
+    background: darken(#ff6b35, 10%);
+  }
+}
+
+.publishButton {
+  background: #10b981;
+  color: white;
+
+  &:hover:not(:disabled) {
+    background: darken(#10b981, 10%);
   }
 }
 

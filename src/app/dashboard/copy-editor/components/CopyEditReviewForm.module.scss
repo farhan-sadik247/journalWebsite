@@ -1,0 +1,396 @@
+.reviewFormOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.reviewFormModal {
+  background: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 700px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.modalHeader {
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  position: relative;
+  
+  h2 {
+    margin: 0 0 8px;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1f2937;
+  }
+  
+  .manuscriptTitle {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #6b7280;
+    font-weight: 500;
+  }
+  
+  .closeButton {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    
+    &:hover {
+      background: #f3f4f6;
+      color: #374151;
+    }
+  }
+}
+
+.reviewForm {
+  padding: 24px;
+}
+
+.formGroup {
+  margin-bottom: 24px;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.label {
+  display: block;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+}
+
+.fieldDescription {
+  margin: 0 0 12px;
+  font-size: 0.85rem;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.statusOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.radioOption {
+  display: block;
+  padding: 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover {
+    border-color: #d1d5db;
+    background: #f9fafb;
+  }
+  
+  input[type="radio"] {
+    margin-right: 12px;
+  }
+  
+  input[type="radio"]:checked + .radioLabel {
+    color: #059669;
+    font-weight: 600;
+  }
+  
+  &:has(input:checked) {
+    border-color: #10b981;
+    background: #f0fdf4;
+  }
+  
+  &:has(input[value="needs-revision"]:checked) {
+    border-color: #f59e0b;
+    background: #fffbeb;
+    
+    .radioLabel {
+      color: #d97706;
+    }
+  }
+}
+
+.radioLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 4px;
+}
+
+.successIcon {
+  color: #10b981;
+}
+
+.warningIcon {
+  color: #f59e0b;
+}
+
+.optionDescription {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #6b7280;
+  line-height: 1.4;
+  margin-left: 32px;
+}
+
+.commentsTextarea {
+  width: 100%;
+  min-height: 150px;
+  padding: 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  resize: vertical;
+  transition: border-color 0.2s;
+  
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+  
+  &::placeholder {
+    color: #9ca3af;
+  }
+}
+
+.characterCount {
+  text-align: right;
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.fileUploadArea {
+  border: 2px dashed #d1d5db;
+  border-radius: 8px;
+  padding: 32px 16px;
+  text-align: center;
+  transition: all 0.2s;
+  cursor: pointer;
+  
+  &:hover, &.dragActive {
+    border-color: #3b82f6;
+    background: #f8fafc;
+  }
+}
+
+.fileInput {
+  display: none;
+}
+
+.fileUploadLabel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  
+  span {
+    font-weight: 500;
+    color: #374151;
+  }
+  
+  p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #6b7280;
+  }
+}
+
+.uploadIcon {
+  font-size: 2rem;
+  color: #6b7280;
+}
+
+.uploadedFile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #f3f4f6;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+.fileInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.fileIcon {
+  font-size: 1.5rem;
+  color: #6b7280;
+}
+
+.fileDetails {
+  display: flex;
+  flex-direction: column;
+  
+  .fileName {
+    font-weight: 500;
+    color: #374151;
+    font-size: 0.9rem;
+  }
+  
+  .fileSize {
+    font-size: 0.8rem;
+    color: #6b7280;
+  }
+}
+
+.removeFileButton {
+  background: none;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  font-size: 1.2rem;
+  
+  &:hover {
+    background: #fee2e2;
+  }
+}
+
+.guidelines {
+  background: #f8fafc;
+  padding: 16px;
+  border-radius: 6px;
+  border-left: 4px solid #3b82f6;
+  margin: 24px 0;
+  
+  h3 {
+    margin: 0 0 12px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #374151;
+  }
+  
+  ul {
+    margin: 0;
+    padding-left: 20px;
+    
+    li {
+      font-size: 0.85rem;
+      color: #6b7280;
+      line-height: 1.4;
+      margin-bottom: 4px;
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+}
+
+.formActions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding-top: 24px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.cancelButton {
+  padding: 10px 20px;
+  border: 2px solid #e5e7eb;
+  background: white;
+  color: #6b7280;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover:not(:disabled) {
+    border-color: #d1d5db;
+    color: #374151;
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.submitButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover:not(:disabled) {
+    background: #2563eb;
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+@media (max-width: 768px) {
+  .reviewFormOverlay {
+    padding: 10px;
+  }
+  
+  .reviewFormModal {
+    max-height: 95vh;
+  }
+  
+  .modalHeader, .reviewForm {
+    padding: 16px;
+  }
+  
+  .statusOptions {
+    gap: 8px;
+  }
+  
+  .radioOption {
+    padding: 12px;
+  }
+  
+  .optionDescription {
+    margin-left: 28px;
+  }
+  
+  .formActions {
+    flex-direction: column-reverse;
+    
+    button {
+      width: 100%;
+    }
+  }
+}

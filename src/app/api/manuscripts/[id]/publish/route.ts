@@ -18,13 +18,17 @@ export async function POST(
     }
 
     // Check if user is editor or admin
-    if (session.user.role !== 'editor' && session.user.role !== 'admin') {
+    const hasEditorRole = session.user.roles?.includes('editor') || session.user.role === 'editor';
+    const hasAdminRole = session.user.roles?.includes('admin') || session.user.role === 'admin';
+    
+    if (!hasEditorRole && !hasAdminRole) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
-    const { volume, issue, pages, doi, publishedDate } = await request.json();
+    const { volume, issue, pages, doi, publishedDate, action } = await request.json();
 
-    if (!volume || !pages || !publishedDate) {
+    // For direct publish, we don't require volume and pages
+    if (action !== 'direct-publish' && (!volume || !pages || !publishedDate)) {
       return NextResponse.json({ 
         error: 'Volume, pages, and published date are required' 
       }, { status: 400 });
@@ -38,17 +42,24 @@ export async function POST(
       return NextResponse.json({ error: 'Manuscript not found' }, { status: 404 });
     }
 
-    // Check if manuscript is ready for publication (should be author-approved)
-    if (manuscript.draftStatus !== 'approved-by-author') {
+    // Check if manuscript is ready for publication
+    const isReadyForPublication = manuscript.status === 'ready-for-publication' || 
+                                  manuscript.copyEditingStage === 'author-approved' ||
+                                  manuscript.draftStatus === 'approved-by-author';
+    
+    if (!isReadyForPublication) {
       return NextResponse.json({ 
         error: 'Manuscript must be approved by author before publication' 
       }, { status: 400 });
     }
 
-    // Verify volume exists
-    const volumeDoc = await Volume.findOne({ number: volume });
-    if (!volumeDoc) {
-      return NextResponse.json({ error: 'Volume not found' }, { status: 400 });
+    // For direct publish, skip volume verification
+    if (action !== 'direct-publish') {
+      // Verify volume exists
+      const volumeDoc = await Volume.findOne({ number: volume });
+      if (!volumeDoc) {
+        return NextResponse.json({ error: 'Volume not found' }, { status: 400 });
+      }
     }
 
     // Check if DOI already exists
@@ -62,11 +73,15 @@ export async function POST(
     // Update manuscript with publication information
     const updateData: any = {
       status: 'published',
-      volume: volume,
-      pages: pages,
-      publishedDate: new Date(publishedDate),
+      publishedDate: publishedDate ? new Date(publishedDate) : new Date(),
       lastModified: new Date(),
     };
+
+    // Only add volume/pages for formal publication
+    if (action !== 'direct-publish') {
+      updateData.volume = volume;
+      updateData.pages = pages;
+    }
 
     if (issue) updateData.issue = issue;
     if (doi) updateData.doi = doi;
@@ -74,7 +89,9 @@ export async function POST(
     // Add timeline event
     const timelineEvent = {
       event: 'Manuscript Published',
-      description: `Published in Volume ${volume}${issue ? `, Issue ${issue}` : ''}, pages ${pages}${doi ? ` with DOI: ${doi}` : ''}`,
+      description: action === 'direct-publish' 
+        ? `Published directly to archive${doi ? ` with DOI: ${doi}` : ''}`
+        : `Published in Volume ${volume}${issue ? `, Issue ${issue}` : ''}, pages ${pages}${doi ? ` with DOI: ${doi}` : ''}`,
       date: new Date(),
       performedBy: session.user.id
     };
@@ -88,26 +105,36 @@ export async function POST(
     ).populate('submittedBy', 'name email');
 
     // Send notification to all authors
-    const volumeInfo = `Volume ${volume}${issue ? `, Issue ${issue}` : ''}`;
+    const volumeInfo = action === 'direct-publish' 
+      ? 'directly to the archive' 
+      : `Volume ${volume}${issue ? `, Issue ${issue}` : ''}`;
     
-    // Notify primary author
-    await notifyPublicationComplete(
-      manuscript.submittedBy.email,
-      params.id,
-      manuscript.title,
-      volumeInfo
-    );
+    // Notify primary author (non-blocking)
+    try {
+      await notifyPublicationComplete(
+        manuscript.submittedBy.email,
+        params.id,
+        manuscript.title,
+        volumeInfo
+      );
+    } catch (notificationError) {
+      console.warn('Failed to notify primary author:', notificationError);
+    }
     
-    // Notify co-authors if they exist
+    // Notify co-authors if they exist (non-blocking)
     if (manuscript.authors && manuscript.authors.length > 0) {
       for (const author of manuscript.authors) {
         if (author.email && author.email !== manuscript.submittedBy.email) {
-          await notifyPublicationComplete(
-            author.email,
-            params.id,
-            manuscript.title,
-            volumeInfo
-          );
+          try {
+            await notifyPublicationComplete(
+              author.email,
+              params.id,
+              manuscript.title,
+              volumeInfo
+            );
+          } catch (notificationError) {
+            console.warn(`Failed to notify co-author ${author.email}:`, notificationError);
+          }
         }
       }
     }

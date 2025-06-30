@@ -96,7 +96,7 @@ export async function PUT(request: NextRequest) {
 
     const { targetRole } = await request.json();
 
-    if (!['admin', 'editor', 'reviewer', 'author'].includes(targetRole)) {
+    if (!['admin', 'editor', 'reviewer', 'copy-editor', 'author'].includes(targetRole)) {
       return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
     }
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/pages/api/auth/[...nextauth]';
 import dbConnect from '@/lib/mongodb';
+import mongoose from 'mongoose';
 import Review from '@/models/Review';
 import Manuscript from '@/models/Manuscript';
 import User from '@/models/User';
@@ -151,21 +152,33 @@ export async function PUT(
       manuscript.timeline.push({
         event: 'status-change',
         description: `Status changed to ${newStatus} based on review recommendations`,
-        performedBy: null, // System-generated
+        performedBy: session.user.id, // Use the reviewer's ID instead of null
         metadata: {
           previousStatus: previousStatus,
           newStatus: newStatus,
           reviewCount: completedReviews.length,
           recommendations: completedReviews.map(r => r.recommendation),
-          triggeredBy: 'review-completion'
+          triggeredBy: 'review-completion',
+          reviewerId: session.user.id
         }
       });
       
-      await manuscript.save();
+      try {
+        console.log('Saving manuscript with updated timeline:', {
+          manuscriptId: manuscript._id,
+          newStatus,
+          timelineEntryCount: manuscript.timeline.length
+        });
+        await manuscript.save();
+        console.log('Manuscript saved successfully');
+      } catch (saveError) {
+        console.error('Error saving manuscript with timeline update:', saveError);
+        throw saveError;
+      }
       
       // If accepted, trigger additional workflow steps
       if (newStatus === 'accepted') {
-        await handleAcceptedManuscript(manuscript);
+        await handleAcceptedManuscript(manuscript, session.user.id);
       }
     }
 
@@ -242,7 +255,7 @@ function determineManuscriptStatus(completedReviews: any[]): string {
 }
 
 // Helper function to handle accepted manuscripts and trigger publishing workflow
-async function handleAcceptedManuscript(manuscript: any) {
+async function handleAcceptedManuscript(manuscript: any, performedByUserId?: string) {
   try {
     // Get corresponding author info first
     const correspondingAuthor = manuscript.authors.find((author: any) => author.isCorresponding);
@@ -272,10 +285,11 @@ async function handleAcceptedManuscript(manuscript: any) {
     manuscript.timeline.push({
       event: 'accepted',
       description: 'Manuscript accepted and moved to publication queue',
-      performedBy: null, // System-generated
+      performedBy: performedByUserId || new mongoose.Types.ObjectId(), // Use provided user ID or create a system ID
       metadata: {
         acceptedDate: new Date(),
-        nextStep: 'payment-required'
+        nextStep: 'payment-required',
+        triggeredBy: performedByUserId ? 'review-completion' : 'system'
       }
     });
     

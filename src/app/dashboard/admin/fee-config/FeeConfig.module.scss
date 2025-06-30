@@ -81,7 +81,65 @@
     font-size: 0.875rem;
   }
 
-  input, select {
+  input, select, textarea {
+    padding: 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    transition: border-color 0.2s;
+
+    &::placeholder {
+      color: #9ca3af;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    &:invalid {
+      border-color: #dc2626;
+    }
+
+    &:valid {
+      border-color: #10b981;
+    }
+  }
+
+  textarea {
+    min-height: 80px;
+    resize: vertical;
+    font-family: inherit;
+  }
+}
+
+.feeTable {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+}
+
+.feeRow {
+  display: grid;
+  grid-template-columns: 2fr 1fr auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  transition: box-shadow 0.2s;
+
+  &:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  select, input {
     padding: 0.75rem;
     border: 1px solid #d1d5db;
     border-radius: 6px;
@@ -94,81 +152,43 @@
       box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
     }
   }
-}
 
-.feeTable, .discountTable {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.feeRow {
-  display: grid;
-  grid-template-columns: 1fr 120px 100px;
-  gap: 1rem;
-  align-items: center;
-  padding: 1rem;
-  background: #f9fafb;
-  border-radius: 6px;
-
-  select, input {
-    padding: 0.5rem;
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
-    font-size: 0.875rem;
-
-    &:focus {
-      outline: none;
-      border-color: #2563eb;
-    }
+  input[type="number"] {
+    text-align: right;
   }
-}
 
-.discountRow {
-  display: grid;
-  grid-template-columns: 200px 120px 120px 1fr 100px;
-  gap: 1rem;
-  align-items: center;
-  padding: 1rem;
-  background: #f9fafb;
-  border-radius: 6px;
-
-  select, input {
-    padding: 0.5rem;
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
-    font-size: 0.875rem;
-
-    &:focus {
-      outline: none;
-      border-color: #2563eb;
-    }
-
-    &:disabled {
-      background: #f3f4f6;
-      cursor: not-allowed;
-    }
+  button {
+    white-space: nowrap;
+    min-width: 80px;
   }
 }
 
 .checkboxGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 1rem;
 }
 
 .checkbox {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   cursor: pointer;
   font-weight: 500;
   color: #374151;
+  padding: 0.75rem;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #f9fafb;
+  }
 
   input[type="checkbox"] {
-    width: 1rem;
-    height: 1rem;
+    width: 1.125rem;
+    height: 1.125rem;
     cursor: pointer;
+    accent-color: #2563eb;
   }
 }
 
@@ -176,7 +196,14 @@
   padding: 2rem;
   background: #f9fafb;
   border-top: 1px solid #e5e7eb;
-  text-align: center;
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+
+  .btn {
+    min-width: 140px;
+  }
 }
 
 // Button styles
@@ -232,13 +259,115 @@
   }
 }
 
-.loading-spinner {
+.loading {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  height: 200px;
-  font-size: 1.1rem;
+  justify-content: center;
+  padding: 3rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+  p {
+    margin-top: 1rem;
+    color: #6b7280;
+    font-size: 1rem;
+  }
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f4f6;
+  border-top: 4px solid #2563eb;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+// Empty state styles
+.emptyState {
+  text-align: center;
+  padding: 3rem 2rem;
   color: #6b7280;
+
+  .emptyIcon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+  }
+
+  .emptyTitle {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #374151;
+  }
+
+  .emptyDescription {
+    margin-bottom: 1.5rem;
+  }
+}
+
+// Success/Error states
+.successMessage {
+  padding: 1rem;
+  background: #d1fae5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+
+  &::before {
+    content: "✓ ";
+    font-weight: bold;
+  }
+}
+
+.errorMessage {
+  padding: 1rem;
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+
+  &::before {
+    content: "⚠ ";
+    font-weight: bold;
+  }
+}
+
+// Badge styles for article types
+.articleTypeBadge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  background: #e0e7ff;
+  color: #3730a3;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+// Fee amount styling
+.feeAmount {
+  font-weight: 600;
+  color: #059669;
+  font-family: 'Courier New', monospace;
+
+  &.free {
+    color: #2563eb;
+  }
+
+  &.high {
+    color: #dc2626;
+  }
 }
 
 // Responsive design
@@ -261,25 +390,172 @@
 
   .formGrid {
     grid-template-columns: 1fr;
+    gap: 1rem;
   }
 
   .sectionHeader {
     flex-direction: column;
     gap: 1rem;
     align-items: stretch;
+    
+    .btn {
+      align-self: center;
+      min-width: 160px;
+    }
   }
 
   .feeRow {
     grid-template-columns: 1fr;
-    gap: 0.5rem;
+    gap: 0.75rem;
+    
+    select {
+      order: 1;
+    }
+    
+    input {
+      order: 2;
+    }
+    
+    button {
+      order: 3;
+      justify-self: center;
+      min-width: 120px;
+    }
   }
 
-  .discountRow {
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
+  .actions {
+    padding: 1.5rem;
+    flex-direction: column;
+    align-items: center;
+    
+    .btn {
+      width: 100%;
+      max-width: 200px;
+    }
   }
 
   .checkboxGrid {
-    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 0.5rem;
+  }
+  
+  .header, .section {
+    padding: 1rem;
+  }
+  
+  .formGrid {
+    gap: 0.75rem;
+  }
+  
+  .feeTable {
+    padding: 0.75rem;
+  }
+  
+  .feeRow {
+    padding: 0.75rem;
+    gap: 0.5rem;
+  }
+}
+
+// Loading overlay for better UX during saves
+.loadingOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  
+  .loadingContent {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    max-width: 300px;
+    
+    .spinner {
+      margin: 0 auto 1rem auto;
+    }
+    
+    .loadingText {
+      color: #374151;
+      font-weight: 500;
+    }
+  }
+}
+
+// Disabled state for form during saves
+.formDisabled {
+  pointer-events: none;
+  opacity: 0.7;
+  position: relative;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
+    z-index: 10;
+  }
+}
+
+// Better focus states
+.formGroup input:focus,
+.formGroup select:focus,
+.feeRow input:focus,
+.feeRow select:focus {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+}
+
+// Validation styling
+.inputError {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1) !important;
+}
+
+.inputSuccess {
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1) !important;
+}
+
+// Tooltip styles
+.tooltip {
+  position: relative;
+  
+  &::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1f2937;
+    color: white;
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s;
+    z-index: 100;
+  }
+  
+  &:hover::after {
+    opacity: 1;
+    visibility: visible;
   }
 }

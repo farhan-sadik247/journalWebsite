@@ -16,17 +16,10 @@ interface FeeConfig {
     articleType: string;
     fee: number;
   }[];
-  countryDiscounts: {
-    country: string;
-    discountType: 'percentage' | 'fixed_amount' | 'waiver';
-    discountValue: number;
-    description: string;
-  }[];
   paymentDeadlineDays: number;
-  allowWaiverRequests: boolean;
   supportedPaymentMethods: string[];
-  automaticWaiverCountries: string[];
-  isDefault: boolean;
+  requirePaymentBeforeProduction: boolean;
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -44,7 +37,7 @@ const AdminPaymentConfig = () => {
       const response = await fetch('/api/fee-config');
       if (response.ok) {
         const data = await response.json();
-        setFeeConfig(data.feeConfig);
+        setFeeConfig(data.config);
       }
     } catch (error) {
       console.error('Error fetching fee config:', error);
@@ -188,27 +181,6 @@ const AdminPaymentConfig = () => {
                   </div>
                 </div>
 
-                {/* Discounts & Waivers Summary */}
-                {(feeConfig.countryDiscounts.length > 0 || feeConfig.automaticWaiverCountries.length > 0) && (
-                  <div className={styles.configSection}>
-                    <h4>Discounts & Waivers</h4>
-                    <div className={styles.summaryStats}>
-                      {feeConfig.countryDiscounts.length > 0 && (
-                        <div className={styles.stat}>
-                          <span className={styles.statValue}>{feeConfig.countryDiscounts.length}</span>
-                          <span className={styles.statLabel}>Country Discounts</span>
-                        </div>
-                      )}
-                      {feeConfig.automaticWaiverCountries.length > 0 && (
-                        <div className={styles.stat}>
-                          <span className={styles.statValue}>{feeConfig.automaticWaiverCountries.length}</span>
-                          <span className={styles.statLabel}>Auto Waivers</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
                 {/* Configuration Info */}
                 <div className={styles.configSection}>
                   <h4>Configuration Details</h4>
@@ -222,9 +194,13 @@ const AdminPaymentConfig = () => {
                       <span className={styles.detailValue}>{feeConfig.paymentDeadlineDays} days</span>
                     </div>
                     <div className={styles.detailItem}>
-                      <span className={styles.detailLabel}>Waiver Requests:</span>
+                      <span className={styles.detailLabel}>Payment Methods:</span>
+                      <span className={styles.detailValue}>{feeConfig.supportedPaymentMethods.length} supported</span>
+                    </div>
+                    <div className={styles.detailItem}>
+                      <span className={styles.detailLabel}>Status:</span>
                       <span className={styles.detailValue}>
-                        {feeConfig.allowWaiverRequests ? '✅ Allowed' : '❌ Not Allowed'}
+                        {feeConfig.isActive ? '✅ Active' : '❌ Inactive'}
                       </span>
                     </div>
                   </div>

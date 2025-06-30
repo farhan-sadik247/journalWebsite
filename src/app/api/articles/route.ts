@@ -23,11 +23,11 @@ export async function GET(request: NextRequest) {
     // Build filter for published articles
     const filter: any = { 
       status: 'published',
-      publicationDate: { $exists: true }
+      publishedDate: { $exists: true }
     };
 
-    if (volume) filter['publication.volume'] = parseInt(volume);
-    if (issue) filter['publication.issue'] = parseInt(issue);
+    if (volume) filter.volume = parseInt(volume);
+    if (issue) filter.issue = parseInt(issue);
     if (category) filter.category = category;
     if (query) {
       filter.$or = [
@@ -46,8 +46,8 @@ export async function GET(request: NextRequest) {
 
     const [articlesRaw, total] = await Promise.all([
       Manuscript.find(filter)
-        .select('title abstract authors category keywords doi publication publicationDate metrics')
-        .sort({ publicationDate: -1 })
+        .select('title abstract authors category keywords doi volume issue pages publishedDate metrics')
+        .sort({ publishedDate: -1 })
         .skip(actualSkip)
         .limit(actualLimit)
         .lean(),
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
 
     // Update manuscript with publication info
     manuscript.status = 'published';
-    manuscript.publicationDate = new Date();
+    manuscript.publishedDate = new Date();
     manuscript.publication = {
       volume: volumeNumber,
       issue: issueNumber,

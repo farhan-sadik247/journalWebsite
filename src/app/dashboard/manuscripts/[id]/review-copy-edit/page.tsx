@@ -10,7 +10,9 @@ import {
   FiX,
   FiMessageSquare,
   FiDownload,
-  FiFileText
+  FiFileText,
+  FiUpload,
+  FiTrash2
 } from 'react-icons/fi';
 import styles from './ReviewCopyEdit.module.scss';
 
@@ -34,6 +36,8 @@ export default function ReviewCopyEditPage({ params }: { params: { id: string } 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authorComments, setAuthorComments] = useState('');
   const [approvalStatus, setApprovalStatus] = useState<'approved' | 'revision-requested' | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -80,6 +84,30 @@ export default function ReviewCopyEditPage({ params }: { params: { id: string } 
 
     setIsSubmitting(true);
     try {
+      // First, upload any files if there are any
+      let uploadedFileUrls: any[] = [];
+      if (uploadedFiles.length > 0) {
+        setIsUploading(true);
+        const formData = new FormData();
+        uploadedFiles.forEach((file) => {
+          formData.append('files', file);
+        });
+
+        const uploadResponse = await fetch(`/api/manuscripts/${manuscript._id}/author-review-files`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (uploadResponse.ok) {
+          const uploadResult = await uploadResponse.json();
+          uploadedFileUrls = uploadResult.files;
+        } else {
+          throw new Error('Failed to upload files');
+        }
+        setIsUploading(false);
+      }
+
+      // Then submit the review
       const response = await fetch(`/api/manuscripts/${manuscript._id}/author-copy-edit-review`, {
         method: 'POST',
         headers: {
@@ -88,6 +116,7 @@ export default function ReviewCopyEditPage({ params }: { params: { id: string } 
         body: JSON.stringify({
           approval: approvalStatus,
           comments: authorComments,
+          files: uploadedFileUrls,
         }),
       });
 
@@ -102,7 +131,31 @@ export default function ReviewCopyEditPage({ params }: { params: { id: string } 
       alert('Failed to submit review. Please try again.');
     } finally {
       setIsSubmitting(false);
+      setIsUploading(false);
     }
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
+    
+    const validFiles = files.filter(file => {
+      if (!allowedTypes.includes(file.type)) {
+        alert(`File ${file.name} is not supported. Please upload PDF, DOC, DOCX, or TXT files.`);
+        return false;
+      }
+      if (file.size > 10 * 1024 * 1024) { // 10MB limit
+        alert(`File ${file.name} is too large. Maximum size is 10MB.`);
+        return false;
+      }
+      return true;
+    });
+
+    setUploadedFiles(prev => [...prev, ...validFiles]);
+  };
+
+  const removeFile = (index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   if (status === 'loading' || isLoading) {
@@ -254,6 +307,56 @@ export default function ReviewCopyEditPage({ params }: { params: { id: string } 
                   />
                 </div>
 
+                {/* File Upload Section */}
+                <div className={styles.formGroup}>
+                  <label>Annotated Files (Optional)</label>
+                  <p className={styles.uploadDescription}>
+                    Upload annotated manuscripts, comments, or feedback files. These will be sent to the editor and copy editor for review.
+                  </p>
+                  <div className={styles.fileUploadSection}>
+                    <div className={styles.uploadArea}>
+                      <input
+                        type="file"
+                        id="file-upload"
+                        multiple
+                        accept=".pdf,.doc,.docx,.txt"
+                        onChange={handleFileSelect}
+                        className={styles.fileInput}
+                      />
+                      <label htmlFor="file-upload" className={styles.uploadLabel}>
+                        <FiUpload />
+                        <span>Upload annotated manuscript or comments</span>
+                        <small>PDF, DOC, DOCX, TXT files (max 10MB each)</small>
+                      </label>
+                    </div>
+
+                    {uploadedFiles.length > 0 && (
+                      <div className={styles.fileList}>
+                        <h4>Files to upload:</h4>
+                        {uploadedFiles.map((file, index) => (
+                          <div key={index} className={styles.fileItem}>
+                            <div className={styles.fileInfo}>
+                              <FiFileText />
+                              <span className={styles.fileName}>{file.name}</span>
+                              <span className={styles.fileSize}>
+                                ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeFile(index)}
+                              className={styles.removeFileBtn}
+                              title="Remove file"
+                            >
+                              <FiTrash2 />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 <div className={styles.formActions}>
                   <Link 
                     href={`/dashboard/manuscripts/${manuscript._id}`}
@@ -264,9 +367,9 @@ export default function ReviewCopyEditPage({ params }: { params: { id: string } 
                   <button
                     onClick={handleSubmitReview}
                     className="btn btn-primary"
-                    disabled={!approvalStatus || isSubmitting}
+                    disabled={!approvalStatus || isSubmitting || isUploading}
                   >
-                    {isSubmitting ? 'Submitting...' : 'Submit Review'}
+                    {isUploading ? 'Uploading files...' : isSubmitting ? 'Submitting...' : 'Submit Review'}
                   </button>
                 </div>
               </div>
@@ -283,7 +386,13 @@ export default function ReviewCopyEditPage({ params }: { params: { id: string } 
                 <li>Ensure technical terms are correctly used</li>
                 <li>Review figure and table captions for accuracy</li>
                 <li>Check that references are properly formatted</li>
+                <li>Upload annotated files if you have specific feedback or corrections</li>
               </ul>
+              
+              <div className={styles.notificationInfo}>
+                <h4>What happens after submission?</h4>
+                <p>Your review and any uploaded files will be sent to the editor and copy editor. If you approve the manuscript, it will be ready for publication. If you request changes, the copy editor will address your feedback.</p>
+              </div>
             </div>
           </div>
         </div>

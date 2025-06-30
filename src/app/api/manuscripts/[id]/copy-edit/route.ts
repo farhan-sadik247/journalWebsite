@@ -16,12 +16,18 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user is copy-editor or admin
-    if (session.user.role !== 'copy-editor' && session.user.role !== 'admin') {
+    // Check if user is copy-editor or admin using multi-role logic
+    const userRole = session.user.currentActiveRole || session.user.role || 'author';
+    const userRoles = session.user.roles || [userRole];
+    const isCopyEditor = userRole === 'copy-editor' || userRoles.includes('copy-editor');
+    const isAdmin = userRole === 'admin' || userRoles.includes('admin');
+    
+    if (!isCopyEditor && !isAdmin) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
-    const { title, abstract, copyEditingNotes } = await request.json();
+    const requestBody = await request.json();
+    const { title, abstract, copyEditingNotes } = requestBody;
 
     if (!title || !abstract) {
       return NextResponse.json({ error: 'Title and abstract are required' }, { status: 400 });
@@ -29,10 +35,17 @@ export async function PUT(
 
     await connectToDatabase();
 
-    const manuscript = await Manuscript.findById(params.id).populate('submittedBy authors.user');
+    const manuscript = await Manuscript.findById(params.id).populate('submittedBy');
 
     if (!manuscript) {
       return NextResponse.json({ error: 'Manuscript not found' }, { status: 404 });
+    }
+
+    // Check if copy editor is assigned to this manuscript (unless admin)
+    if (isCopyEditor && !isAdmin) {
+      if (!manuscript.assignedCopyEditor || manuscript.assignedCopyEditor.toString() !== session.user.id) {
+        return NextResponse.json({ error: 'You are not assigned to edit this manuscript' }, { status: 403 });
+      }
     }
 
     // Update manuscript with copy-edited content
@@ -57,7 +70,7 @@ export async function PUT(
       params.id,
       updateData,
       { new: true }
-    ).populate('submittedBy authors.user');
+    ).populate('submittedBy');
 
     return NextResponse.json({
       message: 'Copy editing saved successfully',
@@ -87,11 +100,22 @@ export async function GET(
     await connectToDatabase();
 
     const manuscript = await Manuscript.findById(params.id)
-      .populate('submittedBy', 'name email')
-      .populate('authors.user', 'name email');
+      .populate('submittedBy', 'name email');
 
     if (!manuscript) {
       return NextResponse.json({ error: 'Manuscript not found' }, { status: 404 });
+    }
+
+    // Check if copy editor is assigned to this manuscript (unless admin)
+    const userRole = session.user.currentActiveRole || session.user.role || 'author';
+    const userRoles = session.user.roles || [userRole];
+    const isCopyEditor = userRole === 'copy-editor' || userRoles.includes('copy-editor');
+    const isAdmin = userRole === 'admin' || userRoles.includes('admin');
+    
+    if (isCopyEditor && !isAdmin) {
+      if (!manuscript.assignedCopyEditor || manuscript.assignedCopyEditor.toString() !== session.user.id) {
+        return NextResponse.json({ error: 'You are not assigned to view this manuscript' }, { status: 403 });
+      }
     }
 
     // Return copy editing specific information

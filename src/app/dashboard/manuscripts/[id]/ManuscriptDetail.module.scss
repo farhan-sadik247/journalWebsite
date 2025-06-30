@@ -1,4 +1,4 @@
-@import '../../../../styles/variables';
+@import '../../../../styles/_variables';
 
 .manuscriptDetailPage {
   min-height: 100vh;
@@ -39,7 +39,7 @@
         h1 {
           font-size: 2.25rem;
           font-weight: 700;
-          color: text-white;
+          color: $text-dark;
           margin-bottom: 1rem;
           line-height: 1.3;
 
@@ -82,6 +82,7 @@
         align-items: center;
         gap: 0.75rem;
         font-size: 1.5rem;
+        color: $text-dark;
         font-weight: 600;
         color: $text-dark;
         margin-bottom: 1.5rem;
@@ -341,103 +342,6 @@
       }
     }
 
-    // Copy-Editing Progress Styles
-    .copyEditingStages {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-
-      .stage {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        padding: 0.5rem 0;
-        position: relative;
-
-        .stageMarker {
-          width: 12px;
-          height: 12px;
-          border-radius: 50%;
-          border: 2px solid $border-light;
-          background: white;
-          flex-shrink: 0;
-          position: relative;
-          z-index: 2;
-        }
-
-        .stageInfo {
-          display: flex;
-          flex-direction: column;
-          gap: 0.125rem;
-
-          .stageName {
-            font-weight: 600;
-            color: $text-muted;
-            font-size: 0.875rem;
-          }
-
-          .stageDesc {
-            font-size: 0.75rem;
-            color: $text-muted;
-          }
-        }
-
-        &.completed {
-          .stageMarker {
-            background: #10b981;
-            border-color: #10b981;
-          }
-
-          .stageInfo {
-            .stageName {
-              color: $text-dark;
-            }
-          }
-        }
-
-        &.active {
-          .stageMarker {
-            background: $primary-color;
-            border-color: $primary-color;
-            animation: pulse 2s infinite;
-          }
-
-          .stageInfo {
-            .stageName {
-              color: $primary-color;
-              font-weight: 700;
-            }
-          }
-        }
-
-        &.upcoming {
-          .stageMarker {
-            background: white;
-            border-color: $border-light;
-          }
-        }
-
-        &:not(:last-child)::before {
-          content: '';
-          position: absolute;
-          left: 5px;
-          top: 22px;
-          bottom: -18px;
-          width: 2px;
-          background: $border-light;
-          z-index: 1;
-        }
-
-        &.completed:not(:last-child)::before {
-          background: #10b981;
-        }
-
-        &.active:not(:last-child)::before {
-          background: linear-gradient(to bottom, $primary-color 50%, $border-light 50%);
-        }
-      }
-    }
-
     .authorReviewInfo {
       margin-top: 1rem;
       padding-top: 1rem;
@@ -517,6 +421,23 @@
     &:hover {
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     }
+
+    h4, h5 {
+      color: $text-dark;
+    }
+
+    p {
+      color: $text-dark;
+    }
+
+    .reviewerName {
+      color: $text-dark;
+      font-weight: 600;
+    }
+
+    .reviewDate {
+      color: $text-muted;
+    }
   }
 
   .reviewHeader {
@@ -547,36 +468,43 @@
     font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
+    border: 1px solid transparent;
 
     &.pending {
       background-color: #fef3c7;
-      color: #d97706;
+      color: #92400e;
+      border-color: #fde68a;
     }
 
     &.inprogress {
       background-color: #dbeafe;
-      color: #2563eb;
+      color: #1e40af;
+      border-color: #93c5fd;
     }
 
     &.completed {
       background-color: #d1fae5;
       color: #065f46;
+      border-color: #a7f3d0;
     }
 
     &.declined {
       background-color: #fee2e2;
-      color: #dc2626;
+      color: #991b1b;
+      border-color: #fca5a5;
     }
 
     // Alternative naming conventions
     &.in_progress {
       background-color: #dbeafe;
-      color: #2563eb;
+      color: #1e40af;
+      border-color: #93c5fd;
     }
 
     &.submitted {
       background-color: #f0f9ff;
-      color: #0369a1;
+      color: #1e3a8a;
+      border-color: #bfdbfe;
     }
   }
 
@@ -720,12 +648,13 @@
 
     p {
       margin-bottom: 0.5rem;
+      color: $text-dark;
     }
 
     .hint {
       font-size: 0.875rem;
       font-style: italic;
-      color: $text-light;
+      color: $text-muted;
     }
   }
 
@@ -1271,590 +1200,611 @@
       margin-left: 0.5rem;
       opacity: 0.8;
     }
-  }
 
-  // Reviews Table Styles
-  .reviewsTable {
-    background: white;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    border: 1px solid $border-light;
-    margin-top: 1rem;
-  }
-
-  .table {
-    width: 100%;
-    border-collapse: collapse;
-
-    th, td {
-      padding: 1rem;
-      text-align: left;
-      border-bottom: 1px solid $border-light;
-      vertical-align: middle;
-    }
-
-    th {
-      background-color: #f8fafc;
-      font-weight: 600;
-      color: $text-dark;
-      font-size: 0.875rem;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      position: sticky;
-      top: 0;
-      z-index: 10;
-    }
-
-    td {
-      color: $text-dark;
+    .discountPercentage {
+      background: #f59e0b;
+      color: white;
+      padding: 0.5rem;
+      border-radius: 4px;
+      margin-top: 0.5rem;
+      text-align: center;
       font-size: 0.9rem;
     }
 
-    tr:last-child td {
-      border-bottom: none;
-    }
-
-    tr:hover {
-      background-color: #f8fafc;
-      transition: background-color $transition-fast;
-    }
-
-    // Column-specific styling
-    td:first-child {
-      font-weight: 600;
-      color: $primary-color;
-    }
-
-    td:nth-child(3) {
-      text-align: center;
-    }
-
-    td:last-child {
-      text-align: center;
+    .countryNotice {
+      background: #dbeafe;
+      border: 1px solid #3b82f6;
+      border-radius: 4px;
+      padding: 0.5rem;
+      margin-top: 0.5rem;
+      
+      small {
+        color: #1e40af;
+        font-weight: 500;
+        font-size: 0.8rem;
+      }
     }
   }
 
-  .scoreCell {
-    font-weight: 600;
-    color: $primary-color;
+  .waiverNotice {
+    background: #d1fae5;
+    border: 1px solid #10b981;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 1rem;
 
-    .outOf {
-      color: $text-muted;
-      font-weight: normal;
+    p {
+      margin: 0;
+      color: #047857;
+      font-size: 0.95rem;
+      
+      strong {
+        font-weight: 600;
+      }
+    }
+  }
+
+  .paymentInfo {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #e5e7eb;
+    
+    small {
+      color: #6b7280;
       font-size: 0.8rem;
+      font-style: italic;
     }
   }
 
-  .viewScoreBtn {
-    background: $primary-color;
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
+  // Article Type Selection Styles
+  .articleTypeSelection {
+    margin: 2rem 0;
+    padding: 1.5rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+
+    h4 {
+      color: $primary-color;
+      margin-bottom: 0.5rem;
+      font-size: 1.2rem;
+    }
+
+    p {
+      color: $text-muted;
+      margin-bottom: 1.5rem;
+    }
+  }
+
+  .articleTypeDropdown {
+    margin-bottom: 1rem;
+
+    .selectField {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      font-size: 1rem;
+      border: 2px solid #e9ecef;
+      border-radius: 6px;
+      background: white;
+      color: $text-dark;
+      cursor: pointer;
+      transition: all $transition-normal;
+
+      &:focus {
+        outline: none;
+        border-color: $primary-color;
+        box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+      }
+
+      &:hover {
+        border-color: $primary-color;
+      }
+
+      option {
+        padding: 0.5rem;
+        font-size: 1rem;
+      }
+    }
+  }
+
+  .selectedType {
+    background: lighten($success-color, 40%);
+    color: $success-color;
+    padding: 0.75rem 1rem;
     border-radius: 4px;
-    font-size: 0.8rem;
     font-weight: 500;
-    cursor: pointer;
-    transition: background-color $transition-fast;
+    text-align: center;
+    border: 1px solid lighten($success-color, 20%);
+  }
 
-    &:hover {
-      background: $primary-dark;
+  // Copy Editing Review Styles
+  .copyEditReview {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-top: 1rem;
+
+    .reviewHeader {
+      margin-bottom: 1.5rem;
+      
+      .reviewMeta {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        
+        p {
+          margin: 0;
+          font-size: 0.9rem;
+          
+          strong {
+            color: #374151;
+            font-weight: 600;
+          }
+        }
+      }
+    }
+
+    .completionStatus {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-left: 0.5rem;
+      
+      &.completed {
+        background: #d1fae5;
+        color: #065f46;
+        border: 1px solid #a7f3d0;
+      }
+      
+      &.needsRevision {
+        background: #fef3c7;
+        color: #92400e;
+        border: 1px solid #fde68a;
+      }
+    }
+
+    .reviewComments {
+      margin-bottom: 1.5rem;
+      
+      h4 {
+        margin: 0 0 0.75rem;
+        color: #374151;
+        font-size: 1rem;
+        font-weight: 600;
+      }
+      
+      .commentsBox {
+        background: white;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        padding: 1rem;
+        
+        p {
+          margin: 0 0 0.5rem;
+          line-height: 1.6;
+          color: #4b5563;
+          
+          &:last-child {
+            margin-bottom: 0;
+          }
+        }
+      }
+    }
+
+    .galleyProof {
+      h4 {
+        margin: 0 0 0.75rem;
+        color: #374151;
+        font-size: 1rem;
+        font-weight: 600;
+      }
+      
+      .fileDownload {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: white;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        padding: 1rem;
+        
+        svg {
+          color: #6b7280;
+          font-size: 1.2rem;
+        }
+        
+        .downloadLink {
+          color: $primary-color;
+          text-decoration: none;
+          font-weight: 500;
+          
+          &:hover {
+            color: $primary-dark;
+            text-decoration: underline;
+          }
+        }
+      }
     }
   }
 
-  // Modal Styles
+  // Enhanced Review Section Styles
+  .reviewsSection {
+    background: white;
+    border: 1px solid $border-light;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+
+    h2 {
+      color: $text-dark;
+      margin-bottom: 1.5rem;
+      font-size: 1.4rem;
+      font-weight: 600;
+    }
+  }
+
+  .reviewsSummary {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+
+    .reviewStats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1rem;
+
+      .statItem {
+        text-align: center;
+        padding: 1rem;
+        background: white;
+        border-radius: 6px;
+        border: 1px solid $border-light;
+
+        .statNumber {
+          display: block;
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: $primary-color;
+          margin-bottom: 0.25rem;
+        }
+
+        .statLabel {
+          display: block;
+          font-size: 0.875rem;
+          color: $text-muted;
+          font-weight: 500;
+        }
+      }
+    }
+
+    .reviewNote {
+      color: $text-dark;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      margin: 0;
+      padding: 1rem;
+      background: white;
+      border-radius: 6px;
+      border: 1px solid $border-light;
+
+      strong {
+        color: $text-dark;
+      }
+    }
+  }
+
+  // Enhanced Review List Styles
+  .reviewsList {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+    .reviewItem {
+      background: white;
+      border: 1px solid $border-light;
+      border-radius: 8px;
+      padding: 1.25rem;
+      transition: all $transition-fast;
+      cursor: pointer;
+
+      &:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        border-color: $primary-color;
+      }
+
+      .reviewHeader {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+
+        .reviewTitle {
+          font-size: 1rem;
+          font-weight: 600;
+          color: $text-dark;
+          margin: 0;
+        }
+
+        .reviewMeta {
+          display: flex;
+          gap: 0.75rem;
+          align-items: center;
+        }
+      }
+
+      .reviewInfo {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+
+        .infoItem {
+          .label {
+            font-size: 0.75rem;
+            color: $text-muted;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.25rem;
+            font-weight: 600;
+          }
+
+          .value {
+            font-size: 0.9rem;
+            color: $text-dark;
+            font-weight: 500;
+          }
+        }
+      }
+
+      .reviewActions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+
+        .viewDetailsBtn {
+          background: $primary-color;
+          color: white;
+          border: none;
+          padding: 0.5rem 1rem;
+          border-radius: 4px;
+          font-size: 0.875rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: background-color $transition-fast;
+
+          &:hover {
+            background: $primary-dark;
+          }
+        }
+      }
+    }
+  }
+
+  // Enhanced Modal Styles for Review Details
   .modalOverlay {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 1000;
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
     padding: 1rem;
-    animation: fadeIn 0.2s ease-out;
   }
 
   .modalContent {
     background: white;
-    border-radius: 12px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
     width: 100%;
-    max-width: 600px;
+    max-width: 700px;
     max-height: 90vh;
     overflow-y: auto;
-    animation: slideIn 0.3s ease-out;
-    transform-origin: center;
-  }
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
-
-  @keyframes slideIn {
-    from {
-      opacity: 0;
-      transform: scale(0.9) translateY(-20px);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1) translateY(0);
-    }
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
   }
 
   .modalHeader {
+    padding: 1.5rem;
+    border-bottom: 1px solid $border-light;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1.5rem;
-    border-bottom: 1px solid $border-light;
+    background: #f8fafc;
 
     h3 {
-      margin: 0;
       font-size: 1.25rem;
-      font-weight: 600;
+      margin: 0;
       color: $text-dark;
+      font-weight: 600;
     }
 
     .closeModal {
       background: none;
       border: none;
       font-size: 1.5rem;
-      color: $text-muted;
+      line-height: 1;
       cursor: pointer;
-      padding: 0;
-      width: 30px;
-      height: 30px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-      transition: background-color $transition-fast;
+      color: $text-muted;
+      padding: 0.25rem;
+      border-radius: 4px;
+      transition: all $transition-fast;
 
       &:hover {
-        background-color: #f3f4f6;
         color: $text-dark;
+        background: rgba(0, 0, 0, 0.05);
       }
     }
   }
 
   .modalBody {
     padding: 1.5rem;
-  }
 
-  .reviewerInfo {
-    margin-bottom: 2rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid $border-light;
+    .reviewerInfo {
+      background: #f8fafc;
+      border-radius: 6px;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
 
-    h4 {
-      margin: 0 0 0.5rem 0;
-      font-size: 1.1rem;
-      color: $text-dark;
-    }
-
-    .reviewType {
-      color: $text-muted;
-      font-size: 0.9rem;
-      margin: 0;
-    }
-  }
-
-  .scoresGrid {
-    margin-bottom: 2rem;
-
-    .scoreItem {
-      display: flex;
-      align-items: center;
-      margin-bottom: 1rem;
-      gap: 1rem;
-
-      .scoreLabel {
-        flex: 0 0 140px;
-        font-weight: 500;
+      h4 {
+        margin: 0 0 0.5rem 0;
         color: $text-dark;
-        font-size: 0.9rem;
+        font-size: 1rem;
+        font-weight: 600;
       }
 
-      .scoreBar {
-        flex: 1;
-        position: relative;
-        background-color: #e5e7eb;
-        height: 24px;
+      .reviewType {
+        display: inline-block;
+        background: $primary-light;
+        color: $primary-dark;
+        padding: 0.25rem 0.75rem;
         border-radius: 12px;
-        overflow: hidden;
+        font-size: 0.75rem;
+        font-weight: 500;
+      }
+    }
+
+    .scoresGrid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+
+      .scoreItem {
+        background: #f8fafc;
+        border: 1px solid $border-light;
+        border-radius: 6px;
+        padding: 1rem;
         display: flex;
+        justify-content: space-between;
         align-items: center;
 
-        .scoreProgress {
-          height: 100%;
-          background: linear-gradient(90deg, #10b981, #059669);
-          border-radius: 12px;
-          transition: width 0.3s ease;
+        .scoreLabel {
+          font-size: 0.875rem;
+          color: $text-dark;
+          font-weight: 500;
         }
 
         .scoreValue {
-          position: absolute;
-          right: 8px;
-          font-size: 0.8rem;
-          font-weight: 600;
-          color: $text-dark;
+          font-size: 1.125rem;
+          font-weight: 700;
+          color: $primary-color;
+
+          .outOf {
+            font-size: 0.75rem;
+            font-weight: 400;
+            color: $text-muted;
+          }
         }
       }
     }
 
-    .averageScore {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1rem;
-      background-color: #f8fafc;
-      border-radius: 8px;
-      border: 2px solid $primary-color;
-      margin-top: 1.5rem;
+    .reviewComments {
+      margin-bottom: 1.5rem;
 
-      .averageLabel {
-        font-weight: 600;
+      h5 {
+        margin: 0 0 0.75rem 0;
         color: $text-dark;
         font-size: 1rem;
+        font-weight: 600;
       }
 
-      .averageValue {
-        font-weight: 700;
-        color: $primary-color;
-        font-size: 1.25rem;
-      }
-    }
-  }
+      .commentSection {
+        background: #f8fafc;
+        border: 1px solid $border-light;
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 1rem;
 
-  .recommendation {
-    margin-bottom: 2rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid $border-light;
+        &:last-child {
+          margin-bottom: 0;
+        }
 
-    h4 {
-      margin: 0 0 1rem 0;
-      font-size: 1rem;
-      color: $text-dark;
-    }
-
-    .recommendationBadge {
-      padding: 0.5rem 1rem;
-      border-radius: 20px;
-      font-size: 0.875rem;
-      font-weight: 600;
-      text-transform: uppercase;
-
-      &.accept {
-        background-color: #d1fae5;
-        color: #065f46;
-      }
-
-      &.reject {
-        background-color: #fee2e2;
-        color: #dc2626;
-      }
-
-      &.majorrevision {
-        background-color: #fef3c7;
-        color: #d97706;
-      }
-
-      &.minorrevision {
-        background-color: #dbeafe;
-        color: #2563eb;
-      }
-    }
-  }
-
-  // Reviews Table Styles
-  .reviewsTable {
-    margin-top: 1rem;
-    overflow-x: auto;
-    border-radius: 8px;
-    border: 1px solid $border-light;
-    background: white;
-
-    .table {
-      width: 100%;
-      border-collapse: collapse;
-      background: white;
-
-      thead {
-        background-color: #f8fafc;
-        border-bottom: 2px solid $border-light;
-
-        tr th {
-          padding: 1rem;
-          text-align: left;
-          font-weight: 600;
-          color: $text-dark;
+        .commentLabel {
           font-size: 0.875rem;
+          color: $text-muted;
+          font-weight: 600;
+          margin-bottom: 0.5rem;
           text-transform: uppercase;
-          letter-spacing: 0.05em;
-          border-bottom: 1px solid $border-light;
+          letter-spacing: 0.5px;
+        }
 
-          &:first-child {
-            border-left: none;
-          }
-
-          &:last-child {
-            border-right: none;
-          }
+        .commentText {
+          color: $text-dark;
+          line-height: 1.6;
+          font-size: 0.9rem;
+          white-space: pre-wrap;
         }
       }
+    }
 
-      tbody {
-        tr {
+    .reviewTimeline {
+      .timelineInfo {
+        background: #f8fafc;
+        border: 1px solid $border-light;
+        border-radius: 6px;
+        padding: 1rem;
+
+        .timelineItem {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 0.5rem 0;
           border-bottom: 1px solid $border-light;
-          transition: background-color $transition-fast;
-
-          &:hover {
-            background-color: #f9fafb;
-          }
 
           &:last-child {
             border-bottom: none;
           }
 
-          td {
-            padding: 1rem;
-            vertical-align: middle;
+          .label {
+            font-weight: 600;
             color: $text-dark;
             font-size: 0.875rem;
-            border-bottom: 1px solid $border-light;
+          }
 
-            &:last-child {
-              border-bottom: none;
-            }
+          .value {
+            color: $text-dark;
+            font-size: 0.875rem;
           }
         }
       }
     }
-
-    .scoreCell {
-      font-weight: 600;
-      color: $text-dark;
-
-      .outOf {
-        color: $text-muted;
-        font-weight: 400;
-        font-size: 0.75rem;
-      }
-    }
-
-    .viewScoreBtn {
-      background: $primary-color;
-      color: white;
-      border: none;
-      padding: 0.375rem 0.75rem;
-      border-radius: 4px;
-      font-size: 0.75rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background-color $transition-fast;
-
-      &:hover {
-        background: $primary-dark;
-      }
-    }
   }
 
-  // Enhanced Review Status Styles
-  .reviewStatus {
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
+  .modalFooter {
+    padding: 1.5rem;
+    border-top: 1px solid $border-light;
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    background: #f8fafc;
+  }
+
+  // No Reviews State
+  .noReviews {
     text-align: center;
-    display: inline-block;
-    min-width: 80px;
+    padding: 2rem;
+    color: $text-muted;
 
-    &.pending {
-      background-color: #fef3c7;
-      color: #d97706;
-    }
-
-    &.inprogress {
-      background-color: #dbeafe;
-      color: #2563eb;
-    }
-
-    &.completed {
-      background-color: #d1fae5;
-      color: #065f46;
-    }
-
-    &.declined {
-      background-color: #fee2e2;
-      color: #dc2626;
-    }
-
-    // Alternative naming conventions
-    &.in_progress {
-      background-color: #dbeafe;
-      color: #2563eb;
-    }
-
-    &.submitted {
-      background-color: #f0f9ff;
-      color: #0369a1;
-    }
-
-    // Recommendation-specific styles (when status shows recommendation)
-    &.accept {
-      background-color: #dcfce7;
-      color: #166534;
-    }
-
-    &.reject {
-      background-color: #fecaca;
-      color: #991b1b;
-    }
-
-    &.majorrevision,
-    &.major_revision {
-      background-color: #fed7aa;
-      color: #c2410c;
-    }
-
-    &.minorrevision,
-    &.minor_revision {
-      background-color: #fef3c7;
-      color: #a16207;
-    }
-  }
-
-  .comments {
-    margin-bottom: 2rem;
-
-    h4 {
-      margin: 0 0 1rem 0;
-      font-size: 1rem;
+    p {
+      margin-bottom: 0.5rem;
       color: $text-dark;
     }
 
-    .commentText {
-      background-color: #f8fafc;
-      padding: 1rem;
-      border-radius: 8px;
-      border-left: 4px solid $primary-color;
-      color: $text-dark;
-      line-height: 1.6;
-      font-size: 0.9rem;
+    .hint {
+      font-size: 0.875rem;
+      font-style: italic;
+      color: $text-muted;
     }
   }
 
-  .reviewTimeline {
-    h4 {
-      margin: 0 0 1rem 0;
-      font-size: 1rem;
-      color: $text-dark;
-    }
-
-    .timelineInfo {
-      .timelineItem {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.5rem 0;
-        border-bottom: 1px solid #f3f4f6;
-
-        &:last-child {
-          border-bottom: none;
-        }
-
-        .label {
-          font-weight: 500;
-          color: $text-muted;
-          font-size: 0.9rem;
-        }
-
-        span:last-child {
-          color: $text-dark;
-          font-size: 0.9rem;
-        }
-      }
-    }
-  }
-
-  // Mobile responsive styles
-  @media (max-width: 768px) {
-    .table {
-      font-size: 0.8rem;
-
-      th, td {
-        padding: 0.75rem 0.5rem;
-      }
-
-      // Stack table on mobile for better readability
-      thead {
-        display: none;
-      }
-
-      tbody, tr, td {
-        display: block;
-      }
-
-      tr {
-        border: 1px solid $border-light;
-        border-radius: 8px;
-        margin-bottom: 1rem;
-        padding: 1rem;
-        background: white;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-      }
-
-      td {
-        border: none;
-        border-bottom: 1px solid $border-light;
-        padding: 0.5rem 0;
-        position: relative;
-        padding-left: 35%;
-
-        &:before {
-          content: attr(data-label) ": ";
-          position: absolute;
-          left: 0;
-          width: 30%;
-          padding-right: 10px;
-          white-space: nowrap;
-          font-weight: 600;
-          color: $text-muted;
-          font-size: 0.8rem;
-          text-transform: uppercase;
-        }
-
-        &:last-child {
-          border-bottom: none;
-        }
-      }
-    }
-
-    .modalContent {
-      margin: 1rem;
-      max-height: calc(100vh - 2rem);
-    }
-
-    .scoresGrid .scoreItem {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 0.5rem;
-
-      .scoreLabel {
-        flex: none;
-      }
-    }
-  }
+  // ...existing code...
 }
 
 .errorPage {
@@ -2077,4 +2027,724 @@
     margin-left: 0.5rem;
     opacity: 0.8;
   }
+
+  .discountPercentage {
+    background: #f59e0b;
+    color: white;
+    padding: 0.5rem;
+    border-radius: 4px;
+    margin-top: 0.5rem;
+    text-align: center;
+    font-size: 0.9rem;
+  }
+
+  .countryNotice {
+    background: #dbeafe;
+    border: 1px solid #3b82f6;
+    border-radius: 4px;
+    padding: 0.5rem;
+    margin-top: 0.5rem;
+    
+    small {
+      color: #1e40af;
+      font-weight: 500;
+      font-size: 0.8rem;
+    }
+  }
 }
+
+.waiverNotice {
+  background: #d1fae5;
+  border: 1px solid #10b981;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1rem;
+
+  p {
+    margin: 0;
+    color: #047857;
+    font-size: 0.95rem;
+    
+    strong {
+      font-weight: 600;
+    }
+  }
+}
+
+.paymentInfo {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e5e7eb;
+  
+  small {
+    color: #6b7280;
+    font-size: 0.8rem;
+    font-style: italic;
+  }
+}
+
+// Reviews Table Styles
+.reviewsTable {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border: 1px solid $border-light;
+  margin-top: 1rem;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+
+  thead {
+    background-color: #f8fafc;
+    border-bottom: 2px solid $border-light;
+
+    tr th {
+      padding: 1rem;
+      text-align: left;
+      font-weight: 600;
+      color: $text-dark;
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid $border-light;
+
+      &:first-child {
+        border-left: none;
+      }
+
+      &:last-child {
+        border-right: none;
+      }
+    }
+  }
+
+  tbody {
+    tr {
+      border-bottom: 1px solid $border-light;
+      transition: background-color $transition-fast;
+
+      &:hover {
+        background-color: #f9fafb;
+      }
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      td {
+        padding: 1rem;
+        vertical-align: middle;
+        color: $text-dark;
+        font-size: 0.875rem;
+        border-bottom: 1px solid $border-light;
+
+        &:last-child {
+          border-bottom: none;
+        }
+      }
+    }
+  }
+}
+
+.scoreCell {
+  font-weight: 600;
+  color: $text-dark;
+
+  .outOf {
+    color: $text-muted;
+    font-weight: 400;
+    font-size: 0.75rem;
+  }
+}
+
+.viewScoreBtn {
+  background: $primary-color;
+  color: white;
+  border: none;
+  padding: 0.375rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background: $primary-dark;
+  }
+}
+
+// Enhanced Review Status Styles
+.reviewStatus {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  text-align: center;
+  display: inline-block;
+  min-width: 80px;
+
+  &.pending {
+    background-color: #fef3c7;
+    color: #d97706;
+  }
+
+  &.inprogress {
+    background-color: #dbeafe;
+    color: #2563eb;
+  }
+
+  &.completed {
+    background-color: #d1fae5;
+    color: #065f46;
+  }
+
+  &.declined {
+    background-color: #fee2e2;
+    color: #dc2626;
+  }
+
+  // Alternative naming conventions
+  &.in_progress {
+    background-color: #dbeafe;
+    color: #2563eb;
+  }
+
+  &.submitted {
+    background-color: #f0f9ff;
+    color: #0369a1;
+  }
+
+  // Recommendation-specific styles (when status shows recommendation)
+  &.accept {
+    background-color: #dcfce7;
+    color: #166534;
+  }
+
+  &.reject {
+    background-color: #fecaca;
+    color: #991b1b;
+  }
+
+  &.majorrevision,
+  &.major_revision {
+    background-color: #fed7aa;
+    color: #c2410c;
+  }
+
+  &.minorrevision,
+  &.minor_revision {
+    background-color: #fef3c7;
+    color: #a16207;
+  }
+}
+
+.comments {
+  margin-bottom: 2rem;
+
+  h4 {
+    margin: 0 0 1rem 0;
+    font-size: 1rem;
+    color: $text-dark;
+  }
+
+  .commentText {
+    background-color: #f8fafc;
+    padding: 1rem;
+    border-radius: 8px;
+    border-left: 4px solid $primary-color;
+    color: $text-dark;
+    line-height: 1.6;
+    font-size: 0.9rem;
+  }
+}
+
+.reviewTimeline {
+  h4 {
+    margin: 0 0 1rem 0;
+    font-size: 1rem;
+    color: $text-dark;
+  }
+
+  .timelineInfo {
+    .timelineItem {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid #f3f4f6;
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      .label {
+        font-weight: 500;
+        color: $text-muted;
+        font-size: 0.9rem;
+      }
+
+      span:last-child {
+        color: $text-dark;
+        font-size: 0.9rem;
+      }
+    }
+  }
+}
+
+// Mobile responsive styles
+@media (max-width: 768px) {
+  .table {
+    font-size: 0.8rem;
+
+    th, td {
+      padding: 0.75rem 0.5rem;
+    }
+
+    // Stack table on mobile for better readability
+    thead {
+      display: none;
+    }
+
+    tbody, tr, td {
+      display: block;
+    }
+
+    tr {
+      border: 1px solid $border-light;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      padding: 1rem;
+      background: white;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    td {
+      border: none;
+      border-bottom: 1px solid $border-light;
+      padding: 0.5rem 0;
+      position: relative;
+      padding-left: 35%;
+
+      &:before {
+        content: attr(data-label) ": ";
+        position: absolute;
+        left: 0;
+        width: 30%;
+        padding-right: 10px;
+        white-space: nowrap;
+        font-weight: 600;
+        color: $text-muted;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+      }
+
+      &:last-child {
+        border-bottom: none;
+      }
+    }
+  }
+
+  .modalContent {
+    margin: 1rem;
+    max-height: calc(100vh - 2rem);
+  }
+
+  .scoresGrid .scoreItem {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+
+    .scoreLabel {
+      flex: none;
+    }
+  }
+}
+
+// Simplified Copy Editing Approval Styles
+.authorApproval {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  background: $background-light;
+  border-radius: 8px;
+  border: 1px solid $border-light;
+
+  h4 {
+    margin: 0 0 1rem 0;
+    color: $text-dark;
+    font-weight: 600;
+  }
+
+  p {
+    margin: 0 0 1.5rem 0;
+    color: $text-muted;
+    line-height: 1.5;
+  }
+
+  .approvalActions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+
+    @media (max-width: 480px) {
+      flex-direction: column;
+    }
+  }
+}
+
+.approvalStatus {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  background: $background-light;
+  border-radius: 8px;
+  border: 1px solid $border-light;
+
+  h4 {
+    margin: 0 0 1rem 0;
+    color: $text-dark;
+    font-weight: 600;
+  }
+
+  .approvalBadge {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+
+    &.approved {
+      background: rgba(34, 197, 94, 0.1);
+      color: #22c55e;
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+
+    &.rejected {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+  }
+
+  .approvalComments {
+    margin: 1rem 0;
+    padding: 1rem;
+    background: white;
+    border-radius: 6px;
+    border: 1px solid $border-light;
+
+    strong {
+      color: $text-dark;
+    }
+  }
+
+  .approvalDate {
+    margin: 0;
+    color: $text-muted;
+    font-size: 0.875rem;
+  }
+
+  .nextSteps {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: rgba(34, 197, 94, 0.05);
+    border-radius: 6px;
+    border: 1px solid rgba(34, 197, 94, 0.2);
+
+    p {
+      margin: 0;
+      color: $text-dark;
+    }
+  }
+
+  .reReviewOption {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: rgba(255, 193, 7, 0.05);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 193, 7, 0.2);
+    text-align: center;
+
+    button {
+      padding: 0.75rem 2rem;
+      font-size: 1rem;
+      font-weight: 600;
+      min-width: 180px;
+      background: #ffc107;
+      color: #212529;
+      border: 2px solid #ffc107;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: #e0a800;
+        border-color: #e0a800;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(255, 193, 7, 0.3);
+      }
+
+      &:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 4px rgba(255, 193, 7, 0.3);
+      }
+    }
+  }
+}
+
+// Enhanced Author Review Form Styles
+.reviewForm {
+  margin-top: 1.5rem;
+  
+  .reviewDecision {
+    margin-bottom: 1.5rem;
+    
+    h5 {
+      margin: 0 0 1rem 0;
+      color: $text-dark;
+      font-weight: 600;
+    }
+    
+    .radioGroup {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      
+      .radioLabel {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem;
+        background: white;
+        border: 2px solid $border-light;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all $transition-fast;
+        
+        &:hover {
+          border-color: $primary-color;
+          background: rgba($primary-color, 0.05);
+        }
+        
+        input[type="radio"] {
+          margin: 0;
+          accent-color: $primary-color;
+        }
+        
+        .radioText {
+          font-weight: 500;
+          color: $text-dark;
+        }
+        
+        &:has(input:checked) {
+          border-color: $primary-color;
+          background: rgba($primary-color, 0.1);
+          
+          .radioText {
+            color: $primary-color;
+          }
+        }
+      }
+    }
+  }
+  
+  .commentsSection {
+    margin-bottom: 1.5rem;
+    
+    h5 {
+      margin: 0 0 0.5rem 0;
+      color: $text-dark;
+      font-weight: 600;
+      
+      .required {
+        color: #ef4444;
+        margin-left: 0.25rem;
+      }
+    }
+    
+    .commentsTextarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 0.75rem;
+      border: 2px solid $border-light;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.875rem;
+      line-height: 1.5;
+      resize: vertical;
+      transition: border-color $transition-fast;
+      
+      &:focus {
+        outline: none;
+        border-color: $primary-color;
+        box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+      }
+      
+      &::placeholder {
+        color: $text-muted;
+      }
+    }
+  }
+  
+  .fileUploadSection {
+    margin-bottom: 1.5rem;
+    
+    h5 {
+      margin: 0 0 0.5rem 0;
+      color: $text-dark;
+      font-weight: 600;
+    }
+    
+    .fileInput {
+      width: 100%;
+      padding: 0.75rem;
+      border: 2px dashed $border-light;
+      border-radius: 6px;
+      background: $background-light;
+      font-size: 0.875rem;
+      color: #000000; // Force black text color
+      cursor: pointer;
+      transition: all $transition-fast;
+      
+      &:hover {
+        border-color: $primary-color;
+        background: rgba($primary-color, 0.05);
+      }
+      
+      &:focus {
+        outline: none;
+        border-color: $primary-color;
+        box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+      }
+      
+      // Ensure file name text is black
+      &::file-selector-button {
+        color: #000000;
+      }
+      
+      // For webkit browsers
+      &::-webkit-file-upload-button {
+        color: #000000;
+      }
+      
+      // For Firefox
+      &::-moz-file-upload-button {
+        color: #000000;
+      }
+    }
+    
+    .fileHelp {
+      margin: 0.5rem 0 0 0;
+      font-size: 0.75rem;
+      color: $text-muted;
+      font-style: italic;
+    }
+    
+    .uploadedFiles {
+      margin-top: 1rem;
+      
+      h6 {
+        margin: 0 0 0.5rem 0;
+        color: $text-dark;
+        font-weight: 600;
+        font-size: 0.875rem;
+      }
+      
+      .fileItem {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.5rem 0.75rem;
+        background: white;
+        border: 1px solid $border-light;
+        border-radius: 4px;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+        
+        .removeFile {
+          background: none;
+          border: none;
+          color: #ef4444;
+          cursor: pointer;
+          font-size: 1.25rem;
+          font-weight: bold;
+          padding: 0;
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: background-color $transition-fast;
+          
+          &:hover {
+            background: rgba(239, 68, 68, 0.1);
+          }
+        }
+      }
+    }
+  }
+  
+  .submitSection {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid $border-light;
+    
+    .btn {
+      min-width: 180px;
+      padding: 0.75rem 1.5rem;
+      font-weight: 600;
+      
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    }
+  }
+}
+
+// Editorial Status Overview styles
+.editorialOverview {
+  background-color: #ffffff;
+  border-radius: $radius-lg;
+  border: 1px solid $border-color;
+  padding: 1.5rem;
+
+  .statusTable {
+    width: 100%;
+    border-collapse: collapse;
+    
+    tbody {
+      tr {
+        border-bottom: 1px solid $border-light;
+        
+        &:last-child {
+          border-bottom: none;
+        }
+        
+        td {
+          padding: 1rem 0;
+          vertical-align: top;
+          
+          &.statusLabel {
+            width: 40%;
+            font-weight: 600;
+            color: #1f2937 !important; // Explicit dark color
+            padding-right: 1rem;
+          }
+          
+          &.statusValue {
+            width: 60%;
+            color: #1f2937 !important; // Explicit dark color
+            font-weight: 500;
+          }
+        }
+      }
+    }
+  }
+}
+

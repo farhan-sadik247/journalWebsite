@@ -396,6 +396,7 @@ export default function ProfilePage() {
                     <option value="CN">China</option>
                     <option value="JP">Japan</option>
                     <option value="KR">South Korea</option>
+                    <option value="BD">Bangladesh</option>
                     <option value="BR">Brazil</option>
                     <option value="MX">Mexico</option>
                     <option value="IT">Italy</option>

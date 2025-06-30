@@ -149,7 +149,7 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    if (!['author', 'reviewer', 'editor', 'admin'].includes(role)) {
+    if (!['author', 'reviewer', 'editor', 'copy-editor', 'admin'].includes(role)) {
       return NextResponse.json(
         { error: 'Invalid role' },
         { status: 400 }

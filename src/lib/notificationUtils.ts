@@ -6,10 +6,11 @@ import { Types } from 'mongoose';
 
 export interface CreateNotificationParams {
   recipientEmail: string;
-  type: 'manuscript_status' | 'payment_required' | 'payment_confirmed' | 'review_assignment' | 'review_submitted' | 'copy_edit_assigned' | 'draft_ready' | 'publication_ready' | 'system_announcement' | 'admin_action' | 'role_application';
+  type: 'manuscript_status' | 'payment_required' | 'payment_confirmed' | 'review_assignment' | 'review_submitted' | 'copy_edit_assigned' | 'copy_edit_approved' | 'copy_edit_complete' | 'copy_edit_revision' | 'draft_ready' | 'publication_ready' | 'system_announcement' | 'admin_action' | 'role_application';
   title: string;
   message: string;
   manuscriptId?: string;
+  manuscriptTitle?: string;
   paymentId?: string;
   priority?: 'low' | 'medium' | 'high' | 'urgent';
   actionUrl?: string;
@@ -23,7 +24,8 @@ export async function createNotification(params: CreateNotificationParams) {
     // Find the recipient user by email
     const recipient = await User.findOne({ email: params.recipientEmail });
     if (!recipient) {
-      throw new Error(`User not found with email: ${params.recipientEmail}`);
+      console.warn(`User not found with email: ${params.recipientEmail}. Skipping notification.`);
+      return null; // Return null instead of throwing error
     }
 
     const notification = new Notification({
@@ -374,6 +376,156 @@ export async function notifyManuscriptAcceptedWithFee(
     };
   } catch (error) {
     console.error('Error sending acceptance notification:', error);
+    throw error;
+  }
+}
+
+export async function notifyAuthorCopyEditComplete(
+  authorEmail: string,
+  manuscriptId: string,
+  manuscriptTitle: string,
+  copyEditorName: string,
+  completionStatus: 'completed' | 'needs-revision',
+  hasGalleyProof: boolean = false
+) {
+  try {
+    await dbConnect();
+
+    let title: string;
+    let message: string;
+    let priority: 'low' | 'medium' | 'high' | 'urgent' = 'medium';
+
+    if (completionStatus === 'completed') {
+      title = 'Copy Editing Completed - Review Required';
+      message = `The copy editing for your manuscript "${manuscriptTitle}" has been completed by ${copyEditorName}. ` +
+        (hasGalleyProof 
+          ? 'A galley proof has been prepared for your review. Please check the copy-edited version and provide your feedback.'
+          : 'Please review the copy-edited version and provide your feedback.'
+        ) +
+        ' You can view the copy editing comments and any attached files in your manuscript dashboard.';
+      priority = 'high';
+    } else {
+      title = 'Copy Editing Review - Revision Required';
+      message = `The copy editor ${copyEditorName} has reviewed your manuscript "${manuscriptTitle}" and identified areas that require revision. ` +
+        'Please review the copy editor\'s comments and make the necessary revisions before resubmission. ' +
+        'You can view the detailed feedback in your manuscript dashboard.';
+      priority = 'high';
+    }
+
+    const notification = await createNotification({
+      recipientEmail: authorEmail,
+      type: 'manuscript_status',
+      title,
+      message,
+      manuscriptId,
+      priority,
+      actionUrl: `/dashboard/manuscripts/${manuscriptId}`,
+      createdBy: 'copy_editor_system'
+    });
+
+    return notification;
+  } catch (error) {
+    console.error('Error sending copy edit completion notification:', error);
+    throw error;
+  }
+}
+
+export async function notifyAuthorGalleyReview(
+  authorEmail: string,
+  manuscriptId: string,
+  manuscriptTitle: string,
+  copyEditorName: string,
+  galleyCount: number,
+  notes?: string
+) {
+  try {
+    const title = 'Galley Proofs Ready for Review';
+    const message = `The copy editor ${copyEditorName} has completed the copy editing and typesetting of your manuscript "${manuscriptTitle}". ` +
+      `${galleyCount} galley proof${galleyCount > 1 ? 's have' : ' has'} been prepared for your final review. ` +
+      'Please review the galley proofs carefully and approve them if you are satisfied with the copy editing. ' +
+      (notes ? `Copy editor notes: ${notes}` : '') +
+      ' You can approve or request revisions in your manuscript dashboard.';
+
+    const notification = await createNotification({
+      recipientEmail: authorEmail,
+      type: 'copy_edit_complete',
+      title,
+      message,
+      manuscriptId,
+      priority: 'high',
+      actionUrl: `/dashboard/manuscripts/${manuscriptId}/simple-review`,
+      createdBy: 'copy_editor_system'
+    });
+
+    return notification;
+  } catch (error) {
+    console.error('Error sending galley review notification:', error);
+    throw error;
+  }
+}
+
+export async function notifyEditorCopyEditingComplete(
+  editorEmail: string,
+  manuscriptId: string,
+  manuscriptTitle: string,
+  copyEditorName: string,
+  authorName: string,
+  reportToEditor: string,
+  finalNotes?: string
+) {
+  try {
+    const title = 'Copy Editing Process Completed';
+    const message = `The copy editing process for manuscript "${manuscriptTitle}" by ${authorName} has been completed. ` +
+      `Copy editor ${copyEditorName} has submitted their final report:\n\n${reportToEditor}` +
+      (finalNotes ? `\n\nAdditional notes: ${finalNotes}` : '') +
+      '\n\nThe manuscript is now ready for the publication stage. You can review the copy editor\'s work and proceed with publication in your editorial dashboard.';
+
+    const notification = await createNotification({
+      recipientEmail: editorEmail,
+      type: 'copy_edit_complete',
+      title,
+      message,
+      manuscriptId,
+      priority: 'high',
+      actionUrl: `/dashboard/manuscripts/${manuscriptId}`,
+      createdBy: 'copy_editor_system'
+    });
+
+    return notification;
+  } catch (error) {
+    console.error('Error sending editor completion notification:', error);
+    throw error;
+  }
+}
+
+export async function notifyCopyEditorAuthorApproval(
+  copyEditorEmail: string,
+  manuscriptId: string,
+  manuscriptTitle: string,
+  authorName: string,
+  authorComments?: string
+) {
+  try {
+    const title = 'Author Approved Your Copy Editing';
+    const message = `The author ${authorName} has approved your copy editing work for manuscript "${manuscriptTitle}". ` +
+      (authorComments ? `Author comments: ${authorComments}\n\n` : '') +
+      'Please review the approval and submit your final confirmation report to the editor. ' +
+      'You can complete the final step in your copy editor dashboard.';
+
+    const notification = await createNotification({
+      recipientEmail: copyEditorEmail,
+      type: 'copy_edit_approved',
+      title,
+      message,
+      manuscriptId,
+      priority: 'high',
+      actionUrl: `/dashboard/copy-editor/simple/${manuscriptId}`,
+      createdBy: 'author_system'
+    });
+
+    return notification;
+  } catch (error) {
+    console.error('Error sending copy editor approval notification:', error);
     throw error;
   }
 }

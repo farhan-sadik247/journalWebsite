@@ -5,6 +5,22 @@ import dbConnect from '@/lib/mongodb';
 import FeeConfig from '@/models/FeeConfig';
 import User from '@/models/User';
 
+// Sanitize fee config data to remove 'waiver' payment methods
+function sanitizeFeeConfigData(data: any) {
+  if (data.supportedPaymentMethods) {
+    data.supportedPaymentMethods = data.supportedPaymentMethods.filter((method: string) => method !== 'waiver');
+    
+    // Ensure we have at least the basic payment methods
+    const requiredMethods = ['stripe', 'paypal', 'bank_transfer'];
+    for (const method of requiredMethods) {
+      if (!data.supportedPaymentMethods.includes(method)) {
+        data.supportedPaymentMethods.push(method);
+      }
+    }
+  }
+  return data;
+}
+
 // GET /api/fee-config - Get fee configuration
 export async function GET(request: NextRequest) {
   try {
@@ -16,9 +32,12 @@ export async function GET(request: NextRequest) {
 
     await dbConnect();
 
-    const feeConfig = await FeeConfig.getDefaultConfig();
+    const config = await FeeConfig.getDefaultConfig();
+    
+    // Sanitize the config before returning
+    const sanitizedConfig = config ? sanitizeFeeConfigData(config.toObject()) : null;
 
-    return NextResponse.json({ feeConfig });
+    return NextResponse.json({ config: sanitizedConfig });
 
   } catch (error) {
     console.error('Error fetching fee config:', error);
@@ -26,8 +45,8 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/fee-config - Create or update fee configuration (admin only)
-export async function POST(request: NextRequest) {
+// PUT /api/fee-config - Update fee configuration (admin only)
+export async function PUT(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     
@@ -44,95 +63,46 @@ export async function POST(request: NextRequest) {
     }
 
     const feeConfigData = await request.json();
+    
+    // Sanitize the data to remove any 'waiver' payment methods
+    const sanitizedData = sanitizeFeeConfigData(feeConfigData);
 
-    // Validate required fields
-    if (!feeConfigData.name || feeConfigData.baseFee === undefined) {
-      return NextResponse.json({ 
-        error: 'Name and base fee are required' 
-      }, { status: 400 });
-    }
+    // Find or create default config
+    let config = await FeeConfig.findOne({ name: 'default', isActive: true });
 
-    // Check if a config with this name already exists
-    let existingConfig = await FeeConfig.findOne({ name: feeConfigData.name });
-
-    if (existingConfig) {
+    if (config) {
       // Update existing config
-      Object.assign(existingConfig, {
-        ...feeConfigData,
+      Object.assign(config, {
+        ...sanitizedData,
         lastModifiedBy: user._id,
-        updatedAt: new Date()
       });
-      await existingConfig.save();
+      await config.save();
       
       return NextResponse.json({ 
         message: 'Fee configuration updated successfully',
-        feeConfig: existingConfig
+        config
       });
     } else {
       // Create new config
-      const newFeeConfig = new FeeConfig({
-        ...feeConfigData,
+      const newConfig = new FeeConfig({
+        name: 'default',
+        description: 'Fixed APC fee structure based on article categories',
+        ...sanitizedData,
         createdBy: user._id,
-        lastModifiedBy: user._id
+        lastModifiedBy: user._id,
+        isActive: true
       });
       
-      await newFeeConfig.save();
+      await newConfig.save();
       
       return NextResponse.json({ 
         message: 'Fee configuration created successfully',
-        feeConfig: newFeeConfig
+        config: newConfig
       }, { status: 201 });
     }
 
   } catch (error) {
-    console.error('Error saving fee config:', error);
+    console.error('Error updating fee config:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
-
-// PUT /api/fee-config/calculate - Calculate fee for manuscript
-export async function PUT(request: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { articleType, authorCountry, institutionName } = await request.json();
-
-    console.log('Fee calculation request:', { articleType, authorCountry, institutionName });
-
-    if (!articleType || !authorCountry) {
-      return NextResponse.json({
-        error: 'Article type and author country are required'
-      }, { status: 400 });
-    }
-
-    await dbConnect();
-
-    const feeConfig = await FeeConfig.getDefaultConfig();
-    
-    if (!feeConfig) {
-      console.error('No default fee configuration found');
-      return NextResponse.json({ 
-        error: 'Fee configuration not available. Please contact administrator.' 
-      }, { status: 404 });
-    }
-
-    console.log('Found fee config:', feeConfig.name);
-
-    const feeCalculation = feeConfig.calculateFee(articleType, authorCountry, institutionName);
-
-    console.log('Fee calculation result:', feeCalculation);
-
-    return NextResponse.json({ feeCalculation });
-
-  } catch (error) {
-    console.error('Error calculating fee:', error);
-    return NextResponse.json({ 
-      error: 'Failed to calculate fee. Please try again or contact support.',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
   }
 }

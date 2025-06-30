@@ -122,6 +122,7 @@ const manuscriptSchema = new mongoose.Schema({
       'accepted-awaiting-copy-edit',
       'in-copy-editing',
       'copy-editing-complete',
+      'ready-for-publication',
       'rejected', 
       'payment-required', 
       'in-production', 
@@ -228,7 +229,7 @@ const manuscriptSchema = new mongoose.Schema({
   // Copy-editing and Production fields
   copyEditingStage: {
     type: String,
-    enum: ['copy-editing', 'author-review', 'proofreading', 'typesetting', 'final-review', 'ready-for-publication'],
+    enum: ['copy-editing', 'author-review', 'author-approved', 'ready-for-production'],
   },
   productionStage: {
     type: String,
@@ -239,6 +240,10 @@ const manuscriptSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
   },
+  assignedEditor: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  },
   copyEditingDueDate: {
     type: Date,
   },
@@ -246,19 +251,52 @@ const manuscriptSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
-  typesettingNotes: {
-    type: String,
-    default: '',
+  copyEditingStartDate: {
+    type: Date,
   },
-  proofreadingNotes: {
-    type: String,
-    default: '',
+  copyEditingCompletedDate: {
+    type: Date,
   },
-  productionNotes: {
-    type: String,
-    default: '',
+  // Copy edit review submitted by copy editor
+  copyEditReview: {
+    copyEditorId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    copyEditorName: {
+      type: String,
+    },
+    copyEditorEmail: {
+      type: String,
+    },
+    comments: {
+      type: String,
+      required: function(this: any) {
+        return this.copyEditReview && this.copyEditReview.submittedAt;
+      },
+    },
+    galleyProofUrl: {
+      type: String,
+    },
+    galleyProofPublicId: {
+      type: String,
+    },
+    galleyProofFilename: {
+      type: String,
+    },
+    completionStatus: {
+      type: String,
+      enum: ['completed', 'needs-revision'],
+    },
+    submittedAt: {
+      type: Date,
+    },
+    stage: {
+      type: String,
+      default: 'copy-edit-review',
+    },
   },
-  // Author copy-edit review
+  // Author copy-edit review (simplified)
   authorCopyEditReview: {
     approval: {
       type: String,
@@ -266,16 +304,231 @@ const manuscriptSchema = new mongoose.Schema({
     },
     comments: {
       type: String,
-      default: '',
+    },
+    reviewedAt: {
+      type: Date,
     },
     reviewedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
     },
-    reviewDate: {
+    files: [{
+      originalName: {
+        type: String,
+        required: true,
+      },
+      filename: {
+        type: String,
+        required: true,
+      },
+      url: {
+        type: String,
+        required: true,
+      },
+      type: {
+        type: String,
+        default: 'author-review-file',
+      },
+      uploadedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+      uploadedAt: {
+        type: Date,
+        default: Date.now,
+      },
+      size: {
+        type: Number,
+      },
+      mimeType: {
+        type: String,
+      },
+    }],
+  },
+  // Copy editing working files
+  copyEditWorkingFiles: [{
+    originalName: {
+      type: String,
+      required: true,
+    },
+    filename: {
+      type: String,
+      required: true,
+    },
+    url: {
+      type: String,
+      required: true,
+    },
+    size: {
+      type: Number,
+      required: true,
+    },
+    type: {
+      type: String,
+      required: true,
+    },
+    uploadedBy: {
+      type: String,
+      required: true,
+    },
+    uploadedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  }],
+  // Copy editor assignment tracking
+  copyEditorAssignment: {
+    copyEditorId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    copyEditorName: {
+      type: String,
+    },
+    copyEditorEmail: {
+      type: String,
+    },
+    assignedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    assignedByName: {
+      type: String,
+    },
+    assignedDate: {
       type: Date,
     },
+    dueDate: {
+      type: Date,
+    },
+    status: {
+      type: String,
+      enum: ['assigned', 'in-progress', 'galley-submitted', 'approved-by-author', 'confirmed-by-copy-editor'],
+      default: 'assigned',
+    },
+    notes: {
+      type: String,
+      default: '',
+    },
+    completedDate: {
+      type: Date,
+    },
+    authorApprovalDate: {
+      type: Date,
+    },
+    // Galley proof files submitted by copy editor
+    galleyProofs: [{
+      filename: {
+        type: String,
+        required: true,
+      },
+      originalName: {
+        type: String,
+        required: true,
+      },
+      cloudinaryId: {
+        type: String,
+        required: true,
+      },
+      url: {
+        type: String,
+        required: true,
+      },
+      type: {
+        type: String,
+        enum: ['galley-proof', 'typeset-manuscript', 'final-pdf'],
+        default: 'galley-proof',
+      },
+      size: {
+        type: Number,
+        required: true,
+      },
+      uploadedAt: {
+        type: Date,
+        default: Date.now,
+      },
+    }],
+    galleySubmissionDate: {
+      type: Date,
+    },
+    galleyNotes: {
+      type: String,
+      default: '',
+    },
+    // Author approval details
+    authorApproval: {
+      approved: {
+        type: Boolean,
+        default: false,
+      },
+      approvedAt: {
+        type: Date,
+      },
+      comments: {
+        type: String,
+        default: '',
+      },
+    },
+    // Copy editor confirmation after author approval
+    copyEditorConfirmation: {
+      confirmed: {
+        type: Boolean,
+        default: false,
+      },
+      confirmedAt: {
+        type: Date,
+      },
+      reportToEditor: {
+        type: String,
+        default: '',
+      },
+      finalNotes: {
+        type: String,
+        default: '',
+      },
+    },
   },
+  // Latest manuscript files for publication (updated by author during review)
+  latestManuscriptFiles: [{
+    originalName: {
+      type: String,
+      required: true,
+    },
+    filename: {
+      type: String,
+      required: true,
+    },
+    url: {
+      type: String,
+      required: true,
+    },
+    type: {
+      type: String,
+      default: 'manuscript-final',
+    },
+    uploadedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    uploadedAt: {
+      type: Date,
+      default: Date.now,
+    },
+    size: {
+      type: Number,
+    },
+    mimeType: {
+      type: String,
+    },
+    version: {
+      type: String,
+      default: 'author-review-v1',
+    },
+    isCurrentVersion: {
+      type: Boolean,
+      default: true,
+    },
+  }],
 }, {
   timestamps: true,
 });

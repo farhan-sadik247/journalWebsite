@@ -50,6 +50,37 @@ export interface Manuscript {
     downloads: number;
     citations: number;
   };
+  // Copy editing fields
+  copyEditingStage?: string;
+  productionStage?: string;
+  assignedCopyEditor?: string;
+  copyEditingDueDate?: string;
+  copyEditingNotes?: string;
+  copyEditReview?: CopyEditReview;
+  copyEditWorkingFiles?: CopyEditWorkingFile[];
+}
+
+export interface CopyEditWorkingFile {
+  originalName: string;
+  filename: string;
+  url: string;
+  size: number;
+  type: string;
+  uploadedBy: string;
+  uploadedAt: Date;
+}
+
+export interface CopyEditReview {
+  copyEditorId?: string;
+  copyEditorName?: string;
+  copyEditorEmail?: string;
+  comments?: string;
+  galleyProofUrl?: string;
+  galleyProofPublicId?: string;
+  galleyProofFilename?: string;
+  completionStatus?: 'completed' | 'needs-revision';
+  submittedAt?: Date;
+  stage?: string;
 }
 
 export interface AuthorInfo {

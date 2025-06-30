@@ -41,7 +41,7 @@ export const authOptions: NextAuthOptions = {
             name: user.name,
             role: user.role,
             roles: user.roles || ['author'],
-            currentActiveRole: 'author', // Always login as author
+            currentActiveRole: user.currentActiveRole || user.role || 'author',
             isFounder: user.isFounder || false,
             image: user.profileImage,
           };
@@ -83,7 +83,7 @@ export const authOptions: NextAuthOptions = {
           
           user.role = existingUser.role;
           user.roles = existingUser.roles || ['author'];
-          user.currentActiveRole = 'author'; // Always login as author
+          user.currentActiveRole = existingUser.currentActiveRole || existingUser.role || 'author';
           user.isFounder = existingUser.isFounder || false;
           user.id = existingUser._id.toString();
           
@@ -95,7 +95,7 @@ export const authOptions: NextAuthOptions = {
       }
       return true;
     },
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger, session }) {
       if (user) {
         token.role = user.role;
         token.roles = user.roles;
@@ -103,6 +103,23 @@ export const authOptions: NextAuthOptions = {
         token.isFounder = user.isFounder;
         token.id = user.id;
       }
+      
+      // If session update is triggered, refresh user data from database
+      if (trigger === 'update' && session?.user?.currentActiveRole) {
+        try {
+          await dbConnect();
+          const dbUser = await User.findById(token.id);
+          if (dbUser) {
+            token.role = dbUser.role;
+            token.roles = dbUser.roles;
+            token.currentActiveRole = dbUser.currentActiveRole;
+            token.isFounder = dbUser.isFounder;
+          }
+        } catch (error) {
+          console.error('Error refreshing user data in JWT callback:', error);
+        }
+      }
+      
       return token;
     },
     async session({ session, token }) {
@@ -110,8 +127,7 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string;
         session.user.role = token.role as 'author' | 'reviewer' | 'editor' | 'copy-editor' | 'admin';
         session.user.roles = token.roles as ('author' | 'reviewer' | 'editor' | 'copy-editor' | 'admin')[];
-        // Users always login as 'author' - they can only use other roles from dashboard
-        session.user.currentActiveRole = 'author';
+        session.user.currentActiveRole = token.currentActiveRole as 'author' | 'reviewer' | 'editor' | 'copy-editor' | 'admin';
         session.user.isFounder = token.isFounder as boolean;
       }
       return session;

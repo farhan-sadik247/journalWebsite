@@ -218,6 +218,12 @@ export default function AdminDashboard() {
             </button>
             <button
               className={styles.actionButton}
+              onClick={() => router.push('/dashboard/copy-editor')}
+            >
+              Copy Editor Dashboard
+            </button>
+            <button
+              className={styles.actionButton}
               onClick={() => router.push('/dashboard/admin/manage-users')}
             >
               Manage Users
@@ -233,6 +239,12 @@ export default function AdminDashboard() {
               onClick={() => router.push('/dashboard/admin/fee-config')}
             >
               Publication Fees
+            </button>
+            <button
+              className={styles.actionButton}
+              onClick={() => router.push('/dashboard/admin/copy-editing')}
+            >
+              Copy Editor Assignment
             </button>
             <button
               className={styles.actionButton}

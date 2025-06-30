@@ -24,8 +24,13 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user is copy-editor or admin
-    if (session.user.role !== 'copy-editor' && session.user.role !== 'admin') {
+    // Check if user is copy-editor or admin using multi-role logic
+    const userRole = session.user.currentActiveRole || session.user.role || 'author';
+    const userRoles = session.user.roles || [userRole];
+    const isCopyEditor = userRole === 'copy-editor' || userRoles.includes('copy-editor');
+    const isAdmin = userRole === 'admin' || userRoles.includes('admin');
+    
+    if (!isCopyEditor && !isAdmin) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
@@ -38,11 +43,17 @@ export async function PUT(
     await dbConnect();
 
     const manuscript = await Manuscript.findById(params.id)
-      .populate('submittedBy', 'name email')
-      .populate('assignedEditor', 'name email');
+      .populate('submittedBy', 'name email');
 
     if (!manuscript) {
       return NextResponse.json({ error: 'Manuscript not found' }, { status: 404 });
+    }
+
+    // Check if copy editor is assigned to this manuscript (unless admin)
+    if (session.user.role === 'copy-editor') {
+      if (!manuscript.assignedCopyEditor || manuscript.assignedCopyEditor.toString() !== session.user.id) {
+        return NextResponse.json({ error: 'You are not assigned to this manuscript' }, { status: 403 });
+      }
     }
 
     // Update manuscript with copy editing information
@@ -59,17 +70,25 @@ export async function PUT(
         }
         
         const copyEditor = await User.findById(copyEditorId);
-        if (!copyEditor || copyEditor.role !== 'copy-editor') {
+        if (!copyEditor || (!copyEditor.roles?.includes('copy-editor') && copyEditor.role !== 'copy-editor')) {
           return NextResponse.json({ error: 'Invalid copy editor' }, { status: 400 });
         }
 
         updateData.assignedCopyEditor = copyEditorId;
         updateData.copyEditingStartDate = new Date();
         
-        // Check if payment is confirmed before assigning copy editor
+        // Check if manuscript is accepted and payment is completed before assigning copy editor
+        if (manuscript.status !== 'accepted') {
+          return NextResponse.json({ 
+            error: 'Manuscript must be accepted before copy-editing assignment' 
+          }, { status: 400 });
+        }
+
         const payment = await Payment.findOne({ manuscriptId: params.id, status: 'completed' });
-        if (!payment) {
-          return NextResponse.json({ error: 'Payment must be completed before copy-editing assignment' }, { status: 400 });
+        if (!payment && manuscript.paymentStatus !== 'completed' && manuscript.paymentStatus !== 'not-required' && manuscript.paymentStatus !== 'waived') {
+          return NextResponse.json({ 
+            error: 'Payment must be completed before copy-editing assignment' 
+          }, { status: 400 });
         }
 
         // Notify copy editor of assignment
@@ -189,6 +208,11 @@ export async function GET(
     const isCopyEditor = session.user.role === 'copy-editor';
     const isEditor = session.user.role === 'editor' || session.user.role === 'admin';
 
+    // Copy editors can only see manuscripts assigned to them
+    if (isCopyEditor && (!manuscript.assignedCopyEditor || manuscript.assignedCopyEditor._id.toString() !== session.user.id)) {
+      return NextResponse.json({ error: 'You are not assigned to this manuscript' }, { status: 403 });
+    }
+
     if (!isAuthor && !isCopyEditor && !isEditor) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
@@ -239,7 +263,6 @@ export async function PATCH(
 
     const manuscript = await Manuscript.findById(params.id)
       .populate('submittedBy', 'name email')
-      .populate('assignedEditor', 'name email')
       .populate('assignedCopyEditor', 'name email');
 
     if (!manuscript) {
@@ -277,15 +300,9 @@ export async function PATCH(
         updateData.draftStatus = 'approved-by-author';
         updateData.copyEditingStage = 'final-review';
         
-        // Notify editor that the draft is approved and ready for publication
-        if (manuscript.assignedEditor) {
-          await notifyDraftApproved(
-            manuscript.assignedEditor.email,
-            params.id,
-            manuscript.title,
-            manuscript.submittedBy.name
-          );
-        }
+        // Note: Editor notification temporarily disabled (assignedEditor field not properly populated)
+        // TODO: Implement proper editor assignment and notification system
+        // For now, notifications will be handled through the admin dashboard
       } else {
         // If changes requested, update status and notify copy editor
         updateData.draftStatus = 'changes-requested';

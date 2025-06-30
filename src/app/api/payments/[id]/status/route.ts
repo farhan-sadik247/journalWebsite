@@ -58,7 +58,7 @@ export async function GET(
           await payment.save();
           
           // Update manuscript status
-          const Manuscript = require('@/models/Manuscript').default;
+          const { default: Manuscript } = await import('@/models/Manuscript');
           await Manuscript.findByIdAndUpdate(payment.manuscriptId, {
             paymentStatus: 'completed',
             status: 'in-production',

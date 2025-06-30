@@ -158,7 +158,9 @@ export async function GET(request: NextRequest) {
     console.log('GET manuscripts - User session:', {
       id: session.user.id,
       email: session.user.email,
-      role: session.user.role
+      role: session.user.role,
+      currentActiveRole: session.user.currentActiveRole,
+      roles: session.user.roles
     });
 
     const { searchParams } = new URL(request.url);
@@ -172,21 +174,27 @@ export async function GET(request: NextRequest) {
 
     await dbConnect();
 
-    // Build filter based on user role
+    // Build filter based on user role - using multi-role logic
     const filter: Record<string, any> = {};
+    const userRole = session.user.currentActiveRole || session.user.role || 'author';
+    const userRoles = session.user.roles || [userRole];
+    const isCopyEditor = userRole === 'copy-editor' || userRoles.includes('copy-editor');
+    const isEditor = userRole === 'editor' || userRoles.includes('editor');
+    const isAdmin = userRole === 'admin' || userRoles.includes('admin');
     
-    if (session.user.role === 'author' && !editor && !copyEditing) {
+    if (userRole === 'author' && !editor && !copyEditing) {
       filter.submittedBy = new mongoose.Types.ObjectId(session.user.id);
       console.log('Author filter applied - submittedBy:', session.user.id, 'as ObjectId:', filter.submittedBy);
-    } else if (session.user.role === 'reviewer' && !editor && !copyEditing) {
+    } else if (userRole === 'reviewer' && !editor && !copyEditing) {
       // Reviewers see manuscripts assigned to them
       // This would need to be implemented based on Review model
       console.log('Reviewer filter applied');
-    } else if (session.user.role === 'copy-editor' && copyEditing) {
-      // Copy-editors see manuscripts in the copy-editing pipeline
+    } else if (isCopyEditor && copyEditing) {
+      // Copy-editors see only manuscripts assigned to them
+      filter.assignedCopyEditor = new mongoose.Types.ObjectId(session.user.id);
       filter.status = { $in: ['accepted', 'accepted-awaiting-copy-edit', 'in-copy-editing', 'copy-editing-complete', 'in-production'] };
-      console.log('Copy-editor filter applied - showing copy-editing pipeline manuscripts');
-    } else if ((session.user.role === 'editor' || session.user.role === 'admin') || editor) {
+      console.log('Copy-editor filter applied - showing only assigned manuscripts for user:', session.user.id);
+    } else if ((isEditor || isAdmin) || editor) {
       // Editors and admins see all manuscripts
       console.log('Editor/Admin filter applied - showing all manuscripts');
     }

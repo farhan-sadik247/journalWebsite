@@ -49,7 +49,13 @@ export default function CopyEditorEditPage({ params }: { params: { id: string } 
       return;
     }
 
-    if (session?.user?.role !== 'copy-editor' && session?.user?.role !== 'admin') {
+    // Use multi-role logic to check copy editor access
+    const userRole = session?.user?.currentActiveRole || session?.user?.role || 'author';
+    const userRoles = session?.user?.roles || [userRole];
+    const isCopyEditor = userRole === 'copy-editor' || userRoles.includes('copy-editor');
+    const isAdmin = userRole === 'admin' || userRoles.includes('admin');
+
+    if (!isCopyEditor && !isAdmin) {
       router.push('/dashboard');
       return;
     }
@@ -314,18 +320,22 @@ export default function CopyEditorEditPage({ params }: { params: { id: string } 
             <div className={styles.infoCard}>
               <h3>Authors</h3>
               <div className={styles.authorsList}>
-                {manuscript.authors.map((author, index) => (
-                  <div key={index} className={styles.authorItem}>
-                    <h4>{author.name}</h4>
-                    <p>{author.affiliation}</p>
-                    <span>{author.email}</span>
-                  </div>
-                ))}
+                {manuscript.authors && manuscript.authors.length > 0 ? (
+                  manuscript.authors.map((author, index) => (
+                    <div key={index} className={styles.authorItem}>
+                      <h4>{author.name}</h4>
+                      <p>{author.affiliation}</p>
+                      <span>{author.email}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p>No authors listed</p>
+                )}
               </div>
             </div>
 
             {/* Files */}
-            {manuscript.files.length > 0 && (
+            {manuscript.files && manuscript.files.length > 0 && (
               <div className={styles.infoCard}>
                 <h3>Original Files</h3>
                 <div className={styles.filesList}>

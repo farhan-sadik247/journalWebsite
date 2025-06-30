@@ -46,7 +46,7 @@ export default function CopyEditorDashboard() {
       return;
     }
 
-    if (session?.user?.role !== 'copy-editor' && session?.user?.role !== 'admin') {
+    if (session?.user && !session.user.roles?.includes('copy-editor') && !session.user.roles?.includes('admin') && session.user.currentActiveRole !== 'copy-editor') {
       router.push('/dashboard');
       return;
     }
@@ -95,8 +95,8 @@ export default function CopyEditorDashboard() {
   };
 
   const filteredManuscripts = manuscripts.filter(manuscript => {
+    // All manuscripts shown are already assigned to this copy editor from the API
     if (filter === 'all') return true;
-    if (filter === 'assigned') return manuscript.assignedCopyEditor === session?.user?.id;
     if (filter === 'pending') return !manuscript.copyEditingStage || manuscript.copyEditingStage === 'copy-editing';
     if (filter === 'in-progress') return manuscript.copyEditingStage === 'author-review' || manuscript.copyEditingStage === 'proofreading';
     if (filter === 'completed') return manuscript.copyEditingStage === 'ready-for-publication';
@@ -105,8 +105,9 @@ export default function CopyEditorDashboard() {
 
   const stats = {
     total: manuscripts.length,
-    assigned: manuscripts.filter(m => m.assignedCopyEditor === session?.user?.id).length,
+    assigned: manuscripts.length, // All shown manuscripts are assigned to this copy editor
     pending: manuscripts.filter(m => !m.copyEditingStage || m.copyEditingStage === 'copy-editing').length,
+    completed: manuscripts.filter(m => m.copyEditingStage === 'ready-for-publication').length,
     overdue: manuscripts.filter(m => 
       m.copyEditingDueDate && new Date(m.copyEditingDueDate) < new Date() && 
       m.copyEditingStage !== 'ready-for-publication'
@@ -131,7 +132,7 @@ export default function CopyEditorDashboard() {
         <div className={styles.header}>
           <div className={styles.headerContent}>
             <h1>Copy Editor Dashboard</h1>
-            <p>Manage copy editing and production workflow</p>
+            <p>Manage your assigned manuscripts in the copy editing workflow</p>
           </div>
         </div>
 
@@ -143,17 +144,7 @@ export default function CopyEditorDashboard() {
             </div>
             <div className={styles.statInfo}>
               <h3>{stats.total}</h3>
-              <p>Total Manuscripts</p>
-            </div>
-          </div>
-
-          <div className={styles.statCard}>
-            <div className={styles.statIcon}>
-              <FiUser />
-            </div>
-            <div className={styles.statInfo}>
-              <h3>{stats.assigned}</h3>
-              <p>Assigned to You</p>
+              <p>Assigned Manuscripts</p>
             </div>
           </div>
 
@@ -164,6 +155,16 @@ export default function CopyEditorDashboard() {
             <div className={styles.statInfo}>
               <h3>{stats.pending}</h3>
               <p>Pending Review</p>
+            </div>
+          </div>
+
+          <div className={styles.statCard}>
+            <div className={styles.statIcon}>
+              <FiCheck />
+            </div>
+            <div className={styles.statInfo}>
+              <h3>{stats.completed}</h3>
+              <p>Completed</p>
             </div>
           </div>
 
@@ -185,13 +186,7 @@ export default function CopyEditorDashboard() {
               className={filter === 'all' ? styles.active : ''}
               onClick={() => setFilter('all')}
             >
-              All Manuscripts
-            </button>
-            <button
-              className={filter === 'assigned' ? styles.active : ''}
-              onClick={() => setFilter('assigned')}
-            >
-              Assigned to Me
+              All My Manuscripts
             </button>
             <button
               className={filter === 'pending' ? styles.active : ''}
@@ -217,14 +212,14 @@ export default function CopyEditorDashboard() {
         {/* Manuscripts Table */}
         <div className={styles.manuscriptsSection}>
           <div className={styles.sectionHeader}>
-            <h2>Manuscripts in Production</h2>
+            <h2>My Assigned Manuscripts</h2>
           </div>
 
           {filteredManuscripts.length === 0 ? (
             <div className={styles.emptyState}>
               <FiFileText />
-              <h3>No manuscripts found</h3>
-              <p>There are no manuscripts matching your current filter.</p>
+              <h3>No assigned manuscripts found</h3>
+              <p>{manuscripts.length === 0 ? 'You have no manuscripts assigned to you yet.' : 'No manuscripts match your current filter.'}</p>
             </div>
           ) : (
             <div className={styles.manuscriptsTable}>
@@ -252,15 +247,21 @@ export default function CopyEditorDashboard() {
                       </td>
                       <td data-label="Authors">
                         <div className={styles.authorsCell}>
-                          {manuscript.authors.slice(0, 2).map((author, index) => (
-                            <span key={index} className={styles.authorName}>
-                              {author.name}
-                            </span>
-                          ))}
-                          {manuscript.authors.length > 2 && (
-                            <span className={styles.moreAuthors}>
-                              +{manuscript.authors.length - 2} more
-                            </span>
+                          {manuscript.authors && manuscript.authors.length > 0 ? (
+                            <>
+                              {manuscript.authors.slice(0, 2).map((author, index) => (
+                                <span key={index} className={styles.authorName}>
+                                  {author.name}
+                                </span>
+                              ))}
+                              {manuscript.authors.length > 2 && (
+                                <span className={styles.moreAuthors}>
+                                  +{manuscript.authors.length - 2} more
+                                </span>
+                              )}
+                            </>
+                          ) : (
+                            <span className={styles.noAuthors}>No authors listed</span>
                           )}
                         </div>
                       </td>

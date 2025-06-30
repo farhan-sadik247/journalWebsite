@@ -248,6 +248,158 @@
           }
         }
       }
+
+      .notificationInfo {
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #e5e7eb;
+
+        h4 {
+          margin: 0 0 0.75rem 0;
+          color: #374151;
+          font-size: 1rem;
+        }
+
+        p {
+          margin: 0;
+          color: #6b7280;
+          font-size: 0.9rem;
+          line-height: 1.5;
+        }
+      }
+    }
+  }
+
+  .fileUploadSection {
+    margin-top: 0.5rem;
+
+    .uploadDescription {
+      margin-bottom: 1rem;
+      color: #6b7280;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .uploadArea {
+      position: relative;
+      border: 2px dashed #d1d5db;
+      border-radius: 8px;
+      padding: 2rem;
+      text-align: center;
+      transition: border-color 0.2s ease;
+
+      &:hover {
+        border-color: #6366f1;
+      }
+
+      .fileInput {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .uploadLabel {
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        color: #6b7280;
+
+        svg {
+          font-size: 2rem;
+          color: #9ca3af;
+        }
+
+        span {
+          font-weight: 500;
+          color: #374151;
+        }
+
+        small {
+          color: #9ca3af;
+          font-size: 0.875rem;
+        }
+
+        &:hover {
+          color: #6366f1;
+
+          svg {
+            color: #6366f1;
+          }
+        }
+      }
+    }
+
+    .fileList {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: #f9fafb;
+      border-radius: 8px;
+
+      h4 {
+        margin: 0 0 0.75rem 0;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #374151;
+      }
+
+      .fileItem {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem;
+        background: white;
+        border-radius: 6px;
+        margin-bottom: 0.5rem;
+        border: 1px solid #e5e7eb;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+
+        .fileInfo {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          flex: 1;
+
+          svg {
+            color: #6b7280;
+            flex-shrink: 0;
+          }
+
+          .fileName {
+            font-weight: 500;
+            color: #374151;
+          }
+
+          .fileSize {
+            color: #9ca3af;
+            font-size: 0.875rem;
+          }
+        }
+
+        .removeFileBtn {
+          background: none;
+          border: none;
+          color: #dc2626;
+          cursor: pointer;
+          padding: 0.25rem;
+          border-radius: 4px;
+          display: flex;
+          align-items: center;
+          transition: background-color 0.2s ease;
+
+          &:hover {
+            background-color: #fef2f2;
+          }
+
+          svg {
+            font-size: 1rem;
+          }
+        }
+      }
     }
   }
 

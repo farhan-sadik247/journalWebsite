@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Publication Dashboard Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: #f5f5f5;
+        }
+        .test-section { 
+            background: white; 
+            padding: 20px; 
+            margin: 20px 0; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button { 
+            background: #6366f1; 
+            color: white; 
+            border: none; 
+            padding: 10px 20px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            margin: 5px;
+        }
+        button:hover { background: #5856eb; }
+        .result { 
+            margin-top: 10px; 
+            padding: 10px; 
+            background: #f3f4f6; 
+            border-radius: 4px; 
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .error { background: #fef2f2; color: #dc2626; }
+        .success { background: #f0fdf4; color: #16a34a; }
+    </style>
+</head>
+<body>
+    <h1>Publication Dashboard Test</h1>
+    
+    <div class="test-section">
+        <h2>1. Test Ready-for-Publication API</h2>
+        <p>Check if there are manuscripts ready for publication:</p>
+        <button onclick="testReadyForPublication()">Test Ready-for-Publication API</button>
+        <div id="ready-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Test Publication Dashboard</h2>
+        <p>Open the actual publication dashboard:</p>
+        <button onclick="window.open('/dashboard/publication', '_blank')">Open Publication Dashboard</button>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Test New Volume Page</h2>
+        <p>Test the New Volume creation page:</p>
+        <button onclick="window.open('/dashboard/publication/volumes/new', '_blank')">Open New Volume Page</button>
+    </div>
+
+    <div class="test-section">
+        <h2>4. Test New Issue Page</h2>
+        <p>Test the New Issue creation page:</p>
+        <button onclick="window.open('/dashboard/publication/issues/new', '_blank')">Open New Issue Page</button>
+    </div>
+
+    <script>
+        async function testReadyForPublication() {
+            const resultDiv = document.getElementById('ready-result');
+            resultDiv.textContent = 'Testing...';
+            
+            try {
+                const response = await fetch('/api/manuscripts/ready-for-publication');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `Success! Found ${data.manuscripts?.length || 0} manuscripts ready for publication:\n\n${JSON.stringify(data, null, 2)}`;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `Error: ${data.error || 'Unknown error'}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `Network Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

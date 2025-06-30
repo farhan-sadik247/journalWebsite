@@ -28,7 +28,7 @@ export async function PUT(
 
     const manuscript = await Manuscript.findById(params.id)
       .populate('submittedBy', 'name email')
-      .populate('assignedEditor', 'name email');
+      .populate('assignedCopyEditor', 'name email');
 
     if (!manuscript) {
       return NextResponse.json({ error: 'Manuscript not found' }, { status: 404 });
@@ -74,15 +74,9 @@ export async function PUT(
       { new: true }
     );
 
-    // If approved, notify the editor for final publication
-    if (approval && manuscript.assignedEditor) {
-      await notifyDraftApproved(
-        manuscript.assignedEditor.email,
-        params.id,
-        manuscript.title,
-        manuscript.submittedBy.name
-      );
-    }
+    // Note: Editor notification temporarily disabled (assignedEditor field not properly populated)
+    // TODO: Implement proper editor assignment and notification system
+    // For now, notifications will be handled through the admin dashboard
 
     return NextResponse.json({
       message: `Draft ${approval ? 'approved' : 'rejected'} successfully`,

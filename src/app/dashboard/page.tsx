@@ -19,7 +19,6 @@ import {
   FiCreditCard,
   FiDollarSign
 } from 'react-icons/fi';
-import { RoleSwitcher } from '@/components/layout/RoleSwitcher';
 import styles from './Dashboard.module.scss';
 
 export default function DashboardPage() {
@@ -52,13 +51,10 @@ export default function DashboardPage() {
 
   const fetchDashboardData = async () => {
     try {
-      console.log('Fetching dashboard data for user:', session?.user?.id, session?.user?.email);
       const response = await fetch('/api/manuscripts');
-      console.log('Dashboard API response status:', response.status);
       
       if (response.ok) {
         const data = await response.json();
-        console.log('Dashboard data received:', data);
         setManuscripts(data.manuscripts);
         
         // Calculate stats
@@ -164,7 +160,7 @@ export default function DashboardPage() {
       icon: FiEdit,
       href: '/dashboard/review-assignments',
       color: 'accent',
-      show: session.user.role === 'reviewer' || session.user.role === 'editor',
+      show: session.user.roles?.includes('reviewer') || session.user.roles?.includes('editor') || session.user.currentActiveRole === 'reviewer' || session.user.currentActiveRole === 'editor',
     },
   ];
 
@@ -197,6 +193,13 @@ export default function DashboardPage() {
       color: 'warning',
     });
     roleBasedActions.push({
+      title: 'Publication Dashboard',
+      description: 'Manage manuscripts ready for publication',
+      icon: FiBookOpen,
+      href: '/dashboard/publication',
+      color: 'primary',
+    });
+    roleBasedActions.push({
       title: 'Payment Oversight',
       description: 'Review APC payments and waivers',
       icon: FiDollarSign,
@@ -215,6 +218,16 @@ export default function DashboardPage() {
     });
   }
 
+  if (session.user.roles?.includes('copy-editor') || session.user.currentActiveRole === 'copy-editor') {
+    roleBasedActions.push({
+      title: 'Copy Editor Dashboard',
+      description: 'Manage copy editing assignments',
+      icon: FiEdit,
+      href: '/dashboard/copy-editor',
+      color: 'primary',
+    });
+  }
+
   return (
     <div className={styles.dashboard}>
       <div className="container">
@@ -227,8 +240,21 @@ export default function DashboardPage() {
             <div className={styles.userInfo}>
               <div className={styles.userRole}>
                 <span className="status-badge status-published">
-                  {session.user.currentActiveRole?.charAt(0).toUpperCase() + session.user.currentActiveRole?.slice(1) || 
-                   session.user.role.charAt(0).toUpperCase() + session.user.role.slice(1)}
+                  {(() => {
+                    // Determine the display role with proper fallback logic
+                    const primaryRole = session.user.currentActiveRole || session.user.role;
+                    
+                    // If user has multiple roles but no currentActiveRole set, 
+                    // default to their primary role from roles array
+                    if (!session.user.currentActiveRole && session.user.roles?.length > 0) {
+                      // Use the first non-author role if available, otherwise use the first role
+                      const nonAuthorRole = session.user.roles.find(role => role !== 'author');
+                      const displayRole = nonAuthorRole || session.user.roles[0];
+                      return displayRole.charAt(0).toUpperCase() + displayRole.slice(1);
+                    }
+                    
+                    return primaryRole?.charAt(0).toUpperCase() + primaryRole?.slice(1) || 'Author';
+                  })()}
                 </span>
               </div>
             </div>

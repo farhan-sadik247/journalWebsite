@@ -134,10 +134,12 @@ export function Header() {
                       <FiUser />
                       Dashboard
                     </Link>
-                    {(session.user.role === 'copy-editor' || session.user.role === 'admin') && (
-                      <Link href="/dashboard/copy-editor" className={styles.dropdownItem}>
+                    {(session.user.role === 'copy-editor' || 
+                      session.user.roles?.includes('copy-editor') || 
+                      session.user.role === 'admin') && (
+                      <Link href="/dashboard/copy-editor/simple" className={styles.dropdownItem}>
                         <FiSettings />
-                        Copy Editor
+                        Copy Editor (Simple)
                       </Link>
                     )}
                     {(session.user.role === 'admin' || session.user.role === 'editor') && (

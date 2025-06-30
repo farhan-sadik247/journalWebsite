@@ -39,6 +39,16 @@ interface Manuscript {
   reviewerExclusions?: string[];
   timeline: any[];
   copyEditingStage?: string;
+  copyEditReview?: {
+    copyEditorId?: string;
+    copyEditorName?: string;
+    copyEditorEmail?: string;
+    comments?: string;
+    galleyProofUrl?: string;
+    galleyProofFilename?: string;
+    completionStatus?: 'completed' | 'needs-revision';
+    submittedAt?: string;
+  };
   authorCopyEditReview?: {
     approval?: string;
     comments?: string;
@@ -87,23 +97,86 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
   const [showDraftModal, setShowDraftModal] = useState(false);
   const [draftComments, setDraftComments] = useState('');
   const [draftApprovalType, setDraftApprovalType] = useState<'approved' | 'needs_changes'>('approved');
+  const [authorUploadedFiles, setAuthorUploadedFiles] = useState<File[]>([]);
   const [paymentInfo, setPaymentInfo] = useState<any>(null);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedArticleType, setSelectedArticleType] = useState<string>('');
 
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/auth/signin');
-      return;
+  // Get user role and permissions
+  const userRole = session?.user?.currentActiveRole || session?.user?.role || 'author';
+  const userRoles = session?.user?.roles || [userRole];
+  const isAuthor = manuscript?.authors?.some(author => author.email === session?.user?.email) || userRole === 'author';
+  const isReviewer = userRole === 'reviewer';
+  const isEditor = userRole === 'editor' || userRoles.includes('editor');
+  const isCopyEditor = userRole === 'copy-editor' || userRoles.includes('copy-editor');
+  const isAdmin = userRole === 'admin' || userRoles.includes('admin');
+
+  // Available article types for selection
+  const articleTypes = [
+    { value: 'research', label: 'Research Article' },
+    { value: 'review', label: 'Review Article' },
+    { value: 'meta-analysis', label: 'Meta-Analysis' },
+    { value: 'systematic-review', label: 'Systematic Review' },
+    { value: 'case-study', label: 'Case Study' },
+    { value: 'commentary', label: 'Commentary' },
+    { value: 'editorial', label: 'Editorial' },
+    { value: 'letter', label: 'Letter to Editor' },
+    { value: 'opinion', label: 'Opinion Article' },
+    { value: 'perspective', label: 'Perspective' },
+    { value: 'brief-communication', label: 'Brief Communication' },
+    { value: 'methodology', label: 'Methodology' },
+    { value: 'technical-note', label: 'Technical Note' },
+    { value: 'short-report', label: 'Short Report' },
+  ];
+
+  // Payment functions
+  const fetchPaymentInfo = async (articleType?: string) => {
+    if (!manuscript?._id || !session?.user?.id) return;
+    
+    try {
+      setPaymentLoading(true);
+      console.log('Fetching payment info for manuscript:', manuscript._id);
+      
+      // Use selected article type or manuscript category
+      const finalArticleType = articleType || selectedArticleType || manuscript.category?.toLowerCase() || 'research';
+      
+      console.log('Payment calculation params:', {
+        articleType: finalArticleType,
+        userId: session.user.id
+      });
+
+      const response = await fetch(`/api/fee-config/calculate`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          articleType: finalArticleType
+        })
+      });
+
+      const data = await response.json();
+      console.log('Payment response:', data);
+
+      if (response.ok) {
+        setPaymentInfo(data.feeCalculation);
+        // Update selected article type if not already set
+        if (!selectedArticleType) {
+          setSelectedArticleType(finalArticleType);
+        }
+      } else {
+        console.error('Payment calculation failed:', data);
+        setPaymentInfo(null);
+      }
+    } catch (error) {
+      console.error('Error fetching payment info:', error);
+      setPaymentInfo(null);
+    } finally {
+      setPaymentLoading(false);
     }
+  };
 
-    if (session && params.id) {
-      fetchManuscript();
-      fetchReviews();
-    }
-  }, [session, status, router, params.id]);
-
-  const fetchManuscript = async () => {
+  // Function declarations (hoisted)
+  async function fetchManuscript() {
     try {
       // Add cache-busting to ensure fresh data
       const response = await fetch(`/api/manuscripts/${params.id}?t=${Date.now()}`, {
@@ -128,9 +201,9 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
     } finally {
       setIsLoading(false);
     }
-  };
+  }
 
-  const fetchReviews = async () => {
+  async function fetchReviews() {
     try {
       setReviewsLoading(true);
       const response = await fetch(`/api/reviews?manuscriptId=${params.id}`);
@@ -150,46 +223,60 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
     } finally {
       setReviewsLoading(false);
     }
-  };
+  }
 
-  const fetchPaymentInfo = async () => {
-    if (!manuscript?._id) return;
-    
-    try {
-      setPaymentLoading(true);
-      console.log('Fetching payment info for manuscript:', manuscript._id);
-      
-      // Use manuscript category for article type
-      const articleType = manuscript.category?.toLowerCase() || 'research';
-      
-      console.log('Payment calculation params:', {
-        articleType
-      });
-
-      const response = await fetch(`/api/fee-config/calculate`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          articleType: articleType
-        })
-      });
-
-      const data = await response.json();
-      console.log('Payment response:', data);
-
-      if (response.ok) {
-        setPaymentInfo(data.feeCalculation);
-      } else {
-        console.error('Payment calculation failed:', data);
-        setPaymentInfo(null);
-      }
-    } catch (error) {
-      console.error('Error fetching payment info:', error);
-      setPaymentInfo(null);
-    } finally {
-      setPaymentLoading(false);
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/auth/signin');
+      return;
     }
-  };
+
+    if (session && params.id) {
+      fetchManuscript();
+      fetchReviews();
+    }
+  }, [session, status, router, params.id]);
+
+  // Payment-related useEffect
+  useEffect(() => {
+    if (manuscript?.status === 'accepted') {
+      // Initialize selected article type from manuscript category
+      if (!selectedArticleType && manuscript.category) {
+        const initialType = manuscript.category.toLowerCase();
+        setSelectedArticleType(initialType);
+      }
+      fetchPaymentInfo();
+    }
+  }, [manuscript?.status, manuscript?.category, selectedArticleType]);
+
+  // Early returns for loading, error, and auth states
+  if (status === 'loading' || isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="spinner" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={styles.errorPage}>
+        <div className="container">
+          <div className={styles.errorContent}>
+            <h1>Error</h1>
+            <p>{error}</p>
+            <Link href="/dashboard" className="btn btn-primary">
+              Back to Dashboard
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!session || !manuscript) {
+    return null;
+  }
 
   const handlePaymentClick = () => {
     if (!paymentInfo) {
@@ -303,12 +390,6 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
     }
   };
 
-  useEffect(() => {
-    if (manuscript?.status === 'accepted') {
-      fetchPaymentInfo();
-    }
-  }, [manuscript?.status]);
-
   const getStatusBadge = (status: string) => {
     const statusClasses = {
       'submitted': 'status-submitted',
@@ -417,28 +498,6 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
     return review.status.replace(/[-_]/g, '');
   };
 
-  const getStageClass = (stage: string, currentStage?: string) => {
-    if (!currentStage) return '';
-    
-    const stages = [
-      'copy-editing',
-      'author-review', 
-      'proofreading',
-      'typesetting',
-      'final-review',
-      'ready-for-publication'
-    ];
-    
-    const currentIndex = stages.indexOf(currentStage);
-    const stageIndex = stages.indexOf(stage);
-    
-    if (currentIndex === -1) return '';
-    
-    if (stageIndex < currentIndex) return styles.completed;
-    if (stageIndex === currentIndex) return styles.active;
-    return styles.upcoming;
-  };
-
   const downloadFile = (file: any) => {
     // Use originalName for the API call, or extract filename from the path
     const filename = file.originalName || file.filename.split('/').pop();
@@ -494,40 +553,1054 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
     }
   };
 
+  // Simplified approval function for the new workflow
+  const handleSimpleApproval = async (isApproved: boolean) => {
+    if (!manuscript) return;
+    
+    setDraftApprovalLoading(true);
+    try {
+      const response = await fetch(`/api/manuscripts/${manuscript._id}/author-copy-edit-review`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          approval: isApproved ? 'approved' : 'revision-requested',
+          comments: isApproved ? 'Approved by author' : 'Changes requested by author'
+        }),
+      });
+
+      if (response.ok) {
+        await fetchManuscript();
+        toast.success(isApproved ? 'Copy editing approved successfully!' : 'Change request submitted successfully!');
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to submit approval');
+      }
+    } catch (error) {
+      console.error('Error submitting approval:', error);
+      if (error instanceof Error) {
+        toast.error(`Failed to submit approval: ${error.message}`);
+      } else {
+        toast.error('Failed to submit approval. Please try again.');
+      }
+    } finally {
+      setDraftApprovalLoading(false);
+    }
+  };
+
+  // File upload handlers for author review
+  const handleAuthorFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files).filter(file => {
+        // Validate file
+        if (!file || !file.name || file.size === 0) {
+          console.warn('Skipping invalid file:', file);
+          return false;
+        }
+        
+        // Check file size (max 50MB)
+        const maxSize = 50 * 1024 * 1024; // 50MB
+        if (file.size > maxSize) {
+          toast.error(`File "${file.name}" is too large. Maximum size is 50MB.`);
+          return false;
+        }
+        
+        // Check file type
+        const allowedTypes = [
+          'application/pdf',
+          'application/msword',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          'text/plain'
+        ];
+        
+        if (!allowedTypes.includes(file.type)) {
+          toast.error(`File "${file.name}" has unsupported format. Please use PDF, DOC, DOCX, or TXT files.`);
+          return false;
+        }
+        
+        return true;
+      });
+      
+      if (newFiles.length > 0) {
+        setAuthorUploadedFiles(prev => [...prev, ...newFiles]);
+        toast.success(`Added ${newFiles.length} file(s) for upload`);
+      }
+    }
+  };
+
+  const removeAuthorFile = (index: number) => {
+    setAuthorUploadedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Enhanced submit function with file upload support
+  const handleEnhancedSubmit = async () => {
+    if (!manuscript) return;
+    
+    // Validation
+    if (draftApprovalType === 'needs_changes' && !draftComments.trim()) {
+      toast.error('Please provide comments when requesting changes.');
+      return;
+    }
+
+    setDraftApprovalLoading(true);
+    try {
+      // Handle file upload to Cloudinary
+      let uploadedFileUrls: any[] = [];
+      
+      if (authorUploadedFiles.length > 0) {
+        console.log('Uploading files to Cloudinary:', authorUploadedFiles.map(f => f.name));
+        toast.success('Uploading files...');
+        
+        try {
+          for (const file of authorUploadedFiles) {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('folder', `manuscripts/${manuscript._id}/author-review`);
+            
+            const uploadResponse = await fetch('/api/upload', {
+              method: 'POST',
+              body: formData,
+            });
+            
+            if (uploadResponse.ok) {
+              const uploadResult = await uploadResponse.json();
+              uploadedFileUrls.push({
+                originalName: file.name,
+                filename: uploadResult.public_id,
+                url: uploadResult.secure_url,
+                size: file.size,
+                mimeType: file.type,
+                uploadedBy: session?.user?.id,
+                uploadedAt: new Date().toISOString()
+              });
+              console.log('File uploaded successfully:', uploadResult);
+            } else {
+              const errorData = await uploadResponse.json();
+              console.error('File upload failed:', errorData);
+              toast.error(`Failed to upload ${file.name}: ${errorData.error || 'Unknown error'}`);
+              return; // Stop the process if any file upload fails
+            }
+          }
+          
+          toast.success(`Successfully uploaded ${uploadedFileUrls.length} file(s)`);
+        } catch (uploadError) {
+          console.error('File upload error:', uploadError);
+          toast.error('Failed to upload files. Please try again.');
+          return;
+        }
+      }
+
+      // Submit the review with uploaded files
+      const response = await fetch(`/api/manuscripts/${manuscript._id}/author-copy-edit-review`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          approval: draftApprovalType === 'approved' ? 'approved' : 'revision-requested',
+          comments: draftComments.trim() || (draftApprovalType === 'approved' ? 'Approved by author' : 'Changes requested by author'),
+          files: uploadedFileUrls // Empty array for now
+        }),
+      });
+
+      if (response.ok) {
+        await fetchManuscript();
+        
+        // Reset form
+        setDraftComments('');
+        setDraftApprovalType('approved');
+        setAuthorUploadedFiles([]);
+        
+        toast.success(
+          draftApprovalType === 'approved' 
+            ? 'Copy editing approved successfully!' 
+            : 'Change request submitted successfully!'
+        );
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to submit review');
+      }
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      if (error instanceof Error) {
+        toast.error(`Failed to submit review: ${error.message}`);
+      } else {
+        toast.error('Failed to submit review. Please try again.');
+      }
+    } finally {
+      setDraftApprovalLoading(false);
+    }
+  };
+
   const refreshData = async () => {
     setIsLoading(true);
     setReviewsLoading(true);
     await Promise.all([fetchManuscript(), fetchReviews()]);
   };
 
-  if (status === 'loading' || isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="spinner" />
-      </div>
-    );
-  }
+  // Role-based content renderer
+  const renderRoleSpecificContent = () => {
+    // Common sections that all roles can see
+    const commonSections = (
+      <>
+        {/* Abstract */}
+        <section className={styles.section}>
+          <h2>
+            <FiFileText />
+            Abstract
+          </h2>
+          <div className={styles.abstractContent}>
+            <p>{manuscript.abstract}</p>
+          </div>
+        </section>
 
-  if (error) {
-    return (
-      <div className={styles.errorPage}>
-        <div className="container">
-          <div className={styles.errorContent}>
-            <h1>Error</h1>
-            <p>{error}</p>
-            <Link href="/dashboard" className="btn btn-primary">
-              Back to Dashboard
+        {/* Keywords */}
+        <section className={styles.section}>
+          <h2>
+            <FiTag />
+            Keywords
+          </h2>
+          <div className={styles.keywordsList}>
+            {manuscript.keywords.map((keyword, index) => (
+              <span key={index} className={styles.keyword}>
+                {keyword}
+              </span>
+            ))}
+          </div>
+        </section>
+
+        {/* Authors */}
+        <section className={styles.section}>
+          <h2>
+            <FiUser />
+            Authors
+          </h2>
+          <div className={styles.authorsList}>
+            {manuscript.authors.map((author, index) => (
+              <div key={index} className={styles.authorCard}>
+                <div className={styles.authorInfo}>
+                  <h4>
+                    {author.name || `${author.firstName || ''} ${author.lastName || ''}`.trim() || 'Name not provided'}
+                    {author.isCorresponding && (
+                      <span className={styles.correspondingBadge}>Corresponding</span>
+                    )}
+                  </h4>
+                  <p className={styles.affiliation}>{author.affiliation}</p>
+                  <div className={styles.authorContact}>
+                    <FiMail />
+                    <span>{author.email}</span>
+                  </div>
+                  {author.orcid && (
+                    <div className={styles.orcid}>
+                      ORCID: {author.orcid}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Files */}
+        {manuscript.files && manuscript.files.length > 0 && (
+          <section className={styles.section}>
+            <h2>
+              <FiDownload />
+              Files
+            </h2>
+            <div className={styles.filesList}>
+              {manuscript.files.map((file, index) => (
+                <div key={index} className={styles.fileCard}>
+                  <div className={styles.fileInfo}>
+                    <h4>{file.originalName}</h4>
+                    <p>
+                      {file.type} • {(file.size / (1024 * 1024)).toFixed(2)} MB
+                    </p>
+                  </div>
+                  <button 
+                    onClick={() => downloadFile(file)}
+                    className="btn btn-secondary btn-sm"
+                  >
+                    <FiDownload />
+                    Download
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+      </>
+    );
+
+    // Role-specific sections
+    if (isAuthor) {
+      return (
+        <>
+          {commonSections}
+          {renderAuthorSpecificSections()}
+        </>
+      );
+    } else if (isReviewer) {
+      return (
+        <>
+          {commonSections}
+          {renderReviewerSpecificSections()}
+        </>
+      );
+    } else if (isEditor) {
+      return (
+        <>
+          {commonSections}
+          {renderEditorSpecificSections()}
+        </>
+      );
+    } else if (isCopyEditor) {
+      return (
+        <>
+          {commonSections}
+          {renderCopyEditorSpecificSections()}
+        </>
+      );
+    } else if (isAdmin) {
+      return (
+        <>
+          {commonSections}
+          {renderAdminSpecificSections()}
+        </>
+      );
+    }
+
+    return commonSections;
+  };
+
+  // Author-specific sections
+  const renderAuthorSpecificSections = () => (
+    <>
+      {/* Simplified Copy Editing Review Section - Author View */}
+      {manuscript.copyEditReview && (
+        <section className={styles.section} data-section="copy-editing">
+          <h2>
+            <FiFileText />
+            Copy Editing Review
+          </h2>
+          
+          <div className={styles.copyEditReview}>
+            <div className={styles.reviewHeader}>
+              <div className={styles.reviewMeta}>
+                <p><strong>Copy Editor:</strong> {manuscript.copyEditReview.copyEditorName}</p>
+                <p><strong>Submitted:</strong> {new Date(manuscript.copyEditReview.submittedAt || '').toLocaleDateString()}</p>
+                <p>
+                  <strong>Status:</strong> 
+                  <span className={`${styles.completionStatus} ${manuscript.copyEditReview.completionStatus === 'completed' ? styles.completed : styles.needsRevision}`}>
+                    {manuscript.copyEditReview.completionStatus === 'completed' ? 'Copy Editing Completed' : 'Revision Required'}
+                  </span>
+                </p>
+              </div>
+            </div>
+            
+            {manuscript.copyEditReview.comments && (
+              <div className={styles.reviewComments}>
+                <h4>Copy Editor Comments:</h4>
+                <div className={styles.commentsBox}>
+                  {manuscript.copyEditReview.comments.split('\n').map((line, index) => (
+                    <p key={index}>{line}</p>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {manuscript.copyEditReview.galleyProofUrl && (
+              <div className={styles.galleyProof}>
+                <h4>Galley Proof:</h4>
+                <div className={styles.fileDownload}>
+                  <FiDownload />
+                  <a 
+                    href={manuscript.copyEditReview.galleyProofUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.downloadLink}
+                  >
+                    {manuscript.copyEditReview.galleyProofFilename || 'Download Galley Proof'}
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {/* Enhanced Author Review Section with File Upload */}
+            {manuscript.copyEditReview && isAuthor && (
+              <>
+                {!manuscript.authorCopyEditReview ? (
+                  <div className={styles.authorApproval}>
+                    <h4>✅ Author Final Review & Approval</h4>
+                    <p>Please review the copy-edited version and galley proof above, then complete your review below:</p>
+                    
+                    <div className={styles.reviewForm}>
+                      {/* Review Decision */}
+                      <div className={styles.reviewDecision}>
+                        <h5>Your Decision:</h5>
+                        <div className={styles.radioGroup}>
+                          <label className={styles.radioLabel}>
+                            <input 
+                              type="radio" 
+                              name="reviewDecision"
+                              value="approved"
+                              checked={draftApprovalType === 'approved'}
+                              onChange={(e) => setDraftApprovalType('approved')}
+                              disabled={draftApprovalLoading}
+                            />
+                            <span className={styles.radioText}>
+                              ✓ Approve for Production
+                            </span>
+                          </label>
+                          <label className={styles.radioLabel}>
+                            <input 
+                              type="radio" 
+                              name="reviewDecision"
+                              value="needs_changes"
+                              checked={draftApprovalType === 'needs_changes'}
+                              onChange={(e) => setDraftApprovalType('needs_changes')}
+                              disabled={draftApprovalLoading}
+                            />
+                            <span className={styles.radioText}>
+                              ✗ Request Changes
+                            </span>
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Comments Section */}
+                      <div className={styles.commentsSection}>
+                        <h5>Comments {draftApprovalType === 'needs_changes' && <span className={styles.required}>*</span>}:</h5>
+                        <textarea
+                          value={draftComments}
+                          onChange={(e) => setDraftComments(e.target.value)}
+                          placeholder={draftApprovalType === 'approved' 
+                            ? "Optional: Add any additional comments or feedback..." 
+                            : "Please specify what changes are needed..."}
+                          rows={4}
+                          className={styles.commentsTextarea}
+                          disabled={draftApprovalLoading}
+                        />
+                      </div>
+
+                      {/* File Upload Section */}
+                      <div className={styles.fileUploadSection}>
+                        <h5>Additional Files (Optional):</h5>
+                        <input
+                          type="file"
+                          multiple
+                          onChange={handleAuthorFileUpload}
+                          className={styles.fileInput}
+                          disabled={draftApprovalLoading}
+                          accept=".pdf,.doc,.docx,.txt"
+                        />
+                        <p className={styles.fileHelp}>
+                          Upload any additional files or revisions (PDF, DOC, DOCX, TXT)
+                        </p>
+                        {authorUploadedFiles.length > 0 && (
+                          <div className={styles.uploadedFiles}>
+                            <h6>Selected Files:</h6>
+                            {authorUploadedFiles.map((file, index) => (
+                              <div key={index} className={styles.fileItem}>
+                                <span>{file.name}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => removeAuthorFile(index)}
+                                  className={styles.removeFile}
+                                  disabled={draftApprovalLoading}
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Submit Button */}
+                      <div className={styles.submitSection}>
+                        <button 
+                          onClick={handleEnhancedSubmit}
+                          className={`btn ${draftApprovalType === 'approved' ? 'btn-success' : 'btn-warning'}`}
+                          disabled={draftApprovalLoading || (draftApprovalType === 'needs_changes' && !draftComments.trim())}
+                        >
+                          {draftApprovalLoading ? 'Submitting...' : 
+                            draftApprovalType === 'approved' ? 'Submit Approval' : 'Submit Change Request'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* Show approval status if already approved */
+                  <div className={styles.approvalStatus}>
+                    <h4>✅ Author Approval Status</h4>
+                    <div className={`${styles.approvalBadge} ${manuscript.authorCopyEditReview.approval === 'approved' ? styles.approved : styles.rejected}`}>
+                      {manuscript.authorCopyEditReview.approval === 'approved' ? '✓ Approved for Production' : '✗ Changes Requested'}
+                    </div>
+                    {manuscript.authorCopyEditReview.comments && (
+                      <div className={styles.approvalComments}>
+                        <strong>Comments:</strong> {manuscript.authorCopyEditReview.comments}
+                      </div>
+                    )}
+                    <p className={styles.approvalDate}>
+                      Reviewed on: {manuscript.authorCopyEditReview.reviewDate ? new Date(manuscript.authorCopyEditReview.reviewDate).toLocaleDateString() : 'Date not available'}
+                    </p>
+                    
+                    {manuscript.authorCopyEditReview.approval === 'approved' && (
+                      <div className={styles.nextSteps}>
+                        <p><strong>✨ Next Steps:</strong> Your manuscript is now ready for production. The editorial team will begin the final production process.</p>
+                      </div>
+                    )}
+                    
+                    {/* Allow re-review if needed */}
+                    <div className={styles.reReviewOption}>
+                      <button
+                        onClick={async () => {
+                          if (confirm('Do you want to submit a new review? This will replace your previous review.')) {
+                            try {
+                              // Clear the existing review via API
+                              const response = await fetch(`/api/manuscripts/${manuscript._id}/clear-author-review`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' }
+                              });
+                              
+                              if (response.ok) {
+                                // Reset the form state
+                                setDraftComments('');
+                                setDraftApprovalType('approved');
+                                setAuthorUploadedFiles([]);
+                                // Refresh manuscript data
+                                await fetchManuscript();
+                                toast.success('Previous review cleared. You can now submit a new review.');
+                              } else {
+                                // If API doesn't exist, just refresh the page or manually clear
+                                setDraftComments('');
+                                setDraftApprovalType('approved');
+                                setAuthorUploadedFiles([]);
+                                toast.success('Form reset. You can submit a new review.');
+                                // Temporarily set manuscript.authorCopyEditReview to null for UI purposes
+                                setManuscript(prev => prev ? {...prev, authorCopyEditReview: undefined} : null);
+                              }
+                            } catch (error) {
+                              console.error('Error clearing review:', error);
+                              // Fallback: just reset the form
+                              setDraftComments('');
+                              setDraftApprovalType('approved');
+                              setAuthorUploadedFiles([]);
+                              setManuscript(prev => prev ? {...prev, authorCopyEditReview: undefined} : null);
+                              toast.success('Form reset. You can submit a new review.');
+                            }
+                          }
+                        }}
+                      >
+                        📝 Submit New Review
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Reviews Section - Author View (Limited) */}
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h2>
+            <FiBookOpen />
+            Review Status
+          </h2>
+          <button 
+            onClick={refreshData}
+            className={styles.refreshBtn}
+            disabled={reviewsLoading || isLoading}
+            title="Refresh review status"
+          >
+            <FiClock />
+            {(reviewsLoading || isLoading) ? 'Refreshing...' : 'Refresh'}
+          </button>
+        </div>
+        
+        {reviewsLoading ? (
+          <div className={styles.loadingReviews}>
+            <div className="spinner" />
+            <p>Loading review status...</p>
+          </div>
+        ) : reviews.length > 0 ? (
+          <div className={styles.reviewsTable}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '1rem' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#f8f9fa', borderBottom: '2px solid #dee2e6' }}>
+                  <th style={{ padding: '12px', textAlign: 'left', color: '#333', fontWeight: '600' }}>Review ID</th>
+                  <th style={{ padding: '12px', textAlign: 'center', color: '#333', fontWeight: '600' }}>Score</th>
+                  <th style={{ padding: '12px', textAlign: 'center', color: '#333', fontWeight: '600' }}>Status</th>
+                  <th style={{ padding: '12px', textAlign: 'center', color: '#333', fontWeight: '600' }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reviews.map((review, index) => (
+                  <tr key={review._id} style={{ borderBottom: '1px solid #dee2e6' }}>
+                    <td style={{ padding: '12px', color: '#333' }}>
+                      Review #{index + 1}
+                    </td>
+                    <td style={{ padding: '12px', textAlign: 'center', color: '#333' }}>
+                      {review.ratings ? (
+                        <span style={{ 
+                          padding: '4px 8px', 
+                          backgroundColor: '#e3f2fd', 
+                          borderRadius: '4px',
+                          fontWeight: '600',
+                          color: '#1976d2'
+                        }}>
+                          {getOverallScore(review.ratings)}/10
+                        </span>
+                      ) : (
+                        <span style={{ color: '#6c757d', fontStyle: 'italic' }}>No Score</span>
+                      )}
+                    </td>
+                    <td style={{ padding: '12px', textAlign: 'center' }}>
+                      <span 
+                        className={`${styles.reviewStatus} ${styles[getStatusClass(review)]}`}
+                        style={{
+                          padding: '4px 12px',
+                          borderRadius: '20px',
+                          fontSize: '0.85rem',
+                          fontWeight: '500',
+                          textTransform: 'capitalize'
+                        }}
+                      >
+                        {getStatusDisplayText(review)}
+                      </span>
+                    </td>
+                    <td style={{ padding: '12px', textAlign: 'center' }}>
+                      {review.status === 'completed' && (review.ratings || review.comments) ? (
+                        <button
+                          onClick={() => handleViewScore(review)}
+                          style={{
+                            padding: '6px 16px',
+                            backgroundColor: '#007bff',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '0.9rem',
+                            fontWeight: '500',
+                            transition: 'background-color 0.2s ease'
+                          }}
+                          onMouseOver={(e) => {
+                            const target = e.target as HTMLButtonElement;
+                            target.style.backgroundColor = '#0056b3';
+                          }}
+                          onMouseOut={(e) => {
+                            const target = e.target as HTMLButtonElement;
+                            target.style.backgroundColor = '#007bff';
+                          }}
+                        >
+                          View Details
+                        </button>
+                      ) : (
+                        <span style={{ color: '#6c757d', fontStyle: 'italic', fontSize: '0.9rem' }}>
+                          {review.status === 'pending' ? 'Awaiting Review' : 
+                           review.status === 'in-progress' || review.status === 'in_progress' ? 'In Progress' : 
+                           'No Details Available'}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            
+            {/* Summary Stats Below Table */}
+            <div style={{ 
+              marginTop: '1.5rem', 
+              padding: '1rem', 
+              backgroundColor: '#f8f9fa', 
+              borderRadius: '8px',
+              display: 'flex',
+              justifyContent: 'space-around',
+              flexWrap: 'wrap',
+              gap: '1rem'
+            }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#007bff' }}>{reviews.length}</div>
+                <div style={{ fontSize: '0.9rem', color: '#6c757d' }}>Total Reviews</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#28a745' }}>
+                  {reviews.filter(r => r.status === 'completed').length}
+                </div>
+                <div style={{ fontSize: '0.9rem', color: '#6c757d' }}>Completed</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ffc107' }}>
+                  {reviews.filter(r => r.ratings).length > 0 
+                    ? (reviews.filter(r => r.ratings).reduce((sum, r) => sum + parseFloat(getOverallScore(r.ratings)), 0) / reviews.filter(r => r.ratings).length).toFixed(1)
+                    : 'N/A'
+                  }
+                </div>
+                <div style={{ fontSize: '0.9rem', color: '#6c757d' }}>Average Score</div>
+              </div>
+            </div>
+            
+            <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#6c757d', fontStyle: 'italic' }}>
+              <strong>Note:</strong> Click "View Details" to see comprehensive review feedback and scores.
+            </p>
+          </div>
+        ) : (
+          <div className={styles.noReviews}>
+            <p>No reviews have been assigned yet.</p>
+            {manuscript.status === 'submitted' && (
+              <p className={styles.hint}>Your manuscript is currently being processed by the editorial team.</p>
+            )}
+          </div>
+        )}
+      </section>
+
+      {/* Payment Section for Accepted Manuscripts - Author Only */}
+      {manuscript.status === 'accepted' && (
+        <section className={styles.section}>
+          <h2>
+            <FiDollarSign />
+            Publication Fee Payment
+          </h2>
+          
+          <div className={styles.paymentSection}>
+            <div className={styles.paymentInfo}>
+              <div className={styles.paymentHeader}>
+                <h3>🎉 Congratulations! Your manuscript has been accepted for publication.</h3>
+                <p>To proceed with publication, please complete the payment process below.</p>
+              </div>
+
+              {/* Payment content */}
+              {paymentLoading ? (
+                <div className={styles.loadingPayment}>
+                  <div className="spinner" />
+                  <p>Loading payment information...</p>
+                </div>
+              ) : paymentInfo ? (
+                <div className={styles.paymentDetails}>
+                  <div className={styles.feeBreakdown}>
+                    <h4 style={{ color: '#333', marginBottom: '1rem' }}>Article Publication Fee</h4>
+                    <div className={styles.feeItem} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid #eee' }}>
+                      <span style={{ color: '#333', fontWeight: '500' }}>Article Type: {paymentInfo.articleType}</span>
+                      <span style={{ color: '#333', fontWeight: '500' }}>${paymentInfo.baseFee}</span>
+                    </div>
+                    
+                    <div className={styles.feeTotal} style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem 0', borderTop: '2px solid #007bff', marginTop: '0.5rem' }}>
+                      <span style={{ color: '#333', fontWeight: 'bold', fontSize: '1.1rem' }}><strong>Total Amount</strong></span>
+                      <span style={{ color: '#007bff', fontWeight: 'bold', fontSize: '1.2rem' }}><strong>${paymentInfo.finalFee}</strong></span>
+                    </div>
+                  </div>
+                  
+                  {paymentInfo.finalFee > 0 ? (
+                    <button 
+                      onClick={proceedToPayment}
+                      className="btn btn-primary"
+                      style={{ width: '100%', marginTop: '1rem' }}
+                      disabled={paymentLoading}
+                    >
+                      <FiCreditCard />
+                      {paymentLoading ? 'Processing...' : 'Proceed to Payment Portal'}
+                    </button>
+                  ) : (
+                    <div className={styles.errorMessage}>
+                      <p style={{color: 'red', fontWeight: 'bold'}}>
+                        ❌ Payment configuration error - Please contact support
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className={styles.paymentPlaceholder}>
+                  <p>Payment information will be displayed here once available.</p>
+                  <button 
+                    onClick={() => fetchPaymentInfo()}
+                    className="btn btn-primary"
+                  >
+                    Load Payment Details
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+    </>
+  );
+
+  // Reviewer-specific sections
+  const renderReviewerSpecificSections = () => (
+    <>
+      {/* Reviewer Instructions */}
+      <section className={styles.section}>
+        <h2>
+          <FiBookOpen />
+          Reviewer Instructions
+        </h2>
+        <div className={styles.reviewerInfo}>
+          <p>As a reviewer, you can view this manuscript for review purposes. Please use the reviewer dashboard to submit your review.</p>
+          <Link href="/dashboard/reviewer" className="btn btn-primary">
+            Go to Reviewer Dashboard
+          </Link>
+        </div>
+      </section>
+
+      {/* Your Review Status */}
+      {reviews.filter(review => review.reviewerId?._id === session?.user?.id).length > 0 && (
+        <section className={styles.section}>
+          <h2>Your Review Status</h2>
+          <div className={styles.myReviews}>
+            {reviews.filter(review => review.reviewerId?._id === session?.user?.id).map((review, index) => (
+              <div key={review._id} className={styles.reviewCard}>
+                <h4>Review Assignment</h4>
+                <p><strong>Status:</strong> {getStatusDisplayText(review)}</p>
+                <p><strong>Due Date:</strong> {new Date(review.dueDate).toLocaleDateString()}</p>
+                {review.status === 'completed' && review.recommendation && (
+                  <p><strong>Your Recommendation:</strong> {review.recommendation.replace(/[-_]/g, ' ').toUpperCase()}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+    </>
+  );
+
+  // Editor-specific sections
+  const renderEditorSpecificSections = () => (
+    <>
+      {/* Copy Editing Assignment */}
+      {manuscript.status === 'accepted' && !manuscript.copyEditingStage && (
+        <section className={styles.section}>
+          <h2>
+            <FiFileText />
+            Copy Editing Assignment
+          </h2>
+          <div className={styles.copyEditingAssignment}>
+            <p>This manuscript is ready for copy editing assignment.</p>
+            <Link href={`/dashboard/admin/copy-editing/assign?manuscriptId=${manuscript._id}`} className="btn btn-success">
+              Assign Copy Editor
+            </Link>
+          </div>
+        </section>
+      )}
+
+      {/* Production Management */}
+      {manuscript.authorCopyEditReview?.approval === 'approved' && (
+        <section className={styles.section}>
+          <h2>
+            <FiFileText />
+            Production Management
+          </h2>
+          <div className={styles.productionManagement}>
+            <p><strong>✅ Author has approved the copy-edited manuscript.</strong></p>
+            <p>The manuscript is ready to move to production phase.</p>
+            <div className={styles.productionActions}>
+              <button className="btn btn-success">
+                Start Production Process
+              </button>
+              <button className="btn btn-secondary">
+                Send to Typesetting
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Editorial Status Overview */}
+      <section className={styles.section}>
+        <h2>Editorial Status Overview</h2>
+        <div className={styles.editorialOverview}>
+          <table className={styles.statusTable}>
+            <tbody>
+              <tr>
+                <td className={styles.statusLabel}>Current Status:</td>
+                <td className={styles.statusValue}>
+                  <span className={getStatusBadge(manuscript.status)}>
+                    {getManuscriptStatusDisplayText(manuscript.status)}
+                  </span>
+                </td>
+              </tr>
+              <tr>
+                <td className={styles.statusLabel}>Reviews Assigned:</td>
+                <td className={styles.statusValue}>{reviews.length}</td>
+              </tr>
+              <tr>
+                <td className={styles.statusLabel}>Reviews Completed:</td>
+                <td className={styles.statusValue}>{reviews.filter(r => r.status === 'completed').length}</td>
+              </tr>
+              {manuscript.copyEditingStage && (
+                <tr>
+                  <td className={styles.statusLabel}>Copy Editing Stage:</td>
+                  <td className={styles.statusValue}>{manuscript.copyEditingStage.replace('-', ' ').toUpperCase()}</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* All Reviews */}
+      <section className={styles.section}>
+        <h2>All Reviews</h2>
+        {reviews.length > 0 ? (
+          <div className={styles.reviewsTable}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Review No.</th>
+                  <th>Reviewer</th>
+                  <th>Score</th>
+                  <th>Status</th>
+                  <th>Recommendation</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reviews.map((review, index) => (
+                  <tr key={review._id}>
+                    <td data-label="Review No">#{index + 1}</td>
+                    <td data-label="Reviewer">
+                      {review.reviewerId?.name || `Reviewer ${index + 1}`}
+                    </td>
+                    <td data-label="Score">
+                      <span className={styles.scoreCell}>
+                        {getOverallScore(review.ratings)}
+                        {review.ratings && (
+                          <span className={styles.outOf}>/10</span>
+                        )}
+                      </span>
+                    </td>
+                    <td data-label="Status">
+                      <span className={`${styles.reviewStatus} ${styles[getStatusClass(review)]}`}>
+                        {getStatusDisplayText(review)}
+                      </span>
+                    </td>
+                    <td data-label="Recommendation">
+                      {review.recommendation ? (
+                        <span className={`${styles.recommendationBadge} ${styles[review.recommendation.replace('-', '')]}`}>
+                          {review.recommendation.replace('-', ' ').toUpperCase()}
+                        </span>
+                      ) : 'N/A'}
+                    </td>
+                    <td data-label="Action">
+                      {review.ratings && (
+                        <button
+                          className={styles.viewScoreBtn}
+                          onClick={() => handleViewScore(review)}
+                        >
+                          View Full Review
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className={styles.noReviews}>
+            <p>No reviews have been assigned yet.</p>
+          </div>
+        )}
+      </section>
+    </>
+  );
+
+  // Copy Editor-specific sections
+  const renderCopyEditorSpecificSections = () => (
+    <>
+      {/* Copy Editor Dashboard */}
+      <section className={styles.section}>
+        <h2>
+          <FiFileText />
+          Copy Editor Actions
+        </h2>
+        <div className={styles.copyEditorActions}>
+          <p>As a copy editor, you can manage your copy editing assignments through the copy editor dashboard.</p>
+          <Link href="/dashboard/copy-editor" className="btn btn-primary">
+            Copy Editor Dashboard
+          </Link>
+        </div>
+      </section>
+
+      {/* Copy Editing Status */}
+      {manuscript.copyEditingStage && (
+        <section className={styles.section}>
+          <h2>Copy Editing Status</h2>
+          <div className={styles.copyEditingStatus}>
+            <p><strong>Current Stage:</strong> {manuscript.copyEditingStage.replace('-', ' ').toUpperCase()}</p>
+            {manuscript.copyEditReview && (
+              <div className={styles.reviewStatus}>
+                <p><strong>Review Status:</strong> {manuscript.copyEditReview.completionStatus}</p>
+                {manuscript.copyEditReview.submittedAt && (
+                  <p><strong>Submitted:</strong> {new Date(manuscript.copyEditReview.submittedAt).toLocaleDateString()}</p>
+                )}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+    </>
+  );
+
+  // Admin-specific sections
+  const renderAdminSpecificSections = () => (
+    <>
+      {/* Admin Actions */}
+      <section className={styles.section}>
+        <h2>
+          <FiBookOpen />
+          Admin Actions
+        </h2>
+        <div className={styles.adminActions}>
+          <p>As an administrator, you have full access to all manuscript functions and settings.</p>
+          <div className={styles.actionButtons}>
+            <Link href="/dashboard/admin" className="btn btn-primary">
+              Admin Dashboard
+            </Link>
+            <Link href="/dashboard/editor" className="btn btn-secondary">
+              Editorial Functions
             </Link>
           </div>
         </div>
-      </div>
-    );
-  }
+      </section>
 
-  if (!session || !manuscript) {
-    return null;
-  }
+      {/* System Information */}
+      <section className={styles.section}>
+        <h2>System Information</h2>
+        <div className={styles.systemInfo}>
+          <div className={styles.infoGrid}>
+            <div className={styles.infoItem}>
+              <span className={styles.label}>Manuscript ID:</span>
+              <span className={styles.value}>{manuscript._id}</span>
+            </div>
+            <div className={styles.infoItem}>
+              <span className={styles.label}>Submitted:</span>
+              <span className={styles.value}>{new Date(manuscript.submissionDate).toLocaleString()}</span>
+            </div>
+            <div className={styles.infoItem}>
+              <span className={styles.label}>Last Modified:</span>
+              <span className={styles.value}>{new Date(manuscript.lastModified).toLocaleString()}</span>
+            </div>
+            <div className={styles.infoItem}>
+              <span className={styles.label}>Total Authors:</span>
+              <span className={styles.value}>{manuscript.authors.length}</span>
+            </div>
+            <div className={styles.infoItem}>
+              <span className={styles.label}>Total Files:</span>
+              <span className={styles.value}>{manuscript.files?.length || 0}</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </>
+  );
 
+  // Main component render
   return (
     <div className={styles.manuscriptDetailPage}>
       <div className="container">
@@ -540,7 +1613,7 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
           
           <div className={styles.headerContent}>
             <div className={styles.titleSection}>
-              <h1>{manuscript.title}</h1>
+              <h1 style={{ color: 'white' }}>{manuscript.title}</h1>
               <span className={getStatusBadge(manuscript.status)}>
                 {getManuscriptStatusDisplayText(manuscript.status)}
               </span>
@@ -607,15 +1680,7 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
                   Submit Revision
                 </Link>
               )}
-              {manuscript.copyEditingStage === 'author-review' && (
-                <Link 
-                  href={`/dashboard/manuscripts/${manuscript._id}/review-copy-edit`}
-                  className="btn btn-warning"
-                >
-                  <FiFileText />
-                  Review Copy-Edited Version
-                </Link>
-              )}
+              
               {manuscript.files.length > 0 && (
                 <button 
                   onClick={() => window.open(`/api/manuscripts/${manuscript._id}/download`, '_blank')}
@@ -632,393 +1697,7 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
         <div className={styles.contentGrid}>
           {/* Main Content */}
           <div className={styles.mainContent}>
-            {/* Abstract */}
-            <section className={styles.section}>
-              <h2>
-                <FiFileText />
-                Abstract
-              </h2>
-              <div className={styles.abstractContent}>
-                <p>{manuscript.abstract}</p>
-              </div>
-            </section>
-
-            {/* Keywords */}
-            <section className={styles.section}>
-              <h2>
-                <FiTag />
-                Keywords
-              </h2>
-              <div className={styles.keywordsList}>
-                {manuscript.keywords.map((keyword, index) => (
-                  <span key={index} className={styles.keyword}>
-                    {keyword}
-                  </span>
-                ))}
-              </div>
-            </section>
-
-            {/* Authors */}
-            <section className={styles.section}>
-              <h2>
-                <FiUser />
-                Authors
-              </h2>
-              <div className={styles.authorsList}>
-                {manuscript.authors.map((author, index) => (
-                  <div key={index} className={styles.authorCard}>
-                    <div className={styles.authorInfo}>
-                      <h4>
-                        {author.name}
-                        {author.isCorresponding && (
-                          <span className={styles.correspondingBadge}>Corresponding</span>
-                        )}
-                      </h4>
-                      <p className={styles.affiliation}>{author.affiliation}</p>
-                      <div className={styles.authorContact}>
-                        <FiMail />
-                        <span>{author.email}</span>
-                      </div>
-                      {author.orcid && (
-                        <div className={styles.orcid}>
-                          ORCID: {author.orcid}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {/* Files */}
-            {manuscript.files.length > 0 && (
-              <section className={styles.section}>
-                <h2>
-                  <FiDownload />
-                  Files
-                </h2>
-                <div className={styles.filesList}>
-                  {manuscript.files.map((file, index) => (
-                    <div key={index} className={styles.fileCard}>
-                      <div className={styles.fileInfo}>
-                        <h4>{file.originalName}</h4>
-                        <p>
-                          {file.type} • {(file.size / (1024 * 1024)).toFixed(2)} MB
-                        </p>
-                      </div>
-                      <button 
-                        onClick={() => downloadFile(file)}
-                        className="btn btn-secondary btn-sm"
-                      >
-                        <FiDownload />
-                        Download
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Additional Information */}
-            {(manuscript.funding || manuscript.conflictOfInterest || manuscript.ethicsStatement || manuscript.dataAvailability) && (
-              <section className={styles.section}>
-                <h2>Additional Information</h2>
-                
-                {manuscript.funding && (
-                  <div className={styles.additionalInfo}>
-                    <h4>Funding</h4>
-                    <p>{manuscript.funding}</p>
-                  </div>
-                )}
-                
-                {manuscript.conflictOfInterest && (
-                  <div className={styles.additionalInfo}>
-                    <h4>Conflict of Interest</h4>
-                    <p>{manuscript.conflictOfInterest}</p>
-                  </div>
-                )}
-                
-                {manuscript.ethicsStatement && (
-                  <div className={styles.additionalInfo}>
-                    <h4>Ethics Statement</h4>
-                    <p>{manuscript.ethicsStatement}</p>
-                  </div>
-                )}
-                
-                {manuscript.dataAvailability && (
-                  <div className={styles.additionalInfo}>
-                    <h4>Data Availability</h4>
-                    <p>{manuscript.dataAvailability}</p>
-                  </div>
-                )}
-              </section>
-            )}
-
-            {/* Copy-Edited Draft Review Section */}
-            {manuscript.copyEditingStage === 'author-review' && (
-              <section className={styles.section}>
-                <h2>
-                  <FiFileText />
-                  Copy-Edited Draft Review
-                </h2>
-                
-                <div className={styles.draftReview}>
-                  <div className={styles.draftInfo}>
-                    <p>The copy-edited version of your manuscript is ready for review. Please carefully review the changes made by the copy editor and provide your approval or feedback.</p>
-                    
-                    {manuscript.authorCopyEditReview ? (
-                      <div className={styles.reviewStatus}>
-                        <h4>Your Review Status:</h4>
-                        <div className={styles.reviewDetails}>
-                          <div className={`${styles.approvalStatus} ${manuscript.authorCopyEditReview.approval === 'approved' ? styles.approved : styles.needsChanges}`}>
-                            Status: {manuscript.authorCopyEditReview.approval === 'approved' ? 'Approved' : 'Needs Changes'}
-                          </div>
-                          {manuscript.authorCopyEditReview.comments && (
-                            <div className={styles.reviewComments}>
-                              <strong>Your Comments:</strong>
-                              <p>{manuscript.authorCopyEditReview.comments}</p>
-                            </div>
-                          )}
-                          {manuscript.authorCopyEditReview.reviewDate && (
-                            <div className={styles.reviewDate}>
-                              Reviewed on: {new Date(manuscript.authorCopyEditReview.reviewDate).toLocaleDateString()}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className={styles.draftActions}>
-                        <button 
-                          onClick={() => handleDraftApproval('approved')}
-                          className="btn btn-success"
-                          disabled={draftApprovalLoading}
-                        >
-                          <FiFileText />
-                          Approve Draft
-                        </button>
-                        <button 
-                          onClick={() => handleDraftApproval('needs_changes')}
-                          className="btn btn-warning"
-                          disabled={draftApprovalLoading}
-                        >
-                          <FiFileText />
-                          Request Changes
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </section>
-            )}
-
-            {/* Reviews Section */}
-            <section className={styles.section}>
-              <div className={styles.sectionHeader}>
-                <h2>
-                  <FiBookOpen />
-                  Reviews & Editorial Status
-                </h2>
-                <button 
-                  onClick={refreshData}
-                  className={styles.refreshBtn}
-                  disabled={reviewsLoading || isLoading}
-                  title="Refresh reviews and manuscript status"
-                >
-                  <FiClock />
-                  {(reviewsLoading || isLoading) ? 'Refreshing...' : 'Refresh'}
-                </button>
-              </div>
-              
-              {reviewsLoading ? (
-                <div className={styles.loadingReviews}>
-                  <div className="spinner" />
-                  <p>Loading reviews...</p>
-                </div>
-              ) : reviews.length > 0 ? (
-                <div className={styles.reviewsTable}>
-                  <table className={styles.table}>
-                    <thead>
-                      <tr>
-                        <th>Review No.</th>
-                        <th>Reviewer Name</th>
-                        <th>Score</th>
-                        <th>Status</th>
-                        <th>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {reviews.map((review, index) => (
-                        <tr key={review._id}>
-                          <td data-label="Review No">#{index + 1}</td>
-                          <td data-label="Reviewer Name">
-                            {review.reviewerId?.name || 'Anonymous Reviewer'}
-                          </td>
-                          <td data-label="Score">
-                            <span className={styles.scoreCell}>
-                              {getOverallScore(review.ratings)}
-                              {review.ratings && (
-                                <span className={styles.outOf}>/10</span>
-                              )}
-                            </span>
-                          </td>
-                          <td data-label="Status">
-                            <span className={`${styles.reviewStatus} ${styles[getStatusClass(review)]}`}>
-                              {getStatusDisplayText(review)}
-                            </span>
-                          </td>
-                          <td data-label="Action">
-                            {review.ratings && (
-                              <button
-                                className={styles.viewScoreBtn}
-                                onClick={() => handleViewScore(review)}
-                              >
-                                View Details
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className={styles.noReviews}>
-                  <p>No reviews have been assigned yet.</p>
-                  {manuscript.status === 'submitted' && (
-                    <p className={styles.hint}>Your manuscript is currently being processed by the editorial team.</p>
-                  )}
-                </div>
-              )}
-            </section>
-
-            {/* Payment Section for Accepted Manuscripts */}
-            {manuscript.status === 'accepted' && (
-              <section className={styles.section}>
-                <h2>
-                  <FiDollarSign />
-                  Publication Fee Payment
-                </h2>
-                
-                <div className={styles.paymentSection}>
-                  <div className={styles.paymentInfo}>
-                    <div className={styles.paymentHeader}>
-                      <h3>🎉 Congratulations! Your manuscript has been accepted for publication.</h3>
-                      <p>To proceed with publication, please complete the payment process below.</p>
-                    </div>
-
-                    {paymentLoading ? (
-                      <div className={styles.loadingPayment}>
-                        <div className="spinner" />
-                        <p>Calculating publication fee...</p>
-                      </div>
-                    ) : paymentInfo ? (
-                      <div className={styles.feeDetails}>
-                        <div className={styles.feeCard}>
-                          <div className={styles.feeBreakdown}>
-                            <div className={styles.baseFeeInfo}>
-                              <h4>Base Publication Fee</h4>
-                              <div className={styles.baseFeeAmount}>
-                                <span className={styles.currency}>{paymentInfo.currency || 'USD'}</span>
-                                <span className={styles.amount}>
-                                  {paymentInfo.baseFee ? paymentInfo.baseFee.toFixed(2) : paymentInfo.originalAmount ? paymentInfo.originalAmount.toFixed(2) : '0.00'}
-                                </span>
-                              </div>
-                              <p className={styles.articleType}>
-                                Article Type: {paymentInfo.articleType || manuscript.category || 'Research'}
-                              </p>
-                              {paymentInfo.userCountry && (
-                                <p className={styles.countryInfo}>
-                                  Author Country: {paymentInfo.userCountry}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                          
-                          <div className={styles.finalAmount}>
-                            <h4>Amount Due</h4>
-                            <div className={styles.feeAmount}>
-                              <span className={styles.currency}>{paymentInfo.currency || 'USD'}</span>
-                              <span className={styles.amount}>
-                                {paymentInfo.finalAmount ? paymentInfo.finalAmount.toFixed(2) : '0.00'}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          {paymentInfo.discountApplied && paymentInfo.originalAmount && paymentInfo.discountAmount && (
-                            <div className={styles.discountInfo}>
-                              <h4>💰 Discount Applied</h4>
-                              <p className={styles.originalAmount}>
-                                Original: {paymentInfo.currency || 'USD'} {paymentInfo.originalAmount ? paymentInfo.originalAmount.toFixed(2) : '0.00'}
-                              </p>
-                              <p className={styles.discount}>
-                                Discount: -{paymentInfo.currency || 'USD'} {paymentInfo.discountAmount ? paymentInfo.discountAmount.toFixed(2) : '0.00'}
-                                {paymentInfo.discountReason && (
-                                  <span className={styles.discountReason}>
-                                    ({paymentInfo.discountReason})
-                                  </span>
-                                )}
-                              </p>
-                            </div>
-                          )}
-
-                          {paymentInfo.isWaiver ? (
-                            <div className={styles.waiverInfo}>
-                              <h4>✅ Fee Waiver Applied</h4>
-                              <p>Your publication fee has been waived.</p>
-                              {paymentInfo.waiverReason && (
-                                <p className={styles.waiverReason}>
-                                  Reason: {paymentInfo.waiverReason}
-                                </p>
-                              )}
-                              <button 
-                                onClick={() => router.push(`/dashboard/manuscripts`)}
-                                className="btn btn-success"
-                              >
-                                Continue to Publication
-                              </button>
-                            </div>
-                          ) : (
-                            <div className={styles.paymentActions}>
-                              <div className={styles.paymentDeadline}>
-                                <FiCalendar />
-                                <span>Payment Due: {new Date(Date.now() + (paymentInfo.paymentDeadlineDays * 24 * 60 * 60 * 1000)).toLocaleDateString()}</span>
-                              </div>
-                              
-                              <div className={styles.paymentButtons}>
-                                <button 
-                                  onClick={handlePaymentClick}
-                                  className="btn btn-primary"
-                                >
-                                  <FiCreditCard />
-                                  Proceed to Payment
-                                </button>
-                                
-                                <button 
-                                  onClick={() => router.push('/publication-fees')}
-                                  className="btn btn-secondary"
-                                >
-                                  View Fee Information
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className={styles.paymentError}>
-                        <p>Unable to calculate publication fee. Please contact support.</p>
-                        <button 
-                          onClick={fetchPaymentInfo}
-                          className="btn btn-secondary"
-                        >
-                          Retry
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </section>
-            )}
+            {renderRoleSpecificContent()}
           </div>
 
           {/* Sidebar */}
@@ -1055,82 +1734,6 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
                 </div>
               </div>
             </div>
-
-            {/* Copy-Editing Progress */}
-            {(manuscript.status === 'accepted' || 
-              manuscript.status === 'accepted-awaiting-copy-edit' || 
-              manuscript.status === 'in-copy-editing' || 
-              manuscript.status === 'copy-editing-complete' || 
-              manuscript.status === 'in-production' || 
-              manuscript.copyEditingStage) && (
-              <div className={styles.infoCard}>
-                <h3>Copy-Editing Progress</h3>
-                
-                <div className={styles.copyEditingStages}>
-                  <div className={`${styles.stage} ${getStageClass('copy-editing', manuscript.copyEditingStage)}`}>
-                    <div className={styles.stageMarker}></div>
-                    <div className={styles.stageInfo}>
-                      <span className={styles.stageName}>Copy Editing</span>
-                      <span className={styles.stageDesc}>Language and style editing</span>
-                    </div>
-                  </div>
-                  
-                  <div className={`${styles.stage} ${getStageClass('author-review', manuscript.copyEditingStage)}`}>
-                    <div className={styles.stageMarker}></div>
-                    <div className={styles.stageInfo}>
-                      <span className={styles.stageName}>Author Review</span>
-                      <span className={styles.stageDesc}>Authors review changes</span>
-                    </div>
-                  </div>
-                  
-                  <div className={`${styles.stage} ${getStageClass('proofreading', manuscript.copyEditingStage)}`}>
-                    <div className={styles.stageMarker}></div>
-                    <div className={styles.stageInfo}>
-                      <span className={styles.stageName}>Proofreading</span>
-                      <span className={styles.stageDesc}>Final text corrections</span>
-                    </div>
-                  </div>
-                  
-                  <div className={`${styles.stage} ${getStageClass('typesetting', manuscript.copyEditingStage)}`}>
-                    <div className={styles.stageMarker}></div>
-                    <div className={styles.stageInfo}>
-                      <span className={styles.stageName}>Typesetting</span>
-                      <span className={styles.stageDesc}>Layout and design</span>
-                    </div>
-                  </div>
-                  
-                  <div className={`${styles.stage} ${getStageClass('final-review', manuscript.copyEditingStage)}`}>
-                    <div className={styles.stageMarker}></div>
-                    <div className={styles.stageInfo}>
-                      <span className={styles.stageName}>Final Review</span>
-                      <span className={styles.stageDesc}>Quality assurance</span>
-                    </div>
-                  </div>
-                  
-                  <div className={`${styles.stage} ${getStageClass('ready-for-publication', manuscript.copyEditingStage)}`}>
-                    <div className={styles.stageMarker}></div>
-                    <div className={styles.stageInfo}>
-                      <span className={styles.stageName}>Ready to Publish</span>
-                      <span className={styles.stageDesc}>Publication ready</span>
-                    </div>
-                  </div>
-                </div>
-                
-                {manuscript.authorCopyEditReview && (
-                  <div className={styles.authorReviewInfo}>
-                    <h4>Author Review Status</h4>
-                    <div className={`${styles.reviewStatus} ${manuscript.authorCopyEditReview.approval === 'approved' ? styles.approved : styles.revisionRequested}`}>
-                      {manuscript.authorCopyEditReview.approval === 'approved' ? '✓ Approved' : '⚠ Revisions Requested'}
-                    </div>
-                    {manuscript.authorCopyEditReview.comments && (
-                      <div className={styles.authorComments}>
-                        <strong>Comments:</strong> {manuscript.authorCopyEditReview.comments}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* Timeline */}
             {manuscript.timeline && manuscript.timeline.length > 0 && (
@@ -1241,175 +1844,169 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
                       </span>
                     </div>
                   </div>
-
-                  <div className={styles.averageScore}>
-                    <span className={styles.averageLabel}>Average Score:</span>
-                    <span className={styles.averageValue}>
-                      {getOverallScore(selectedReview.ratings)}/10
-                    </span>
-                  </div>
                 </div>
               )}
 
+              {/* Recommendation Section */}
               {selectedReview.recommendation && (
-                <div className={styles.recommendation}>
-                  <h4>Recommendation</h4>
-                  <span className={`${styles.recommendationBadge} ${styles[selectedReview.recommendation.replace('-', '')]}`}>
-                    {selectedReview.recommendation.replace('-', ' ').toUpperCase()}
-                  </span>
-                </div>
-              )}
-
-              {selectedReview.comments?.forAuthors && (
-                <div className={styles.comments}>
-                  <h4>Comments for Authors</h4>
-                  <div className={styles.commentText}>
-                    {selectedReview.comments.forAuthors}
+                <div style={{ 
+                  marginTop: '1.5rem', 
+                  padding: '1rem', 
+                  backgroundColor: '#f8f9fa', 
+                  borderRadius: '8px',
+                  borderLeft: '4px solid #007bff'
+                }}>
+                  <h4 style={{ margin: '0 0 0.5rem 0', color: '#333' }}>Reviewer Recommendation</h4>
+                  <div style={{ 
+                    fontSize: '1.1rem', 
+                    fontWeight: '600',
+                    color: selectedReview.recommendation.includes('accept') ? '#28a745' : 
+                          selectedReview.recommendation.includes('reject') ? '#dc3545' : '#ffc107'
+                  }}>
+                    {selectedReview.recommendation.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                   </div>
                 </div>
               )}
 
-              {selectedReview.comments?.detailedReview && (
-                <div className={styles.comments}>
-                  <h4>Detailed Review</h4>
-                  <div className={styles.commentText}>
-                    {selectedReview.comments.detailedReview}
-                  </div>
-                </div>
-              )}
+              {/* Comments Section */}
+              {(selectedReview.comments?.forAuthors || selectedReview.comments?.detailedReview) && (
+                <div style={{ marginTop: '1.5rem' }}>
+                  <h4 style={{ marginBottom: '1rem', color: '#333', borderBottom: '2px solid #007bff', paddingBottom: '0.5rem' }}>
+                    Reviewer Comments
+                  </h4>
+                  
+                  {selectedReview.comments?.forAuthors && (
+                    <div style={{ marginBottom: '1.5rem' }}>
+                      <h5 style={{ 
+                        color: '#007bff', 
+                        marginBottom: '0.75rem',
+                        fontSize: '1rem',
+                        fontWeight: '600'
+                      }}>
+                        📝 Comments for Authors
+                      </h5>
+                      <div style={{
+                        backgroundColor: '#fff',
+                        border: '1px solid #dee2e6',
+                        borderRadius: '6px',
+                        padding: '1rem',
+                        fontSize: '0.95rem',
+                        lineHeight: '1.6',
+                        color: '#333',
+                        whiteSpace: 'pre-wrap'
+                      }}>
+                        {selectedReview.comments.forAuthors}
+                      </div>
+                    </div>
+                  )}
 
-              <div className={styles.reviewTimeline}>
-                <h4>Review Timeline</h4>
-                <div className={styles.timelineInfo}>
-                  <div className={styles.timelineItem}>
-                    <span className={styles.label}>Assigned:</span>
-                    <span>{new Date(selectedReview.assignedDate).toLocaleDateString()}</span>
-                  </div>
-                  <div className={styles.timelineItem}>
-                    <span className={styles.label}>Due:</span>
-                    <span>{new Date(selectedReview.dueDate).toLocaleDateString()}</span>
-                  </div>
-                  {selectedReview.completedDate && (
-                    <div className={styles.timelineItem}>
-                      <span className={styles.label}>Completed:</span>
-                      <span>{new Date(selectedReview.completedDate).toLocaleDateString()}</span>
+                  {selectedReview.comments?.detailedReview && (
+                    <div style={{ marginBottom: '1rem' }}>
+                      <h5 style={{ 
+                        color: '#28a745', 
+                        marginBottom: '0.75rem',
+                        fontSize: '1rem',
+                        fontWeight: '600'
+                      }}>
+                        🔍 Detailed Review
+                      </h5>
+                      <div style={{
+                        backgroundColor: '#fff',
+                        border: '1px solid #dee2e6',
+                        borderRadius: '6px',
+                        padding: '1rem',
+                        fontSize: '0.95rem',
+                        lineHeight: '1.6',
+                        color: '#333',
+                        whiteSpace: 'pre-wrap'
+                      }}>
+                        {selectedReview.comments.detailedReview}
+                      </div>
                     </div>
                   )}
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+              )}
 
-      {/* Draft Approval Modal */}
-      {showDraftModal && (
-        <div className={styles.modalBackdrop}>
-          <div className={styles.modal}>
-            <div className={styles.modalHeader}>
-              <h3>{draftApprovalType === 'approved' ? 'Approve Draft' : 'Request Changes'}</h3>
-              <button 
-                onClick={() => setShowDraftModal(false)}
-                className={styles.closeBtn}
-              >
-                &times;
-              </button>
-            </div>
-            <div className={styles.modalBody}>
-              <p>
-                {draftApprovalType === 'approved' ? 
-                  'Please provide any comments or feedback about the copy-edited draft before approval:' : 
-                  'Please explain what changes are needed to the copy-edited draft:'}
-              </p>
-              <textarea
-                value={draftComments}
-                onChange={(e) => setDraftComments(e.target.value)}
-                placeholder="Enter your comments here (optional for approval, required for change requests)"
-                className={styles.modalTextarea}
-                rows={6}
-              />
-            </div>
-            <div className={styles.modalFooter}>
-              <button
-                onClick={() => setShowDraftModal(false)}
-                className="btn btn-secondary"
-                disabled={draftApprovalLoading}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={submitDraftApproval}
-                className="btn btn-primary"
-                disabled={draftApprovalLoading || (draftApprovalType === 'needs_changes' && !draftComments.trim())}
-              >
-                {draftApprovalLoading ? 'Submitting...' : 'Submit Feedback'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Payment Modal */}
-      {showPaymentModal && (
-        <div className={styles.modalBackdrop}>
-          <div className={styles.modal}>
-            <div className={styles.modalHeader}>
-              <h3>Complete Payment</h3>
-              <button 
-                onClick={() => setShowPaymentModal(false)}
-                className={styles.closeBtn}
-              >
-                &times;
-              </button>
-            </div>
-            <div className={styles.modalBody}>
-              {paymentInfo && (
-                <div className={styles.paymentSummary}>
-                  <h4>Payment Summary</h4>
-                  <div className={styles.summaryItem}>
-                    <span>Article Processing Charge:</span>
-                    <span>{paymentInfo.currency || 'USD'} {paymentInfo.finalAmount ? paymentInfo.finalAmount.toFixed(2) : '0.00'}</span>
-                  </div>
-                  {paymentInfo.discountApplied && paymentInfo.originalAmount && paymentInfo.discountAmount && (
-                    <>
-                      <div className={styles.summaryItem}>
-                        <span>Original Amount:</span>
-                        <span>{paymentInfo.currency || 'USD'} {paymentInfo.originalAmount.toFixed(2)}</span>
+              {/* Review Metadata */}
+              {(selectedReview.assignedDate || selectedReview.completedDate || selectedReview.dueDate) && (
+                <div style={{ 
+                  marginTop: '1.5rem',
+                  padding: '1rem',
+                  backgroundColor: '#f8f9fa',
+                  borderRadius: '6px',
+                  fontSize: '0.9rem'
+                }}>
+                  <h5 style={{ margin: '0 0 0.75rem 0', color: '#333' }}>Review Timeline</h5>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.5rem' }}>
+                    {selectedReview.assignedDate && (
+                      <div>
+                        <strong>Assigned:</strong><br />
+                        <span style={{ color: '#6c757d' }}>
+                          {new Date(selectedReview.assignedDate).toLocaleDateString()}
+                        </span>
                       </div>
-                      <div className={styles.summaryItem}>
-                        <span>Discount Applied:</span>
-                        <span>-{paymentInfo.currency || 'USD'} {paymentInfo.discountAmount ? paymentInfo.discountAmount.toFixed(2) : '0.00'}</span>
+                    )}
+                    {selectedReview.dueDate && (
+                      <div>
+                        <strong>Due Date:</strong><br />
+                        <span style={{ color: '#6c757d' }}>
+                          {new Date(selectedReview.dueDate).toLocaleDateString()}
+                        </span>
                       </div>
-                    </>
-                  )}
-                  <hr />
-                  <div className={styles.summaryTotal}>
-                    <span>Total Amount Due:</span>
-                    <span>{paymentInfo.currency || 'USD'} {paymentInfo.finalAmount ? paymentInfo.finalAmount.toFixed(2) : '0.00'}</span>
+                    )}
+                    {selectedReview.completedDate && (
+                      <div>
+                        <strong>Completed:</strong><br />
+                        <span style={{ color: '#28a745' }}>
+                          {new Date(selectedReview.completedDate).toLocaleDateString()}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
-              
-              <div className={styles.paymentOptions}>
-                <h4>Payment Methods</h4>
-                <p>You will be redirected to our secure payment portal to complete the transaction.</p>
-                
-                <div className={styles.paymentMethods}>
-                  <div className={styles.methodItem}>
-                    <FiCreditCard />
-                    <span>Credit/Debit Cards</span>
-                  </div>
-                  <div className={styles.methodItem}>
-                    <FiDollarSign />
-                    <span>PayPal</span>
-                  </div>
-                  <div className={styles.methodItem}>
-                    <FiDollarSign />
-                    <span>Bank Transfer</span>
-                  </div>
+            </div>
+            
+            <div className={styles.modalFooter}>
+              <button
+                onClick={closeScoreModal}
+                className="btn btn-primary"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Modal - Separate modal for payment */}
+      {showPaymentModal && paymentInfo && (
+        <div className={styles.modalOverlay} onClick={() => setShowPaymentModal(false)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h3>Payment Information</h3>
+              <button className={styles.closeModal} onClick={() => setShowPaymentModal(false)}>
+                &times;
+              </button>
+            </div>
+            
+            <div className={styles.modalBody}>
+              <div className={styles.paymentMethods}>
+                <div className={styles.methodItem}>
+                  <FiCreditCard />
+                  <span>Credit/Debit Cards</span>
+                </div>
+                <div className={styles.methodItem}>
+                  <FiDollarSign />
+                  <span>PayPal</span>
+                </div>
+                <div className={styles.methodItem}>
+                  <FiDollarSign />
+                  <span>Bank Transfer</span>
                 </div>
               </div>
             </div>
+            
             <div className={styles.modalFooter}>
               <button
                 onClick={() => setShowPaymentModal(false)}
@@ -1417,13 +2014,29 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
               >
                 Cancel
               </button>
-              <button
-                onClick={proceedToPayment}
-                className="btn btn-primary"
-              >
-                <FiCreditCard />
-                Proceed to Payment Portal
-              </button>
+              {paymentInfo.finalFee === 0 ? (
+                <button
+                  onClick={() => {
+                    setShowPaymentModal(false);
+                    const message = paymentInfo.isWaiver ? 
+                      'Manuscript can proceed without payment due to waiver' :
+                      'Manuscript can proceed without payment due to discount';
+                    toast.success(message);
+                  }}
+                  className="btn btn-primary"
+                >
+                  <FiFileText />
+                  Continue to Production
+                </button>
+              ) : (
+                <button
+                  onClick={proceedToPayment}
+                  className="btn btn-primary"
+                >
+                  <FiCreditCard />
+                  Proceed to Payment Portal
+                </button>
+              )}
             </div>
           </div>
         </div>

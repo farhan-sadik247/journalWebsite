@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Article Type Fees - Admin Panel</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e9ecef;
+        }
+        .header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .header p {
+            color: #6c757d;
+            font-size: 16px;
+        }
+        
+        .section {
+            margin: 25px 0;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+            color: #0c5460;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border-color: #ffeaa7;
+            color: #856404;
+        }
+        
+        .fee-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .fee-card {
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            background: white;
+            transition: all 0.3s ease;
+        }
+        .fee-card:hover {
+            border-color: #007bff;
+            box-shadow: 0 4px 8px rgba(0,123,255,0.1);
+        }
+        .fee-card h4 {
+            margin-top: 0;
+            color: #2c3e50;
+            text-transform: capitalize;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .fee-amount {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #28a745;
+            margin: 15px 0;
+        }
+        
+        .form-group {
+            margin: 15px 0;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        .form-group input:focus, .form-group select:focus {
+            border-color: #007bff;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+        }
+        
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 8px 4px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+            transform: translateY(-1px);
+        }
+        .btn-danger {
+            background-color: #dc3545;
+        }
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+        .btn-success {
+            background-color: #28a745;
+        }
+        .btn-success:hover {
+            background-color: #218838;
+        }
+        .btn-warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        .btn-warning:hover {
+            background-color: #e0a800;
+        }
+        
+        .test-results {
+            margin-top: 20px;
+        }
+        .test-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            margin: 8px 0;
+            border-radius: 6px;
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+        }
+        .test-item.success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        .test-item.error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        
+        pre {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            font-size: 13px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .quick-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📄 Journal Fee Configuration</h1>
+            <p>Admin Panel for Managing Article Processing Charges by Category</p>
+        </div>
+        
+        <div class="section info">
+            <h3>💡 System Overview</h3>
+            <p>This system uses <strong>fixed fees based on article categories</strong>. No country-based waivers or discounts.</p>
+            <ul>
+                <li>Authors select their manuscript category during submission</li>
+                <li>Fee is automatically calculated based on the selected category</li>
+                <li>All payments are processed at the fixed rate for that category</li>
+                <li>Admin can update fees at any time</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h3>📊 Current Fee Structure</h3>
+            <div class="quick-actions">
+                <button onclick="loadCurrentFees()">🔄 Load Current Fees</button>
+                <button onclick="resetToDefaults()" class="btn-warning">🔄 Reset to Defaults</button>
+                <button onclick="updateDatabase()" class="btn-success">💾 Update Database</button>
+            </div>
+            <div id="currentFeesDisplay"></div>
+        </div>
+
+        <div class="section">
+            <h3>✏️ Edit Article Type Fees</h3>
+            <div class="form-group">
+                <label for="articleType">Article Type:</label>
+                <select id="articleType">
+                    <option value="research">Research Article</option>
+                    <option value="review">Review Article</option>
+                    <option value="meta-analysis">Meta-Analysis</option>
+                    <option value="case-study">Case Study</option>
+                    <option value="systematic-review">Systematic Review</option>
+                    <option value="editorial">Editorial</option>
+                    <option value="letter">Letter to Editor</option>
+                    <option value="commentary">Commentary</option>
+                    <option value="opinion">Opinion</option>
+                    <option value="perspective">Perspective</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="feeAmount">Fee Amount (USD):</label>
+                <input type="number" id="feeAmount" placeholder="e.g., 2000" min="0" step="50">
+            </div>
+            <button onclick="updateArticleTypeFee()" class="btn-success">Update Fee</button>
+            <button onclick="addNewArticleType()" class="btn-warning">Add New Type</button>
+            <div id="editResult"></div>
+        </div>
+
+        <div class="section">
+            <h3>🧪 Test Fee Calculations</h3>
+            <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 15px; flex-wrap: wrap;">
+                <select id="testArticleType" style="min-width: 200px;">
+                    <option value="research">Research Article</option>
+                    <option value="review">Review Article</option>
+                    <option value="meta-analysis">Meta-Analysis</option>
+                    <option value="case-study">Case Study</option>
+                    <option value="systematic-review">Systematic Review</option>
+                    <option value="editorial">Editorial</option>
+                    <option value="letter">Letter to Editor</option>
+                    <option value="commentary">Commentary</option>
+                    <option value="opinion">Opinion</option>
+                    <option value="perspective">Perspective</option>
+                </select>
+                <button onclick="testFeeCalculation()" class="btn-warning">Test This Type</button>
+                <button onclick="testAllTypes()" class="btn-success">Test All Types</button>
+            </div>
+            <div id="testResults"></div>
+        </div>
+
+        <div class="section">
+            <h3>💾 Database Operations</h3>
+            <div class="quick-actions">
+                <button onclick="updateDatabaseConfig()" class="btn-success">Update Database with Current Config</button>
+                <button onclick="backupCurrentConfig()" class="btn-warning">Backup Current Config</button>
+            </div>
+            <div id="databaseResult"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentConfig = null;
+
+        async function loadCurrentFees() {
+            const resultDiv = document.getElementById('currentFeesDisplay');
+            resultDiv.innerHTML = '<p>🔄 Loading current fees...</p>';
+            
+            try {
+                const response = await fetch('/api/fee-config');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    currentConfig = data.feeConfig || data;
+                    
+                    resultDiv.innerHTML = `
+                        <div class="info">
+                            <h4>📋 Current Fee Structure</h4>
+                            <p><strong>Base Fee:</strong> $${currentConfig.baseFee}</p>
+                            <p><strong>Currency:</strong> ${currentConfig.currency || 'USD'}</p>
+                            
+                            <div class="fee-grid">
+                                ${currentConfig.articleTypeFees?.map(fee => `
+                                    <div class="fee-card">
+                                        <h4>${fee.articleType.replace(/-/g, ' ')}</h4>
+                                        <div class="fee-amount">$${fee.fee}</div>
+                                        <button onclick="editFee('${fee.articleType}', ${fee.fee})" style="width: 100%;">Edit Fee</button>
+                                    </div>
+                                `).join('') || '<p>No article type fees configured</p>'}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Error: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Network Error: ${error.message}</div>`;
+            }
+        }
+
+        function editFee(articleType, currentFee) {
+            document.getElementById('articleType').value = articleType;
+            document.getElementById('feeAmount').value = currentFee;
+            document.getElementById('articleType').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        async function updateArticleTypeFee() {
+            const resultDiv = document.getElementById('editResult');
+            const articleType = document.getElementById('articleType').value;
+            const feeAmount = parseInt(document.getElementById('feeAmount').value);
+            
+            if (!feeAmount || feeAmount < 0) {
+                resultDiv.innerHTML = '<div class="error">❌ Please enter a valid fee amount</div>';
+                return;
+            }
+            
+            if (!currentConfig) {
+                await loadCurrentFees();
+            }
+            
+            try {
+                const updatedConfig = JSON.parse(JSON.stringify(currentConfig));
+                
+                // Find and update the article type fee
+                const existingIndex = updatedConfig.articleTypeFees.findIndex(af => af.articleType === articleType);
+                
+                if (existingIndex >= 0) {
+                    updatedConfig.articleTypeFees[existingIndex].fee = feeAmount;
+                } else {
+                    updatedConfig.articleTypeFees.push({
+                        articleType: articleType,
+                        fee: feeAmount
+                    });
+                }
+                
+                // Update the configuration
+                const response = await fetch('/api/fee-config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updatedConfig)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ ${articleType.replace(/-/g, ' ')} fee updated to $${feeAmount}
+                        </div>
+                    `;
+                    
+                    // Clear form
+                    document.getElementById('feeAmount').value = '';
+                    
+                    // Reload fees display
+                    await loadCurrentFees();
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Error: ${result.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function addNewArticleType() {
+            const newType = prompt('Enter new article type (use lowercase with hyphens, e.g., "short-communication"):');
+            if (!newType) return;
+            
+            const fee = prompt('Enter fee amount for ' + newType + ':');
+            if (!fee || isNaN(fee)) return;
+            
+            // Add to select dropdown
+            const select = document.getElementById('articleType');
+            const option = new Option(newType.replace(/-/g, ' '), newType);
+            select.add(option);
+            select.value = newType;
+            
+            // Set the fee
+            document.getElementById('feeAmount').value = fee;
+            
+            // Update
+            await updateArticleTypeFee();
+        }
+
+        async function testFeeCalculation() {
+            const articleType = document.getElementById('testArticleType').value;
+            const resultDiv = document.getElementById('testResults');
+            
+            resultDiv.innerHTML = '<p>🧪 Testing fee calculation...</p>';
+            
+            try {
+                const response = await fetch('/api/fee-config/calculate', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        articleType: articleType
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const calc = data.feeCalculation;
+                    
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h4>🧪 Test Result for ${articleType.replace(/-/g, ' ')}</h4>
+                            <div class="test-item success">
+                                <span><strong>Article Type:</strong> ${calc.articleType}</span>
+                                <span><strong>Fee:</strong> $${calc.finalFee}</span>
+                            </div>
+                            <div class="test-item">
+                                <span><strong>Base Fee:</strong> $${calc.baseFee}</span>
+                                <span><strong>Currency:</strong> ${calc.currency}</span>
+                            </div>
+                            <div class="test-item">
+                                <span><strong>Discounts:</strong> None (Fixed Fee System)</span>
+                                <span><strong>Waiver:</strong> ${calc.isWaiver ? 'Yes' : 'No'}</span>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    const errorData = await response.json();
+                    resultDiv.innerHTML = `<div class="error">❌ Test failed: ${errorData.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Network error: ${error.message}</div>`;
+            }
+        }
+
+        async function testAllTypes() {
+            const resultDiv = document.getElementById('testResults');
+            resultDiv.innerHTML = '<p>🧪 Testing all article types...</p>';
+            
+            const articleTypes = ['research', 'review', 'meta-analysis', 'case-study', 'systematic-review', 'editorial', 'letter', 'commentary', 'opinion', 'perspective'];
+            const results = [];
+            
+            for (const articleType of articleTypes) {
+                try {
+                    const response = await fetch('/api/fee-config/calculate', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ articleType })
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        results.push({ 
+                            articleType, 
+                            fee: data.feeCalculation.finalFee,
+                            currency: data.feeCalculation.currency,
+                            success: true 
+                        });
+                    } else {
+                        results.push({ articleType, success: false, error: 'API Error' });
+                    }
+                } catch (error) {
+                    results.push({ articleType, success: false, error: error.message });
+                }
+            }
+            
+            resultDiv.innerHTML = `
+                <div class="info">
+                    <h4>🌍 All Article Types Test Results</h4>
+                    ${results.map(r => `
+                        <div class="test-item ${r.success ? 'success' : 'error'}">
+                            <span><strong>${r.articleType.replace(/-/g, ' ')}:</strong> ${r.success ? `$${r.fee} ${r.currency}` : r.error}</span>
+                            <span>${r.success ? '✅ Working' : '❌ Error'}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        async function resetToDefaults() {
+            if (!confirm('Are you sure you want to reset to default fee structure? This will overwrite current settings.')) {
+                return;
+            }
+            
+            const resultDiv = document.getElementById('databaseResult');
+            resultDiv.innerHTML = '<p>🔄 Resetting to defaults...</p>';
+            
+            const defaultConfig = {
+                name: 'default',
+                description: 'Default APC fee structure',
+                baseFee: 2000,
+                currency: 'USD',
+                articleTypeFees: [
+                    { articleType: 'research', fee: 2000 },
+                    { articleType: 'review', fee: 1500 },
+                    { articleType: 'meta-analysis', fee: 1800 },
+                    { articleType: 'case-study', fee: 1200 },
+                    { articleType: 'systematic-review', fee: 1600 },
+                    { articleType: 'editorial', fee: 500 },
+                    { articleType: 'letter', fee: 300 },
+                    { articleType: 'commentary', fee: 400 },
+                    { articleType: 'opinion', fee: 400 },
+                    { articleType: 'perspective', fee: 600 }
+                ],
+                countryDiscounts: [],
+                institutionDiscounts: [],
+                paymentDeadlineDays: 30,
+                isActive: true,
+                allowWaiverRequests: false,
+                requirePaymentBeforeProduction: true,
+                supportedPaymentMethods: ['stripe', 'paypal', 'bank_transfer'],
+                automaticWaiverCountries: []
+            };
+            
+            try {
+                const response = await fetch('/api/fee-config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(defaultConfig)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ Successfully reset to default fee structure!
+                        </div>
+                    `;
+                    await loadCurrentFees();
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Error: ${result.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function updateDatabaseConfig() {
+            if (!currentConfig) {
+                document.getElementById('databaseResult').innerHTML = '<div class="error">❌ Please load current config first</div>';
+                return;
+            }
+            
+            const resultDiv = document.getElementById('databaseResult');
+            resultDiv.innerHTML = '<p>💾 Updating database...</p>';
+            
+            try {
+                const response = await fetch('/api/fee-config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(currentConfig)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ Database updated successfully!
+                            <br>All changes have been saved.
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Error: ${result.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        function backupCurrentConfig() {
+            if (!currentConfig) {
+                alert('Please load current config first');
+                return;
+            }
+            
+            const backup = JSON.stringify(currentConfig, null, 2);
+            const blob = new Blob([backup], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `fee-config-backup-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            document.getElementById('databaseResult').innerHTML = `
+                <div class="success">
+                    ✅ Configuration backed up successfully!
+                </div>
+            `;
+        }
+
+        // Auto-load fees on page load
+        window.onload = function() {
+            setTimeout(loadCurrentFees, 500);
+        };
+    </script>
+</body>
+</html>
