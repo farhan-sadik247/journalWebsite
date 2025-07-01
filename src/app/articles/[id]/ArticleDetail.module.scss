@@ -1,0 +1,452 @@
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem;
+  background: #fff;
+  min-height: 100vh;
+}
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  gap: 1rem;
+
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  p {
+    color: #666;
+    font-size: 1.1rem;
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #eee;
+}
+
+.backButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #3498db;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+
+  &:hover {
+    color: #2980b9;
+  }
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.actionButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: #3498db;
+    color: #3498db;
+  }
+
+  &.bookmarked {
+    background: #3498db;
+    color: white;
+    border-color: #3498db;
+  }
+}
+
+.downloadButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #27ae60;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover:not(:disabled) {
+    background: #219a52;
+  }
+
+  &:disabled {
+    background: #95a5a6;
+    cursor: not-allowed;
+  }
+
+  .downloadSpinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid transparent;
+    border-top: 2px solid white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+}
+
+.article {
+  line-height: 1.6;
+}
+
+.articleHeader {
+  margin-bottom: 3rem;
+}
+
+.metadata {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+
+  span {
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+}
+
+.category {
+  background: #3498db;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 15px;
+  font-size: 0.8rem;
+}
+
+.publication, .pages {
+  color: #666;
+  background: #f8f9fa;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+}
+
+.title {
+  font-size: 2.5rem;
+  color: #2c3e50;
+  margin: 1rem 0 2rem 0;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.authors {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #3498db;
+
+  .icon {
+    color: #3498db;
+    margin-top: 0.2rem;
+    flex-shrink: 0;
+  }
+}
+
+.authorsList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.author {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+
+  .authorName {
+    font-weight: 600;
+    color: #2c3e50;
+  }
+
+  .affiliation {
+    font-size: 0.9rem;
+    color: #666;
+  }
+
+  .orcid {
+    font-size: 0.8rem;
+    color: #3498db;
+    text-decoration: none;
+    align-self: flex-start;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.publicationInfo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  margin: 2rem 0;
+}
+
+.infoItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #666;
+
+  .icon {
+    color: #3498db;
+  }
+}
+
+.doi {
+  color: #3498db;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.metrics {
+  display: flex;
+  gap: 2rem;
+  margin: 2rem 0;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.metric {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #666;
+  font-weight: 500;
+
+  svg {
+    color: #3498db;
+  }
+}
+
+.abstract {
+  margin: 3rem 0;
+
+  h2 {
+    color: #2c3e50;
+    margin-bottom: 1.5rem;
+    font-size: 1.8rem;
+    font-weight: 600;
+  }
+
+  p {
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: #444;
+    text-align: justify;
+  }
+}
+
+.keywords {
+  margin: 3rem 0;
+
+  h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #2c3e50;
+    margin-bottom: 1rem;
+    font-size: 1.3rem;
+
+    svg {
+      color: #3498db;
+    }
+  }
+}
+
+.keywordsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.keyword {
+  background: #ecf0f1;
+  color: #2c3e50;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.citation {
+  margin: 3rem 0;
+  padding: 2rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #e74c3c;
+
+  h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #2c3e50;
+    margin-bottom: 1.5rem;
+    font-size: 1.3rem;
+
+    svg {
+      color: #e74c3c;
+    }
+  }
+}
+
+.citationBox {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  position: relative;
+}
+
+.citationText {
+  font-family: 'Georgia', serif;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #444;
+  margin-bottom: 1rem;
+}
+
+.copyCitation {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #e74c3c;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background: #c0392b;
+  }
+}
+
+.loginPrompt {
+  margin: 3rem 0;
+  text-align: center;
+}
+
+.promptCard {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 3rem 2rem;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+
+  .promptIcon {
+    font-size: 3rem;
+    opacity: 0.8;
+  }
+
+  h3 {
+    font-size: 1.5rem;
+    margin: 0;
+  }
+
+  p {
+    opacity: 0.9;
+    margin: 0;
+    max-width: 400px;
+  }
+}
+
+.signInButton {
+  background: white;
+  color: #667eea;
+  padding: 0.75rem 2rem;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: transform 0.2s;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+
+  .headerActions {
+    justify-content: center;
+  }
+
+  .title {
+    font-size: 2rem;
+  }
+
+  .authors {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .publicationInfo {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .metrics {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .promptCard {
+    padding: 2rem 1rem;
+  }
+}

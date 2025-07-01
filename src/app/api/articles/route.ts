@@ -3,7 +3,6 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/pages/api/auth/[...nextauth]';
 import dbConnect from '@/lib/mongodb';
 import Manuscript from '@/models/Manuscript';
-import { transformManuscriptsForFrontend } from '@/lib/manuscriptUtils';
 import Volume from '@/models/Volume';
 
 // GET /api/articles - Get published articles
@@ -12,6 +11,7 @@ export async function GET(request: NextRequest) {
     await dbConnect();
 
     const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '12');
     const volume = searchParams.get('volume');
@@ -19,6 +19,28 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category');
     const query = searchParams.get('query');
     const recent = searchParams.get('recent');
+    const sortBy = searchParams.get('sortBy'); // New parameter for sorting
+
+    // If ID is provided, fetch single article
+    if (id) {
+      const article = await Manuscript.findById(id)
+        .select('title abstract authors category keywords doi volume issue pages publishedDate metrics status')
+        .lean();
+
+      if (!article) {
+        return NextResponse.json({ error: 'Article not found' }, { status: 404 });
+      }
+
+      // Type assertion to help TypeScript understand this is a single document
+      const singleArticle = article as any;
+      
+      if (singleArticle.status !== 'published') {
+        return NextResponse.json({ error: 'Article not found' }, { status: 404 });
+      }
+
+      // Don't transform authors for article display - they should keep the 'name' field
+      return NextResponse.json({ articles: [singleArticle] });
+    }
 
     // Build filter for published articles
     const filter: any = { 
@@ -44,18 +66,29 @@ export async function GET(request: NextRequest) {
     const actualLimit = recent === 'true' ? 6 : limit;
     const actualSkip = recent === 'true' ? 0 : skip;
 
+    // Determine sort order based on sortBy parameter
+    let sortOrder: any = { publishedDate: -1 }; // Default: newest first
+    
+    if (sortBy === 'most-viewed') {
+      sortOrder = { 'metrics.views': -1, publishedDate: -1 };
+    } else if (sortBy === 'most-downloaded') {
+      sortOrder = { 'metrics.downloads': -1, publishedDate: -1 };
+    } else if (sortBy === 'most-cited') {
+      sortOrder = { 'metrics.citations': -1, publishedDate: -1 };
+    }
+
     const [articlesRaw, total] = await Promise.all([
       Manuscript.find(filter)
         .select('title abstract authors category keywords doi volume issue pages publishedDate metrics')
-        .sort({ publishedDate: -1 })
+        .sort(sortOrder)
         .skip(actualSkip)
         .limit(actualLimit)
         .lean(),
       recent === 'true' ? Promise.resolve(6) : Manuscript.countDocuments(filter),
     ]);
 
-    // Transform authors to include firstName and lastName for frontend compatibility
-    const articles = transformManuscriptsForFrontend(articlesRaw);
+    // Don't transform authors for article display - they should keep the 'name' field
+    const articles = articlesRaw;
 
     return NextResponse.json({
       articles,

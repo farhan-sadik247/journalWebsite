@@ -230,6 +230,35 @@
   resize: vertical;
 }
 
+.wordCount {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+
+  .wordCountNormal {
+    color: $text-light;
+  }
+
+  .wordCountError {
+    color: #dc3545;
+    font-weight: 500;
+  }
+
+  .wordCountWarning {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: #dc3545;
+    font-size: 0.8rem;
+
+    svg {
+      font-size: 0.875rem;
+    }
+  }
+}
+
 .formSelect {
   cursor: pointer;
 }

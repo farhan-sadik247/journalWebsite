@@ -95,6 +95,15 @@ export default function SubmitManuscriptPage() {
 
   const keywords = watch('keywords') || [];
   const reviewerSuggestions = watch('reviewerSuggestions') || [];
+  const abstract = watch('abstract') || '';
+
+  // Helper function to count words
+  const countWords = (text: string): number => {
+    return text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
+  };
+
+  const abstractWordCount = countWords(abstract);
+  const maxAbstractWords = 250;
 
   // Check authentication
   if (status === 'loading') {
@@ -193,6 +202,8 @@ export default function SubmitManuscriptPage() {
     
     if (!data.abstract?.trim()) {
       validationErrors.push('Abstract is required');
+    } else if (countWords(data.abstract) > maxAbstractWords) {
+      validationErrors.push(`Abstract must not exceed ${maxAbstractWords} words (currently ${countWords(data.abstract)} words)`);
     }
     
     if (!keywords || keywords.length === 0) {
@@ -308,6 +319,10 @@ export default function SubmitManuscriptPage() {
           toast.error('Abstract is required');
           return;
         }
+        if (countWords(watchedData.abstract) > maxAbstractWords) {
+          toast.error(`Abstract must not exceed ${maxAbstractWords} words (currently ${countWords(watchedData.abstract)} words)`);
+          return;
+        }
         if (!keywords || keywords.length === 0) {
           toast.error('At least one keyword is required');
           return;
@@ -417,11 +432,31 @@ export default function SubmitManuscriptPage() {
                     Abstract *
                   </label>
                   <textarea
-                    {...register('abstract', { required: 'Abstract is required' })}
+                    {...register('abstract', { 
+                      required: 'Abstract is required',
+                      validate: (value) => {
+                        const wordCount = countWords(value || '');
+                        if (wordCount > maxAbstractWords) {
+                          return `Abstract must not exceed ${maxAbstractWords} words (currently ${wordCount} words)`;
+                        }
+                        return true;
+                      }
+                    })}
                     className={`${styles.formTextarea} ${errors.abstract ? 'error' : ''}`}
                     placeholder="Enter the manuscript abstract"
                     rows={8}
                   />
+                  <div className={styles.wordCount}>
+                    <span className={abstractWordCount > maxAbstractWords ? styles.wordCountError : styles.wordCountNormal}>
+                      {abstractWordCount}/{maxAbstractWords} words
+                    </span>
+                    {abstractWordCount > maxAbstractWords && (
+                      <span className={styles.wordCountWarning}>
+                        <FiAlertCircle />
+                        Exceeds word limit
+                      </span>
+                    )}
+                  </div>
                   {errors.abstract && <div className="form-error">{errors.abstract.message}</div>}
                 </div>
 

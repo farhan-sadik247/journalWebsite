@@ -410,14 +410,14 @@ export default function AdvancedSearchPage() {
                   <div className={styles.metrics}>
                     <span>
                       <FiEye />
-                      {manuscript.metrics.views} views
+                      {manuscript.metrics?.views || 0} views
                     </span>
                     <span>
                       <FiDownload />
-                      {manuscript.metrics.downloads} downloads
+                      {manuscript.metrics?.downloads || 0} downloads
                     </span>
                     <span>
-                      Citations: {manuscript.metrics.citations}
+                      Citations: {manuscript.metrics?.citations || 0}
                     </span>
                   </div>
 

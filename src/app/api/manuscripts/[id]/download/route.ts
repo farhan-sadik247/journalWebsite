@@ -38,17 +38,38 @@ export async function GET(
     await dbConnect();
     console.log('Database connected successfully');
 
-    // Build filter based on user role
+    // Build filter based on user role and manuscript status
     const filter: any = { _id: new mongoose.Types.ObjectId(params.id) };
     
-    // Authors can only download their own manuscripts
-    if (session.user.role === 'author') {
-      filter.submittedBy = new mongoose.Types.ObjectId(session.user.id);
-    }
-    // Editors and admins can download all manuscripts
-
     console.log('Query filter:', filter);
     const manuscript = await Manuscript.findOne(filter).lean() as any;
+    
+    if (manuscript) {
+      // Check access permissions based on manuscript status and user role
+      let hasAccess = false;
+      
+      if (manuscript.status === 'published') {
+        // Published manuscripts can be downloaded by any authenticated user
+        hasAccess = true;
+        console.log('Access granted: Published manuscript, user is authenticated');
+      } else if (['editor', 'admin'].includes(session.user.role)) {
+        // Editors and admins can download all manuscripts regardless of status
+        hasAccess = true;
+        console.log('Access granted: User is editor/admin');
+      } else if (session.user.role === 'author' && manuscript.submittedBy?.toString() === session.user.id) {
+        // Authors can only download their own manuscripts (if not published)
+        hasAccess = true;
+        console.log('Access granted: Author downloading own manuscript');
+      }
+      
+      if (!hasAccess) {
+        console.log('ERROR: Access denied. Status:', manuscript.status, 'Role:', session.user.role);
+        return NextResponse.json(
+          { error: 'Access denied' },
+          { status: 403 }
+        );
+      }
+    }
     console.log('Manuscript found:', manuscript ? 'yes' : 'no');
     
     if (manuscript) {
@@ -69,29 +90,58 @@ export async function GET(
       );
     }
 
-    if (!manuscript.files || manuscript.files.length === 0) {
-      console.log('ERROR: No files available for manuscript');
-      return NextResponse.json(
-        { error: 'No files available for download' },
-        { status: 404 }
-      );
+    // Select the appropriate file to download based on manuscript status and available files
+    let fileToDownload = null;
+    
+    // Priority 1: Check for latestManuscriptFiles (most recent version)
+    if (manuscript.latestManuscriptFiles?.length > 0) {
+      fileToDownload = manuscript.latestManuscriptFiles[manuscript.latestManuscriptFiles.length - 1];
+      console.log('Selected latest manuscript file');
+    }
+    // Priority 2: For published manuscripts, check galley proofs if no latest files
+    else if (manuscript.status === 'published' && manuscript.productionPhase?.galleyProofs?.length > 0) {
+      const finalPdf = manuscript.productionPhase.galleyProofs.find((file: any) => file.type === 'final-pdf');
+      if (finalPdf) {
+        fileToDownload = finalPdf;
+        console.log('Selected final PDF from galley proofs');
+      } else {
+        // If no final-pdf, get the latest galley proof
+        fileToDownload = manuscript.productionPhase.galleyProofs[manuscript.productionPhase.galleyProofs.length - 1];
+        console.log('Selected latest galley proof');
+      }
+    }
+    // Priority 3: Fall back to original files
+    else {
+      if (!manuscript.files || manuscript.files.length === 0) {
+        console.log('ERROR: No files available for manuscript');
+        return NextResponse.json(
+          { error: 'No files available for download' },
+          { status: 404 }
+        );
+      }
+      
+      // Use the main manuscript file or first available file
+      const manuscriptFile = manuscript.files.find((file: any) => file.type === 'manuscript');
+      fileToDownload = manuscriptFile || manuscript.files[0];
+      console.log('Selected original manuscript file');
     }
 
-    const firstFile = manuscript.files[0];
     console.log('Attempting to download file:', {
-      originalName: firstFile.originalName,
-      url: firstFile.url,
-      type: firstFile.type,
-      size: firstFile.size
+      originalName: fileToDownload.originalName,
+      url: fileToDownload.url ? 'exists' : 'missing',
+      type: fileToDownload.type,
+      size: fileToDownload.size,
+      source: manuscript.latestManuscriptFiles?.includes(fileToDownload) ? 'latest manuscript files' : 
+              manuscript.productionPhase?.galleyProofs?.includes(fileToDownload) ? 'galley proofs' : 'original files'
     });
     
-    if (firstFile.url) {
-      console.log('Downloading first file:', firstFile.originalName);
-      console.log('Cloudinary URL:', firstFile.url);
+    if (fileToDownload.url) {
+      console.log('Downloading file:', fileToDownload.originalName);
+      console.log('Cloudinary URL:', fileToDownload.url);
       
       try {
         // Fetch the file from Cloudinary
-        const response = await fetch(firstFile.url);
+        const response = await fetch(fileToDownload.url);
         
         if (!response.ok) {
           throw new Error(`Failed to fetch file: ${response.status}`);
@@ -100,8 +150,8 @@ export async function GET(
         const fileBuffer = await response.arrayBuffer();
         
         // Ensure the filename has the correct extension
-        let filename = firstFile.originalName || 'manuscript.pdf';
-        if (!filename.toLowerCase().endsWith('.pdf') && firstFile.originalName?.toLowerCase().includes('pdf')) {
+        let filename = fileToDownload.originalName || 'manuscript.pdf';
+        if (!filename.toLowerCase().endsWith('.pdf') && fileToDownload.originalName?.toLowerCase().includes('pdf')) {
           filename = filename + '.pdf';
         }
         
