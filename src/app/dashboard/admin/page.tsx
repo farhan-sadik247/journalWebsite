@@ -206,6 +206,12 @@ export default function AdminDashboard() {
           <div className={styles.actions}>
             <button
               className={styles.actionButton}
+              onClick={() => router.push('/dashboard/publication')}
+            >
+              Publication Dashboard
+            </button>
+            <button
+              className={styles.actionButton}
               onClick={() => router.push('/dashboard/editor')}
             >
               Editorial Dashboard

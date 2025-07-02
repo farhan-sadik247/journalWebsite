@@ -13,6 +13,13 @@ interface Volume {
   year: number;
   title: string;
   status: string;
+  issues?: Issue[];
+}
+
+interface Issue {
+  _id: string;
+  number: number;
+  title: string;
 }
 
 export default function NewIssuePage() {
@@ -25,8 +32,15 @@ export default function NewIssuePage() {
     number: '',
     title: '',
     description: '',
-    status: 'draft'
+    editorialNote: '',
+    coverImage: '',
+    status: 'draft',
+    publishDate: ''
   });
+  const [selectedVolumeIssueCount, setSelectedVolumeIssueCount] = useState(0);
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
+  const [coverImagePreview, setCoverImagePreview] = useState<string>('');
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   useEffect(() => {
     fetchVolumes();
@@ -46,15 +60,43 @@ export default function NewIssuePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check issue limit (3-4 issues per volume)
+    if (selectedVolumeIssueCount >= 4) {
+      alert('This volume already has the maximum number of issues (4). Please select a different volume.');
+      return;
+    }
+    
     setIsLoading(true);
 
     try {
+      let submissionData = { ...formData };
+
+      // Upload cover image if exists
+      if (coverImageFile) {
+        setIsUploadingImage(true);
+        try {
+          const coverImageData = await uploadCoverImage(coverImageFile);
+          submissionData.coverImage = JSON.stringify({
+            url: coverImageData.url,
+            publicId: coverImageData.publicId,
+            originalName: coverImageData.originalName
+          });
+        } catch (uploadError) {
+          console.error('Cover image upload failed:', uploadError);
+          alert('Failed to upload cover image. Please try again.');
+          return;
+        } finally {
+          setIsUploadingImage(false);
+        }
+      }
+
       const response = await fetch('/api/issues', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(submissionData),
       });
 
       if (response.ok) {
@@ -78,6 +120,45 @@ export default function NewIssuePage() {
       ...prev,
       [name]: value
     }));
+
+    // Check issue count when volume is selected
+    if (name === 'volumeId') {
+      const selectedVolume = volumes.find(v => v._id === value);
+      setSelectedVolumeIssueCount(selectedVolume?.issues?.length || 0);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setCoverImageFile(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setCoverImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadCoverImage = async (file: File): Promise<{ url: string; publicId: string; originalName: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('type', 'cover');
+    formData.append('folder', 'journal/covers');
+
+    const response = await fetch('/api/upload/image', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to upload image');
+    }
+
+    const result = await response.json();
+    return result.data;
   };
 
   if (!session || (session.user.role !== 'editor' && session.user.role !== 'admin')) {
@@ -117,11 +198,21 @@ export default function NewIssuePage() {
                 >
                   <option value="">Select a volume</option>
                   {volumes.map((volume) => (
-                    <option key={volume._id} value={volume._id}>
+                    <option 
+                      key={volume._id} 
+                      value={volume._id}
+                      disabled={volume.issues && volume.issues.length >= 4}
+                    >
                       Volume {volume.number} ({volume.year}) - {volume.title}
+                      {volume.issues && volume.issues.length >= 4 && ' (Max issues reached)'}
                     </option>
                   ))}
                 </select>
+                {formData.volumeId && selectedVolumeIssueCount >= 3 && (
+                  <div className={styles.warning}>
+                    <p>⚠️ This volume has {selectedVolumeIssueCount} issues. Maximum is 4 issues per volume.</p>
+                  </div>
+                )}
               </div>
 
               <div className={styles.formGroup}>
@@ -165,18 +256,95 @@ export default function NewIssuePage() {
             </div>
 
             <div className={styles.formGroup}>
-              <label htmlFor="status">Status</label>
-              <select
-                id="status"
-                name="status"
-                value={formData.status}
+              <label htmlFor="editorialNote">Editorial Note / Theme</label>
+              <textarea
+                id="editorialNote"
+                name="editorialNote"
+                value={formData.editorialNote || ''}
                 onChange={handleChange}
-              >
-                <option value="draft">Draft</option>
-                <option value="active">Active</option>
-                <option value="published">Published</option>
-                <option value="archived">Archived</option>
-              </select>
+                rows={3}
+                placeholder="Editorial note or special theme for this issue"
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label htmlFor="coverImage">Cover Image</label>
+              <input
+                type="file"
+                id="coverImage"
+                name="coverImage"
+                accept="image/*"
+                onChange={handleFileChange}
+                className={styles.fileInput}
+              />
+              <small className={styles.fieldHint}>
+                Upload a cover image for this issue (JPEG, PNG, WebP, GIF - max 5MB)
+              </small>
+              {coverImagePreview && (
+                <div className={styles.imagePreview}>
+                  <img 
+                    src={coverImagePreview} 
+                    alt="Cover preview" 
+                    className={styles.previewImage}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCoverImageFile(null);
+                      setCoverImagePreview('');
+                    }}
+                    className={styles.removeImageBtn}
+                  >
+                    Remove
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className={styles.formGroup}>
+              <label htmlFor="coverImageUpload">Or Upload Cover Image</label>
+              <input
+                type="file"
+                id="coverImageUpload"
+                accept="image/*"
+                onChange={handleFileChange}
+                disabled={isUploadingImage}
+              />
+              {coverImagePreview && (
+                <div className={styles.imagePreview}>
+                  <img src={coverImagePreview} alt="Cover Image Preview" />
+                </div>
+              )}
+              <small className={styles.fieldHint}>
+                Recommended size: 1200x630px. Max size: 2MB.
+              </small>
+            </div>
+
+            <div className={styles.formRow}>
+              <div className={styles.formGroup}>
+                <label htmlFor="publishDate">Publication Date</label>
+                <input
+                  type="date"
+                  id="publishDate"
+                  name="publishDate"
+                  value={formData.publishDate}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label htmlFor="status">Status</label>
+                <select
+                  id="status"
+                  name="status"
+                  value={formData.status}
+                  onChange={handleChange}
+                >
+                  <option value="draft">Draft</option>
+                  <option value="open">Open for Submissions</option>
+                  <option value="published">Published</option>
+                </select>
+              </div>
             </div>
 
             <div className={styles.formActions}>

@@ -47,6 +47,21 @@
   border: 1px solid var(--color-border);
 }
 
+.warning {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 6px;
+  
+  p {
+    margin: 0;
+    color: #856404;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+}
+
 .form {
   .formRow {
     display: grid;
@@ -103,6 +118,14 @@
   }
 }
 
+.fieldHint {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
 .formActions {
   display: flex;
   gap: 1rem;
@@ -149,6 +172,58 @@
         color: var(--color-text);
       }
     }
+  }
+}
+
+.fileInput {
+  padding: 0.75rem;
+  border: 2px dashed var(--color-border);
+  border-radius: 8px;
+  background-color: var(--color-bg);
+  transition: border-color 0.2s ease;
+  cursor: pointer;
+
+  &:hover {
+    border-color: #6366f1;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  }
+}
+
+.imagePreview {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background-color: var(--color-bg);
+  text-align: center;
+}
+
+.previewImage {
+  max-width: 200px;
+  max-height: 150px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 0.75rem;
+  object-fit: cover;
+}
+
+.removeImageBtn {
+  padding: 0.5rem 1rem;
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: #dc2626;
   }
 }
 

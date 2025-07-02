@@ -72,13 +72,18 @@ interface Volume {
 
 interface Issue {
   _id: string;
-  volumeId: string;
   number: number;
   title: string;
   description: string;
-  status: string;
+  isPublished: boolean;
   publishedDate?: string;
   manuscripts: string[];
+  volume?: {
+    _id: string;
+    number: number;
+    year: number;
+    title: string;
+  };
 }
 
 export default function PublicationDashboard() {
@@ -88,42 +93,106 @@ export default function PublicationDashboard() {
   const [volumes, setVolumes] = useState<Volume[]>([]);
   const [issues, setIssues] = useState<Issue[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('ready-to-publish');
+  const [activeTab, setActiveTab] = useState('available-for-issue');
+  const [selectedIssue, setSelectedIssue] = useState<string>('');
+  const [availableIssues, setAvailableIssues] = useState<Issue[]>([]);
+  const [publishedIssues, setPublishedIssues] = useState<{ volume: Volume; issue: any }[]>([]);
   const [showNotification, setShowNotification] = useState(false);
   const [isPublishing, setIsPublishing] = useState<string | null>(null);
+  const [allVolumesData, setAllVolumesData] = useState<{ volume: Volume; issues: any[] }[]>([]);
+  const [availableForPublishing, setAvailableForPublishing] = useState<Issue[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const itemsPerPage = 10;
 
-  // Handle direct publishing
-  const handleDirectPublish = async (manuscriptId: string, manuscriptTitle: string) => {
-    if (!confirm(`Are you sure you want to publish "${manuscriptTitle}"? This will move it to the archive and make it publicly available.`)) {
+  // Handle assignment to issue
+  const handleAssignToIssue = async (manuscriptId: string, manuscriptTitle: string) => {
+    if (!selectedIssue) {
+      alert('Please select an issue first');
       return;
     }
 
-    setIsPublishing(manuscriptId);
+    if (!confirm(`Are you sure you want to assign "${manuscriptTitle}" to the selected issue?`)) {
+      return;
+    }
 
     try {
-      const response = await fetch(`/api/manuscripts/${manuscriptId}/publish`, {
+      const response = await fetch(`/api/issues/${selectedIssue}/assign-manuscripts`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          publishedDate: new Date().toISOString(),
-          action: 'direct-publish'
+          manuscriptIds: [manuscriptId]
         }),
       });
 
       if (response.ok) {
-        const result = await response.json();
-        alert(`✅ Manuscript "${manuscriptTitle}" has been published successfully!`);
-        // Refresh the data
+        alert(`✅ Manuscript "${manuscriptTitle}" has been assigned to the issue successfully!`);
         fetchData();
       } else {
         const error = await response.json();
-        alert(`❌ Error publishing manuscript: ${error.error}`);
+        alert(`❌ Error assigning manuscript: ${error.error}`);
       }
     } catch (error) {
-      console.error('Error publishing manuscript:', error);
-      alert('❌ Failed to publish manuscript');
+      console.error('Error assigning manuscript:', error);
+      alert('❌ Failed to assign manuscript');
+    }
+  };
+
+  // Handle delete issue
+  const handleDeleteIssue = async (issueId: string, issueTitle: string) => {
+    if (!confirm(`Are you sure you want to delete "${issueTitle}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/issues/${issueId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        alert(`✅ Issue "${issueTitle}" has been deleted successfully!`);
+        fetchData();
+      } else {
+        const error = await response.json();
+        alert(`❌ Error deleting issue: ${error.error}`);
+      }
+    } catch (error) {
+      console.error('Error deleting issue:', error);
+      alert('❌ Failed to delete issue');
+    }
+  };
+
+  // Handle publish issue
+  const handlePublishIssue = async (issueId: string, issueTitle: string) => {
+    if (!confirm(`Are you sure you want to publish "${issueTitle}"? This will make it visible on the website.`)) {
+      return;
+    }
+
+    setIsPublishing(issueId);
+
+    try {
+      const response = await fetch(`/api/issues/${issueId}/publish`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        alert(`✅ Issue "${issueTitle}" has been published successfully!`);
+        fetchData();
+      } else {
+        const error = await response.json();
+        alert(`❌ Error publishing issue: ${error.error}`);
+      }
+    } catch (error) {
+      console.error('Error publishing issue:', error);
+      alert('❌ Failed to publish issue');
     } finally {
       setIsPublishing(null);
     }
@@ -154,7 +223,7 @@ export default function PublicationDashboard() {
       console.log('🔍 Fetching publication dashboard data...');
       
       const [manuscriptsRes, volumesRes, issuesRes] = await Promise.all([
-        fetch('/api/manuscripts/publication-dashboard'), // Use dedicated publication dashboard endpoint
+        fetch('/api/manuscripts/publication-dashboard'),
         fetch('/api/volumes'),
         fetch('/api/issues')
       ]);
@@ -165,25 +234,88 @@ export default function PublicationDashboard() {
         issues: issuesRes.status
       });
 
+      let volumesData: any = null;
+      let issuesData: any = null;
+
       if (manuscriptsRes.ok) {
         const manuscriptsData = await manuscriptsRes.json();
         console.log('✅ Fetched publication dashboard data:', manuscriptsData);
-        console.log('📊 Manuscripts count:', manuscriptsData.manuscripts?.length || 0);
         setManuscripts(manuscriptsData.manuscripts || []);
-      } else {
-        const errorData = await manuscriptsRes.json();
-        console.error('❌ Failed to fetch manuscripts:', errorData);
-        setManuscripts([]);
       }
 
       if (volumesRes.ok) {
-        const volumesData = await volumesRes.json();
+        volumesData = await volumesRes.json();
+        console.log('✅ Fetched volumes data:', volumesData);
         setVolumes(volumesData.volumes || []);
       }
 
       if (issuesRes.ok) {
-        const issuesData = await issuesRes.json();
+        issuesData = await issuesRes.json();
+        console.log('✅ Fetched issues data:', issuesData);
         setIssues(issuesData.issues || []);
+        
+        // Separate available and published issues
+        const available = issuesData.issues.filter((issue: any) => !issue.isPublished);
+        const published = issuesData.issues.filter((issue: any) => issue.isPublished);
+        
+        // Filter issues that are ready for publishing (unpublished but have manuscripts)
+        const readyForPublishing = available.filter((issue: any) => 
+          issue.manuscripts && issue.manuscripts.length > 0
+        );
+        
+        setAvailableIssues(available);
+        setAvailableForPublishing(readyForPublishing);
+        
+        // Group published issues by volume and year
+        const publishedByVolume = published.map((issue: any) => ({
+          volume: issue.volume,
+          issue: issue
+        }));
+        
+        setPublishedIssues(publishedByVolume);
+
+        // Prepare all volumes data for the new tab (using already fetched data)
+        if (volumesData && issuesData) {
+          console.log('📊 Preparing All Volumes Data...');
+          console.log('📊 Volumes:', volumesData.volumes);
+          console.log('📊 Issues:', issuesData.issues);
+          
+          // Let's see the first volume and issue in detail
+          if (volumesData.volumes.length > 0) {
+            console.log('📊 First Volume detailed:', JSON.stringify(volumesData.volumes[0], null, 2));
+          }
+          if (issuesData.issues.length > 0) {
+            console.log('📊 First Issue detailed:', JSON.stringify(issuesData.issues[0], null, 2));
+          }
+          
+          const allVolumes = volumesData.volumes.map((volume: Volume) => ({
+            volume,
+            issues: issuesData.issues.filter((issue: any) => {
+              const volumeId = volume._id?.toString();
+              const issueVolumeId = issue.volume?._id?.toString();
+              console.log(`🔍 Checking issue ${issue._id} volume ID "${issueVolumeId}" against volume "${volumeId}"`);
+              console.log(`🔍 Issue object:`, issue);
+              console.log(`🔍 Volume object:`, volume);
+              return issueVolumeId === volumeId;
+            })
+          }));
+          
+          console.log('📊 All Volumes processed:', allVolumes);
+          
+          // Sort by year and volume number (descending)
+          allVolumes.sort((a: { volume: Volume; issues: any[] }, b: { volume: Volume; issues: any[] }) => {
+            if (a.volume.year !== b.volume.year) {
+              return b.volume.year - a.volume.year;
+            }
+            return b.volume.number - a.volume.number;
+          });
+          
+          setAllVolumesData(allVolumes);
+          setTotalPages(Math.ceil(allVolumes.length / itemsPerPage));
+          
+          console.log('📊 Final All Volumes Data set:', allVolumes);
+          console.log('📊 Total pages:', Math.ceil(allVolumes.length / itemsPerPage));
+        }
       }
     } catch (error) {
       console.error('❌ Error fetching publication data:', error);
@@ -194,11 +326,14 @@ export default function PublicationDashboard() {
   };
 
   const handleNotificationCheck = () => {
-    const readyCount = manuscripts.filter(m => (m.status === 'ready-for-publication' || m.copyEditingStage === 'author-approved') && !m.publishedDate).length;
+    const availableCount = manuscripts.filter(m => 
+      m.copyEditingStage === 'author-approved' && 
+      !m.volume && 
+      !m.issue
+    ).length;
     
-    if (readyCount > 0 && !showNotification) {
+    if (availableCount > 0 && !showNotification) {
       setShowNotification(true);
-      // Auto-hide after 5 seconds
       setTimeout(() => setShowNotification(false), 5000);
     }
   };
@@ -226,22 +361,23 @@ export default function PublicationDashboard() {
   };
 
   const filteredManuscripts = manuscripts.filter(manuscript => {
-    if (activeTab === 'ready-to-publish') {
-      return (manuscript.status === 'ready-for-publication' || manuscript.copyEditingStage === 'author-approved') && !manuscript.publishedDate;
+    if (activeTab === 'available-for-issue') {
+      return manuscript.copyEditingStage === 'author-approved' && !manuscript.volume && !manuscript.issue;
     }
-    if (activeTab === 'published') {
-      return manuscript.status === 'published' && manuscript.publishedDate;
-    }
-    if (activeTab === 'in-production') {
-      return manuscript.status === 'in-production';
+    if (activeTab === 'published-issues') {
+      return false; // This tab shows issues, not manuscripts
     }
     return true;
   });
 
   const stats = {
-    readyToPublish: manuscripts.filter(m => (m.status === 'ready-for-publication' || m.copyEditingStage === 'author-approved') && !m.publishedDate).length,
-    published: manuscripts.filter(m => m.status === 'published' && m.publishedDate).length,
-    inProduction: manuscripts.filter(m => m.status === 'in-production').length,
+    availableForIssue: manuscripts.filter(m => 
+      m.copyEditingStage === 'author-approved' && 
+      !m.volume && 
+      !m.issue
+    ).length,
+    availableForPublishing: availableForPublishing.length,
+    publishedIssues: publishedIssues.length,
     totalVolumes: volumes.length,
     totalIssues: issues.length
   };
@@ -261,12 +397,12 @@ export default function PublicationDashboard() {
   return (
     <div className={styles.publicationDashboard}>
       {/* Notification Banner */}
-      {showNotification && stats.readyToPublish > 0 && (
+      {showNotification && stats.availableForIssue > 0 && (
         <div className={styles.notificationBanner}>
           <div className={styles.notificationContent}>
             <FiBell />
             <span>
-              <strong>{stats.readyToPublish}</strong> manuscript{stats.readyToPublish > 1 ? 's are' : ' is'} ready for publication!
+              <strong>{stats.availableForIssue}</strong> manuscript{stats.availableForIssue > 1 ? 's are' : ' is'} available for issue assignment!
             </span>
           </div>
           <button 
@@ -290,15 +426,18 @@ export default function PublicationDashboard() {
         }}>
           <h3>Debug Info</h3>
           <p>Session: {session ? '✅ Authenticated' : '❌ Not authenticated'}</p>
-          <p>User Role: {session?.user?.role || 'None'}</p>
-          <p>User Roles: {JSON.stringify(session?.user?.roles || [])}</p>
-          <p>Current Active Role: {session?.user?.currentActiveRole || 'None'}</p>
+          <p><strong>User Role: {session?.user?.role || 'None'}</strong></p>
           <p>Total Manuscripts: {manuscripts.length}</p>
-          <p>Ready to Publish: {stats.readyToPublish}</p>
-          <p>Published: {stats.published}</p>
-          <p>In Production: {stats.inProduction}</p>
+          <p>Available for Issue: {stats.availableForIssue}</p>
+          <p><strong>Available for Publishing: {stats.availableForPublishing}</strong></p>
+          <p>Published Issues: {stats.publishedIssues}</p>
+          <p><strong>All Volumes Data: {allVolumesData.length}</strong></p>
+          <p><strong>Total Volumes: {volumes.length}</strong></p>
+          <p><strong>Total Issues: {issues.length}</strong></p>
           <p>Active Tab: {activeTab}</p>
           <p>Filtered Manuscripts: {filteredManuscripts.length}</p>
+          <p>Current Page: {currentPage}</p>
+          <p>Total Pages: {totalPages}</p>
         </div>
       )}
       
@@ -328,7 +467,17 @@ export default function PublicationDashboard() {
               <FiBook />
             </div>
             <div className={styles.statInfo}>
-              <h3>{stats.readyToPublish}</h3>
+              <h3>{stats.availableForIssue}</h3>
+              <p>Available for Issue</p>
+            </div>
+          </div>
+
+          <div className={styles.statCard}>
+            <div className={styles.statIcon}>
+              <FiBell />
+            </div>
+            <div className={styles.statInfo}>
+              <h3>{stats.availableForPublishing}</h3>
               <p>Ready to Publish</p>
             </div>
           </div>
@@ -338,18 +487,8 @@ export default function PublicationDashboard() {
               <FiGlobe />
             </div>
             <div className={styles.statInfo}>
-              <h3>{stats.published}</h3>
-              <p>Published Articles</p>
-            </div>
-          </div>
-
-          <div className={styles.statCard}>
-            <div className={styles.statIcon}>
-              <FiEdit3 />
-            </div>
-            <div className={styles.statInfo}>
-              <h3>{stats.inProduction}</h3>
-              <p>In Production</p>
+              <h3>{stats.publishedIssues}</h3>
+              <p>Published Issues</p>
             </div>
           </div>
 
@@ -362,217 +501,508 @@ export default function PublicationDashboard() {
               <p>Total Volumes</p>
             </div>
           </div>
+
+          <div className={styles.statCard}>
+            <div className={styles.statIcon}>
+              <FiEdit3 />
+            </div>
+            <div className={styles.statInfo}>
+              <h3>{stats.totalIssues}</h3>
+              <p>Total Issues</p>
+            </div>
+          </div>
         </div>
 
         {/* Tabs */}
         <div className={styles.tabs}>
           <button
-            className={activeTab === 'ready-to-publish' ? styles.active : ''}
-            onClick={() => setActiveTab('ready-to-publish')}
+            className={activeTab === 'available-for-issue' ? styles.active : ''}
+            onClick={() => setActiveTab('available-for-issue')}
           >
-            Ready to Publish ({stats.readyToPublish})
+            Available for Issue ({stats.availableForIssue})
           </button>
           <button
-            className={activeTab === 'in-production' ? styles.active : ''}
-            onClick={() => setActiveTab('in-production')}
+            className={activeTab === 'available-for-publishing' ? styles.active : ''}
+            onClick={() => setActiveTab('available-for-publishing')}
           >
-            In Production ({stats.inProduction})
+            Available for Publishing ({stats.availableForPublishing})
           </button>
           <button
-            className={activeTab === 'published' ? styles.active : ''}
-            onClick={() => setActiveTab('published')}
+            className={activeTab === 'published-issues' ? styles.active : ''}
+            onClick={() => setActiveTab('published-issues')}
           >
-            Published ({stats.published})
+            Published Issues ({stats.publishedIssues})
+          </button>
+          <button
+            className={activeTab === 'all-volumes' ? styles.active : ''}
+            onClick={() => setActiveTab('all-volumes')}
+          >
+            All Volumes ({allVolumesData.length})
           </button>
         </div>
 
-        {/* Manuscripts Table */}
-        <div className={styles.manuscriptsSection}>
-          {filteredManuscripts.length === 0 ? (
-            <div className={styles.emptyState}>
-              <FiBook />
-              <h3>No manuscripts found</h3>
-              <p>There are no manuscripts in the &quot;{activeTab.replace('-', ' ')}&quot; category.</p>
+        {/* Content based on active tab */}
+        {activeTab === 'available-for-issue' ? (
+          <div className={styles.manuscriptsSection}>
+            {/* Issue Selection Dropdown */}
+            <div className={styles.issueSelection}>
+              <label htmlFor="issueSelect">Select Issue to Assign Articles:</label>
+              <select 
+                id="issueSelect"
+                value={selectedIssue} 
+                onChange={(e) => setSelectedIssue(e.target.value)}
+                className={styles.issueDropdown}
+              >
+                <option value="">-- Select an Issue --</option>
+                {availableIssues.map((issue) => (
+                  <option key={issue._id} value={issue._id}>
+                    Volume {issue.volume?.number}, Issue {issue.number}: {issue.title}
+                  </option>
+                ))}
+              </select>
             </div>
-          ) : (
-            <div className={styles.manuscriptsTable}>
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th>Title & Files</th>
-                    <th>Authors</th>
-                    <th>Category</th>
-                    <th>Status & Date</th>
-                    <th>Publication Info</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredManuscripts.map((manuscript) => (
-                    <tr key={manuscript._id}>
-                      <td data-label="Title & Files">
-                        <div className={styles.titleCell}>
-                          <h4>{manuscript.title}</h4>
-                          <span className={styles.submissionDate}>
-                            Submitted: {new Date(manuscript.submissionDate).toLocaleDateString()}
-                          </span>
-                          {/* Latest Files Section */}
-                          {manuscript.latestManuscriptFiles && manuscript.latestManuscriptFiles.length > 0 && (
-                            <div className={styles.filesSection}>
-                              <div className={styles.filesHeader}>
-                                <FiDownload />
-                                <span>Latest Files ({manuscript.latestManuscriptFiles.length})</span>
-                              </div>
-                              <div className={styles.filesList}>
-                                {manuscript.latestManuscriptFiles.slice(0, 2).map((file, index) => (
-                                  <div key={index} className={styles.fileItem}>
-                                    <span className={styles.fileName}>{file.originalName}</span>
-                                    <span className={styles.fileSize}>
-                                      {(file.size / 1024 / 1024).toFixed(1)} MB
+
+            {filteredManuscripts.length === 0 ? (
+              <div className={styles.emptyState}>
+                <FiBook />
+                <h3>No manuscripts available</h3>
+                <p>There are no author-approved manuscripts available for issue assignment.</p>
+              </div>
+            ) : (
+              <div className={styles.manuscriptsTable}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Title & Files</th>
+                      <th>Authors</th>
+                      <th>Category</th>
+                      <th>Status & Date</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredManuscripts.map((manuscript) => (
+                      <tr key={manuscript._id}>
+                        <td data-label="Title & Files">
+                          <div className={styles.titleCell}>
+                            <h4>{manuscript.title}</h4>
+                            <span className={styles.submissionDate}>
+                              Submitted: {new Date(manuscript.submissionDate).toLocaleDateString()}
+                            </span>
+                            {/* Latest Files Section */}
+                            {manuscript.latestManuscriptFiles && manuscript.latestManuscriptFiles.length > 0 && (
+                              <div className={styles.filesSection}>
+                                <div className={styles.filesHeader}>
+                                  <FiDownload />
+                                  <span>Latest Files ({manuscript.latestManuscriptFiles.length})</span>
+                                </div>
+                                <div className={styles.filesList}>
+                                  {manuscript.latestManuscriptFiles.slice(0, 2).map((file, index) => (
+                                    <div key={index} className={styles.fileItem}>
+                                      <span className={styles.fileName}>{file.originalName}</span>
+                                      <span className={styles.fileSize}>
+                                        {(file.size / 1024 / 1024).toFixed(1)} MB
+                                      </span>
+                                    </div>
+                                  ))}
+                                  {manuscript.latestManuscriptFiles.length > 2 && (
+                                    <div className={styles.moreFiles}>
+                                      +{manuscript.latestManuscriptFiles.length - 2} more files
+                                    </div>
+                                  )}
+                                </div>
+                                {manuscript.authorCopyEditReview && (
+                                  <div className={styles.reviewInfo}>
+                                    <span className={styles.reviewStatus}>
+                                      Author Review: {manuscript.authorCopyEditReview.decision === 'approved' ? '✓ Approved' : '⚠ Changes Requested'}
                                     </span>
-                                  </div>
-                                ))}
-                                {manuscript.latestManuscriptFiles.length > 2 && (
-                                  <div className={styles.moreFiles}>
-                                    +{manuscript.latestManuscriptFiles.length - 2} more files
+                                    <span className={styles.reviewDate}>
+                                      {new Date(manuscript.authorCopyEditReview.submittedAt).toLocaleDateString()}
+                                    </span>
                                   </div>
                                 )}
                               </div>
-                              {manuscript.authorCopyEditReview && (
-                                <div className={styles.reviewInfo}>
-                                  <span className={styles.reviewStatus}>
-                                    Author Review: {manuscript.authorCopyEditReview.decision === 'approved' ? '✓ Approved' : '⚠ Changes Requested'}
-                                  </span>
-                                  <span className={styles.reviewDate}>
-                                    {new Date(manuscript.authorCopyEditReview.submittedAt).toLocaleDateString()}
-                                  </span>
-                                </div>
-                              )}
+                            )}
+                          </div>
+                        </td>
+                        <td data-label="Authors">
+                          <div className={styles.authorsCell}>
+                            {manuscript.authors.slice(0, 2).map((author, index) => (
+                              <span key={index} className={styles.authorName}>
+                                {author.name}
+                              </span>
+                            ))}
+                            {manuscript.authors.length > 2 && (
+                              <span className={styles.moreAuthors}>
+                                +{manuscript.authors.length - 2} more
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td data-label="Category">
+                          <span className={styles.category}>{manuscript.category}</span>
+                        </td>
+                        <td data-label="Status & Date">
+                          <div className={styles.statusInfo}>
+                            <span className={`${styles.statusBadge} ${styles.ready}`}>
+                              Author Approved
+                            </span>
+                            <span className={styles.lastModified}>
+                              Updated: {new Date(manuscript.lastModified).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </td>
+                        <td data-label="Actions">
+                          <div className={styles.actionButtons}>
+                            <Link
+                              href={`/dashboard/manuscripts/${manuscript._id}`}
+                              className={styles.actionButton}
+                              title="View Details"
+                            >
+                              <FiEye />
+                            </Link>
+                            {selectedIssue && (
+                              <button
+                                onClick={() => handleAssignToIssue(manuscript._id, manuscript.title)}
+                                className={`${styles.actionButton} ${styles.assignButton}`}
+                                title="Assign to Issue"
+                              >
+                                <FiPlus />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => window.open(`/api/manuscripts/${manuscript._id}/download`, '_blank')}
+                              className={styles.actionButton}
+                              title="Download All Files"
+                            >
+                              <FiDownload />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        ) : activeTab === 'available-for-publishing' ? (
+          /* Available for Publishing Tab */
+          <div className={styles.availableForPublishingSection}>
+            {availableForPublishing.length === 0 ? (
+              <div className={styles.emptyState}>
+                <FiGlobe />
+                <h3>No issues ready for publishing</h3>
+                <p>There are no unpublished issues containing manuscripts that are ready to be published.</p>
+              </div>
+            ) : (
+              <div className={styles.publishingIssuesList}>
+                <div className={styles.sectionHeader}>
+                  <h3>Issues Ready for Publishing</h3>
+                  <p>These issues contain manuscripts and are ready to be published to the website.</p>
+                </div>
+                
+                <div className={styles.publishingIssuesGrid}>
+                  {availableForPublishing
+                    .sort((a, b) => {
+                      // Sort by volume number, then issue number (descending)
+                      if (a.volume?.number !== b.volume?.number) {
+                        return (b.volume?.number || 0) - (a.volume?.number || 0);
+                      }
+                      return b.number - a.number;
+                    })
+                    .map((issue) => (
+                      <div key={issue._id} className={styles.publishingIssueCard}>
+                        <div className={styles.issueCardHeader}>
+                          <h4>
+                            Volume {issue.volume?.number}, Issue {issue.number}
+                          </h4>
+                          <span className={styles.issueTitle}>{issue.title}</span>
+                        </div>
+                        
+                        <div className={styles.issueCardContent}>
+                          <div className={styles.issueStats}>
+                            <div className={styles.statItem}>
+                              <FiBook />
+                              <span>{issue.manuscripts?.length || 0} articles</span>
                             </div>
-                          )}
-                        </div>
-                      </td>
-                      <td data-label="Authors">
-                        <div className={styles.authorsCell}>
-                          {manuscript.authors.slice(0, 2).map((author, index) => (
-                            <span key={index} className={styles.authorName}>
-                              {author.name}
-                            </span>
-                          ))}
-                          {manuscript.authors.length > 2 && (
-                            <span className={styles.moreAuthors}>
-                              +{manuscript.authors.length - 2} more
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td data-label="Category">
-                        <span className={styles.category}>{manuscript.category}</span>
-                      </td>
-                      <td data-label="Status & Date">
-                        <div className={styles.statusInfo}>
-                          <span className={`${styles.statusBadge} ${styles[getStatusBadgeClass(manuscript.status)]}`}>
-                            {getStatusDisplayText(manuscript.status)}
-                          </span>
-                          {manuscript.copyEditingStage === 'author-approved' && (
-                            <span className={styles.copyEditStatus}>
-                              ✓ Author Approved
-                            </span>
-                          )}
-                          <span className={styles.lastModified}>
-                            Updated: {new Date(manuscript.lastModified).toLocaleDateString()}
-                          </span>
-                        </div>
-                      </td>
-                      <td data-label="Publication Info">
-                        <div className={styles.publicationInfo}>
-                          {manuscript.doi && (
-                            <span className={styles.doi}>
-                              <FiHash />
-                              {manuscript.doi}
-                            </span>
-                          )}
-                          {manuscript.volume && (
-                            <span className={styles.volumeIssue}>
-                              Vol. {manuscript.volume}
-                              {manuscript.issue && `, Issue ${manuscript.issue}`}
-                            </span>
-                          )}
-                          {manuscript.publishedDate && (
-                            <span className={styles.publishedDate}>
+                            <div className={styles.statItem}>
                               <FiCalendar />
-                              {new Date(manuscript.publishedDate).toLocaleDateString()}
-                            </span>
+                              <span>Volume {issue.volume?.year}</span>
+                            </div>
+                          </div>
+                          
+                          {issue.description && (
+                            <p className={styles.issueDescription}>{issue.description}</p>
                           )}
                         </div>
-                      </td>
-                      <td data-label="Actions">
-                        <div className={styles.actionButtons}>
+                        
+                        <div className={styles.issueCardActions}>
                           <Link
-                            href={`/dashboard/manuscripts/${manuscript._id}`}
-                            className={styles.actionButton}
+                            href={`/dashboard/publication/issues/${issue._id}/details`}
+                            className={`${styles.actionButton} ${styles.viewButton}`}
                             title="View Details"
                           >
                             <FiEye />
+                            View Details
                           </Link>
-                          {manuscript.status === 'ready-for-publication' && manuscript.copyEditingStage === 'author-approved' && !manuscript.publishedDate && (
-                            <button
-                              onClick={() => handleDirectPublish(manuscript._id, manuscript.title)}
-                              className={`${styles.actionButton} ${styles.publishButton}`}
-                              title="Publish Now"
-                              disabled={isPublishing === manuscript._id}
-                            >
-                              {isPublishing === manuscript._id ? '...' : <FiGlobe />}
-                            </button>
-                          )}
+                          
                           <button
-                            onClick={() => window.open(`/api/manuscripts/${manuscript._id}/download`, '_blank')}
-                            className={styles.actionButton}
-                            title="Download All Files"
+                            onClick={() => handlePublishIssue(issue._id, issue.title)}
+                            disabled={isPublishing === issue._id}
+                            className={`${styles.actionButton} ${styles.publishButton}`}
+                            title="Publish Issue"
                           >
-                            <FiDownload />
+                            {isPublishing === issue._id ? (
+                              <>
+                                <div className={styles.spinner} />
+                                Publishing...
+                              </>
+                            ) : (
+                              <>
+                                <FiGlobe />
+                                Publish Now
+                              </>
+                            )}
                           </button>
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-
-        {/* Volumes & Issues Section */}
-        <div className={styles.volumesSection}>
-          <div className={styles.sectionHeader}>
-            <h2>Recent Volumes & Issues</h2>
-            <Link href="/dashboard/publication/volumes" className="btn btn-outline">
-              View All
-            </Link>
-          </div>
-
-          <div className={styles.volumesGrid}>
-            {volumes.slice(0, 3).map((volume) => (
-              <div key={volume._id} className={styles.volumeCard}>
-                <div className={styles.volumeInfo}>
-                  <h3>Volume {volume.number} ({volume.year})</h3>
-                  <p>{volume.title}</p>
-                  <span className={`${styles.statusBadge} ${styles[getStatusBadgeClass(volume.status)]}`}>
-                    {getStatusDisplayText(volume.status)}
-                  </span>
-                </div>
-                <div className={styles.volumeActions}>
-                  <Link href={`/dashboard/publication/volumes/${volume._id}`} className={styles.actionButton}>
-                    <FiEye />
-                  </Link>
-                  <Link href={`/dashboard/publication/volumes/${volume._id}/edit`} className={styles.actionButton}>
-                    <FiEdit3 />
-                  </Link>
+                      </div>
+                    ))}
                 </div>
               </div>
-            ))}
+            )}
           </div>
-        </div>
+        ) : activeTab === 'all-volumes' ? (
+          /* All Volumes Tab */
+          <div className={styles.allVolumesSection}>
+            {allVolumesData.length === 0 ? (
+              <div className={styles.emptyState}>
+                <FiArchive />
+                <h3>No volumes found</h3>
+                <p>There are no volumes created yet.</p>
+              </div>
+            ) : (
+              <>
+                <div className={styles.allVolumesList}>
+                  {/* Group by year and paginate */}
+                  {Object.entries(
+                    allVolumesData
+                      .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                      .reduce((acc: Record<string, any[]>, item) => {
+                        const year = item.volume.year;
+                        if (!acc[year]) acc[year] = [];
+                        acc[year].push(item);
+                        return acc;
+                      }, {})
+                  ).sort(([a], [b]) => parseInt(b) - parseInt(a)).map(([year, items]) => (
+                    <div key={year} className={styles.yearGroup}>
+                        <h3 className={styles.yearHeader} style={{ color: 'white' }}>{year}</h3>
+                      <div className={styles.volumesForYear}>
+                        {items.map((item) => (
+                          <div key={item.volume._id} className={styles.volumeGroup}>
+                            <h4 className={styles.volumeTitle}>
+                              Volume {item.volume.number} - {item.volume.title}
+                            </h4>
+                            {item.issues.length === 0 ? (
+                              <div className={styles.noIssues}>No issues in this volume</div>
+                            ) : (
+                              <div className={styles.issuesInVolume}>
+                                {item.issues
+                                  .sort((a: any, b: any) => b.number - a.number)
+                                  .map((issue: any) => (
+                                    <div key={issue._id} className={styles.issueItem}>
+                                      {/* Cover Image */}
+                                      <div className={styles.issueImageContainer}>
+                                        {issue.coverImage?.url ? (
+                                          <img 
+                                            src={issue.coverImage.url} 
+                                            alt={`Cover for ${issue.title}`}
+                                            className={styles.issueCoverImage}
+                                          />
+                                        ) : (
+                                          <div className={styles.defaultCover}>
+                                            <FiBook />
+                                          </div>
+                                        )}
+                                      </div>
+                                      
+                                      {/* Issue Info */}
+                                      <div className={styles.issueInfo}>
+                                        <span className={styles.issueTitle}>
+                                          Vol {item.volume.number}, Issue {issue.number}: {issue.title}
+                                        </span>
+                                        <div className={styles.issueMetadata}>
+                                          <span className={styles.issueDate}>
+                                            {issue.publishedDate ? 
+                                              new Date(issue.publishedDate).toLocaleDateString('en-US', { 
+                                                month: 'long', 
+                                                year: 'numeric' 
+                                              }) : 
+                                              `${new Date().toLocaleDateString('en-US', { month: 'long' })}, ${year}`
+                                            }
+                                          </span>
+                                          <span className={`${styles.issueStatus} ${issue.isPublished ? styles.published : styles.draft}`}>
+                                            <span style={{ color: 'black' }}>
+                                              {issue.isPublished ? '✅ Published' : '📝 Draft'}
+                                            </span>
+                                          </span>
+                                          <span className={styles.issueArticles}>
+                                            {issue.manuscripts?.length || 0} articles
+                                          </span>
+                                        </div>
+                                      </div>
+                                      
+                                      {/* Actions */}
+                                      <div className={styles.issueActions}>
+                                        <Link
+                                          href={`/dashboard/publication/issues/${issue._id}/details`}
+                                          className={styles.actionButton}
+                                          title="View Details"
+                                        >
+                                          <FiEye />
+                                        </Link>
+                                        <button
+                                          onClick={() => handleDeleteIssue(issue._id, issue.title)}
+                                          className={`${styles.actionButton} ${styles.deleteButton}`}
+                                          title="Delete Issue"
+                                        >
+                                          ×
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className={styles.pagination}>
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                      className={styles.paginationButton}
+                    >
+                      Previous
+                    </button>
+                    <span className={styles.paginationInfo}>
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                      className={styles.paginationButton}
+                    >
+                      Next
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        ) : (
+          /* Published Issues Tab */
+          <div className={styles.publishedIssuesSection}>
+            {publishedIssues.length === 0 ? (
+              <div className={styles.emptyState}>
+                <FiArchive />
+                <h3>No published issues</h3>
+                <p>There are no published issues yet.</p>
+              </div>
+            ) : (
+              <div className={styles.publishedIssuesList}>
+                {/* Group by year */}
+                {Object.entries(
+                  publishedIssues.reduce((acc: Record<string, any[]>, item) => {
+                    const year = item.volume?.year || new Date().getFullYear();
+                    if (!acc[year]) acc[year] = [];
+                    acc[year].push(item);
+                    return acc;
+                  }, {})
+                ).sort(([a], [b]) => parseInt(b) - parseInt(a)).map(([year, items]) => (
+                  <div key={year} className={styles.yearGroup}>
+                    <h3 className={styles.yearHeader}>{year}</h3>
+                    <div className={styles.issuesForYear}>
+                      {items
+                        .sort((a, b) => {
+                          // Sort by volume number, then issue number (descending)
+                          if (a.volume.number !== b.volume.number) {
+                            return b.volume.number - a.volume.number;
+                          }
+                          return b.issue.number - a.issue.number;
+                        })
+                        .map((item) => (
+                          <div
+                            key={item.issue._id}
+                            className={styles.publishedIssueCard}
+                          >
+                            {/* Cover Image */}
+                            <div className={styles.issueImageContainer}>
+                              {item.issue.coverImage?.url ? (
+                                <img 
+                                  src={item.issue.coverImage.url} 
+                                  alt={`Cover for ${item.issue.title}`}
+                                  className={styles.issueCoverImage}
+                                />
+                              ) : (
+                                <div className={styles.defaultCover}>
+                                  <FiBook />
+                                </div>
+                              )}
+                            </div>
+                            
+                            {/* Issue Info */}
+                            <div className={styles.issueInfo}>
+                              <h4>Vol {item.volume.number}, Issue {item.issue.number}</h4>
+                              <h5>{item.issue.title}</h5>
+                              <div className={styles.issueMetadata}>
+                                <span className={styles.issueDate}>
+                                  {item.issue.publishedDate ? 
+                                    new Date(item.issue.publishedDate).toLocaleDateString('en-US', { 
+                                      month: 'long', 
+                                      year: 'numeric' 
+                                    }) : 
+                                    `${new Date().toLocaleDateString('en-US', { month: 'long' })}, ${year}`
+                                  }
+                                </span>
+                                <span className={styles.articleCount}>
+                                  {item.issue.manuscripts?.length || 0} articles
+                                </span>
+                              </div>
+                            </div>
+                            
+                            {/* Actions */}
+                            <div className={styles.issueActions}>
+                              <Link
+                                href={`/dashboard/publication/issues/${item.issue._id}/details`}
+                                className={styles.actionButton}
+                                title="View Details"
+                              >
+                                <FiEye />
+                              </Link>
+                              <Link
+                                href={`/volumes/${item.volume.number}/issues/${item.issue.number}`}
+                                className={styles.actionButton}
+                                target="_blank"
+                                title="View Public Page"
+                              >
+                                <FiGlobe />
+                              </Link>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,0 +1,307 @@
+.container {
+  min-height: 100vh;
+  padding: 2rem 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 3rem;
+  padding: 2rem 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.headerContent {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #1a365d;
+  margin-bottom: 1rem;
+}
+
+.titleIcon {
+  color: #2b6cb0;
+}
+
+.subtitle {
+  font-size: 1.1rem;
+  color: #4a5568;
+  line-height: 1.6;
+}
+
+.main {
+  min-height: 60vh;
+}
+
+.loading {
+  text-align: center;
+  font-size: 1.2rem;
+  color: #4a5568;
+  padding: 4rem 0;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: #4a5568;
+
+  .emptyIcon {
+    font-size: 4rem;
+    color: #cbd5e0;
+    margin-bottom: 1rem;
+  }
+
+  h3 {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    color: #2d3748;
+  }
+
+  p {
+    font-size: 1rem;
+    color: #4a5568;
+  }
+}
+
+.volumesGrid {
+  display: grid;
+  gap: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+}
+
+.volumeCard {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+  padding: 1.5rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.volumeHeader {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f7fafc;
+}
+
+.volumeTitle {
+  margin: 0 0 0.75rem 0;
+
+  a {
+    color: #1a365d;
+    text-decoration: none;
+    font-size: 1.4rem;
+    font-weight: 600;
+    transition: color 0.2s ease;
+
+    &:hover {
+      color: #2b6cb0;
+    }
+  }
+}
+
+.volumeMeta {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.metaItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #4a5568;
+
+  svg {
+    font-size: 0.85rem;
+    color: #2b6cb0;
+  }
+}
+
+.volumeContent {
+  margin-bottom: 1.5rem;
+}
+
+.volumeSubtitle {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #2d3748;
+  margin-bottom: 0.5rem;
+}
+
+.volumeDescription {
+  color: #4a5568;
+  line-height: 1.6;
+  font-size: 0.95rem;
+}
+
+.issuesSection {
+  margin-bottom: 1.5rem;
+}
+
+.issuesTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.noIssues {
+  color: #718096;
+  font-style: italic;
+  font-size: 0.9rem;
+}
+
+.issuesList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.issueItem {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+
+  &:hover {
+    border-color: #2b6cb0;
+  }
+}
+
+.issueLink {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  text-decoration: none;
+  color: inherit;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: #f7fafc;
+  }
+}
+
+.issueInfo {
+  flex: 1;
+}
+
+.issueNumber {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #2b6cb0;
+  margin: 0 0 0.25rem 0;
+}
+
+.issueTitle {
+  font-size: 0.9rem;
+  color: #2d3748;
+  margin: 0 0 0.5rem 0;
+  line-height: 1.4;
+}
+
+.issueMeta {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.8rem;
+  color: #4a5568;
+}
+
+.articleCount,
+.publishDate {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+
+  svg {
+    font-size: 0.75rem;
+  }
+}
+
+.viewIcon {
+  color: #718096;
+  font-size: 1.1rem;
+  transition: color 0.2s ease;
+
+  .issueLink:hover & {
+    color: #2b6cb0;
+  }
+}
+
+.volumeActions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 1rem;
+  border-top: 1px solid #f7fafc;
+}
+
+.viewVolumeBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: #2b6cb0;
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: #2c5aa0;
+  }
+
+  svg {
+    font-size: 0.85rem;
+  }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem 0.5rem;
+  }
+
+  .title {
+    font-size: 2rem;
+  }
+
+  .volumesGrid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .volumeCard {
+    padding: 1rem;
+  }
+
+  .volumeMeta {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .issueMeta {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+}

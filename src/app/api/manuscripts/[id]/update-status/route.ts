@@ -65,6 +65,16 @@ export async function POST(
       return NextResponse.json({ error: 'Manuscript not found' }, { status: 404 });
     }
 
+    // Protection: Prevent status changes for published manuscripts
+    if (manuscript.status === 'published') {
+      return NextResponse.json({ 
+        error: 'Cannot update status of published manuscripts to prevent data corruption',
+        manuscriptId: params.id,
+        currentStatus: manuscript.status,
+        message: 'Published manuscripts are protected from status changes'
+      }, { status: 400 });
+    }
+
     // Check if author is trying to update their own manuscript
     if (session.user.role === 'author' && 
         manuscript.submittedBy.toString() !== session.user.id) {

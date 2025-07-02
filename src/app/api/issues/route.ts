@@ -1,54 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/pages/api/auth/[...nextauth]';
-import dbConnect from '@/lib/mongodb';
-import mongoose from 'mongoose';
-
-// Create Issue schema and model
-const issueSchema = new mongoose.Schema({
-  volumeId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Volume',
-    required: true,
-  },
-  number: {
-    type: Number,
-    required: true,
-  },
-  title: {
-    type: String,
-    required: true,
-  },
-  description: {
-    type: String,
-    default: '',
-  },
-  status: {
-    type: String,
-    enum: ['draft', 'active', 'published', 'archived'],
-    default: 'draft',
-  },
-  publishedDate: {
-    type: Date,
-  },
-  manuscripts: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Manuscript',
-  }],
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now,
-  },
-});
-
-// Ensure unique issue number per volume
-issueSchema.index({ volumeId: 1, number: 1 }, { unique: true });
-
-const Issue = mongoose.models.Issue || mongoose.model('Issue', issueSchema);
+import connectToDatabase from '@/lib/mongodb';
+import Volume from '@/models/Volume';
 
 export async function GET() {
   try {
@@ -61,11 +15,25 @@ export async function GET() {
       );
     }
 
-    await dbConnect();
+    await connectToDatabase();
 
-    const issues = await Issue.find({})
-      .populate('volumeId', 'number year title')
-      .sort({ createdAt: -1 });
+    // Get all volumes with their issues and populate manuscripts
+    const volumes = await Volume.find({})
+      .populate('issues.manuscripts', 'title authors status')
+      .sort({ year: -1, number: -1 });
+
+    // Flatten issues from all volumes
+    const issues = volumes.flatMap(volume => 
+      volume.issues.map((issue: any) => ({
+        ...issue.toObject(),
+        volume: {
+          _id: volume._id,
+          number: volume.number,
+          year: volume.year,
+          title: volume.title
+        }
+      }))
+    );
 
     return NextResponse.json({
       issues,
@@ -92,10 +60,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await dbConnect();
+    await connectToDatabase();
 
     const body = await request.json();
-    const { volumeId, number, title, description, status } = body;
+    const { volumeId, number, title, description, editorialNote, coverImage, status, publishDate } = body;
 
     // Validate required fields
     if (!volumeId || !number || !title) {
@@ -105,8 +73,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Find the volume
+    const volume = await Volume.findById(volumeId);
+    if (!volume) {
+      return NextResponse.json(
+        { error: 'Volume not found' },
+        { status: 404 }
+      );
+    }
+
+    // Check issue limit (3-4 issues per volume)
+    if (volume.issues.length >= 4) {
+      return NextResponse.json(
+        { error: 'Maximum of 4 issues per volume allowed' },
+        { status: 400 }
+      );
+    }
+
     // Check if issue number already exists for this volume
-    const existingIssue = await Issue.findOne({ volumeId, number });
+    const existingIssue = volume.issues.find((issue: any) => issue.number === parseInt(number));
     if (existingIssue) {
       return NextResponse.json(
         { error: `Issue ${number} already exists for this volume` },
@@ -114,22 +99,49 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const issue = new Issue({
-      volumeId,
+    // Prepare issue data
+    const issueData: any = {
       number: parseInt(number),
       title,
       description: description || '',
-      status: status || 'draft',
-    });
+      editorialNote: editorialNote || '',
+      isPublished: status === 'published',
+    };
 
-    await issue.save();
+    // Handle cover image
+    if (coverImage) {
+      try {
+        issueData.coverImage = JSON.parse(coverImage);
+      } catch (e) {
+        issueData.coverImage = { url: '', publicId: '', originalName: '' };
+      }
+    }
 
-    // Populate the volume data for response
-    await issue.populate('volumeId', 'number year title');
+    // Handle publish date
+    if (publishDate) {
+      issueData.publishedDate = new Date(publishDate);
+    }
+
+    // Add the issue to the volume
+    volume.issues.push(issueData);
+    volume.lastModifiedBy = session.user.id;
+    
+    await volume.save();
+
+    // Get the newly created issue
+    const newIssue = volume.issues[volume.issues.length - 1];
 
     return NextResponse.json({
       message: 'Issue created successfully',
-      issue
+      issue: {
+        ...newIssue.toObject(),
+        volume: {
+          _id: volume._id,
+          number: volume.number,
+          year: volume.year,
+          title: volume.title
+        }
+      }
     }, { status: 201 });
 
   } catch (error) {

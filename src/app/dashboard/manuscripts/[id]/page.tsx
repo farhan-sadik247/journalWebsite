@@ -189,6 +189,18 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
           status: data.manuscript.status,
           title: data.manuscript.title?.substring(0, 50) + '...'
         });
+        
+        // Protection: Don't update if current manuscript is published and new data has different status
+        if (manuscript?.status === 'published' && data.manuscript.status !== 'published') {
+          console.warn('⚠️ Prevented status change for published manuscript:', {
+            currentStatus: manuscript.status,
+            newStatus: data.manuscript.status,
+            manuscriptId: manuscript._id
+          });
+          toast.error('Cannot change status of published manuscript');
+          return;
+        }
+        
         setManuscript(data.manuscript);
       } else if (response.status === 404) {
         setError('Manuscript not found');
@@ -734,6 +746,12 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
   };
 
   const refreshData = async () => {
+    // Prevent refreshing for published manuscripts to avoid status changes
+    if (manuscript?.status === 'published') {
+      toast.error('Cannot refresh status for published manuscripts to prevent data corruption.');
+      return;
+    }
+    
     setIsLoading(true);
     setReviewsLoading(true);
     await Promise.all([fetchManuscript(), fetchReviews()]);
@@ -1112,15 +1130,6 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
             <FiBookOpen />
             Review Status
           </h2>
-          <button 
-            onClick={refreshData}
-            className={styles.refreshBtn}
-            disabled={reviewsLoading || isLoading}
-            title="Refresh review status"
-          >
-            <FiClock />
-            {(reviewsLoading || isLoading) ? 'Refreshing...' : 'Refresh'}
-          </button>
         </div>
         
         {reviewsLoading ? (
@@ -1422,6 +1431,18 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
                   <span className={getStatusBadge(manuscript.status)}>
                     {getManuscriptStatusDisplayText(manuscript.status)}
                   </span>
+                  {manuscript.status === 'published' && (
+                    <div style={{ 
+                      marginTop: '0.5rem', 
+                      padding: '0.5rem', 
+                      backgroundColor: '#d4edda', 
+                      borderRadius: '4px',
+                      fontSize: '0.9rem',
+                      color: '#155724'
+                    }}>
+                      🔒 <strong>Published Article</strong> - Status is protected from changes
+                    </div>
+                  )}
                 </td>
               </tr>
               <tr>
@@ -1620,55 +1641,6 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
             </div>
             
             <div className={styles.headerActions}>
-              <button 
-                onClick={() => {
-                  setIsLoading(true);
-                  fetchManuscript();
-                  fetchReviews();
-                }}
-                className="btn btn-secondary"
-                disabled={isLoading}
-              >
-                <FiClock />
-                {isLoading ? 'Refreshing...' : 'Refresh Status'}
-              </button>
-              <button 
-                onClick={async () => {
-                  try {
-                    setIsLoading(true);
-                    const response = await fetch(`/api/manuscripts/${params.id}/update-status`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' }
-                    });
-                    const result = await response.json();
-                    console.log('Status update result:', result);
-                    
-                    if (response.ok) {
-                      // Refresh the manuscript data
-                      await fetchManuscript();
-                      await fetchReviews();
-                      
-                      if (result.updated) {
-                        alert(`Status updated from "${result.previousStatus}" to "${result.currentStatus}"`);
-                      } else {
-                        alert('Status is already up to date');
-                      }
-                    } else {
-                      alert(`Error: ${result.error}`);
-                    }
-                  } catch (error) {
-                    console.error('Error updating status:', error);
-                    alert('Failed to update status');
-                  } finally {
-                    setIsLoading(false);
-                  }
-                }}
-                className="btn btn-warning"
-                disabled={isLoading}
-              >
-                <FiFileText />
-                {isLoading ? 'Updating...' : 'Update Status'}
-              </button>
               {(manuscript.status === 'revision-requested' || 
                 manuscript.status === 'major-revision-requested' || 
                 manuscript.status === 'minor-revision-requested') && (

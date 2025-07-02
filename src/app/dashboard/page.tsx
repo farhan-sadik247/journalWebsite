@@ -176,6 +176,13 @@ export default function DashboardPage() {
       color: 'danger',
     });
     roleBasedActions.push({
+      title: 'Publication Dashboard',
+      description: 'Manage manuscripts ready for publication',
+      icon: FiBookOpen,
+      href: '/dashboard/publication',
+      color: 'primary',
+    });
+    roleBasedActions.push({
       title: 'Payment Management',
       description: 'Manage APC fees and payments',
       icon: FiDollarSign,

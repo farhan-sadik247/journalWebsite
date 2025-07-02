@@ -13,7 +13,25 @@ const issueSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
+  editorialNote: {
+    type: String,
+    default: '',
+  },
   coverImage: {
+    url: {
+      type: String,
+      default: '',
+    },
+    publicId: {
+      type: String,
+      default: '',
+    },
+    originalName: {
+      type: String,
+      default: '',
+    },
+  },
+  issuePdfUrl: {
     type: String,
     default: '',
   },
@@ -69,6 +87,14 @@ const volumeSchema = new mongoose.Schema({
     type: Date,
   },
   editorNotes: {
+    type: String,
+    default: '',
+  },
+  annualEditorialPdfUrl: {
+    type: String,
+    default: '',
+  },
+  indexPdfUrl: {
     type: String,
     default: '',
   },

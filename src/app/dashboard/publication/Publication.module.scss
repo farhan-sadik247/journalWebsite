@@ -468,6 +468,404 @@
   margin-bottom: 3rem;
 }
 
+// Issue Selection Styles
+.issueSelection {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+  label {
+    display: block;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  .issueDropdown {
+    width: 100%;
+    max-width: 400px;
+    padding: 0.75rem 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: white;
+    font-size: 0.875rem;
+    color: #374151;
+
+    &:focus {
+      outline: none;
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+
+    option {
+      padding: 0.5rem;
+    }
+  }
+}
+
+// Published Issues Styles
+.publishedIssuesSection {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.publishedIssuesList {
+  padding: 2rem;
+}
+
+.yearGroup {
+  margin-bottom: 2rem;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  .yearHeader {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #e5e7eb;
+  }
+
+  .issuesForYear {
+    display: grid;
+    gap: 1rem;
+  }
+}
+
+.publishedIssueCard {
+  display: flex;
+  align-items: center;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  transition: all 0.2s ease;
+  gap: 1.5rem;
+
+  &:hover {
+    border-color: #6366f1;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
+  }
+
+  .issueImageContainer {
+    flex-shrink: 0;
+    width: 80px;
+    height: 100px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f9fafb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .issueCoverImage {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .defaultCover {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+      color: #9ca3af;
+
+      svg {
+        width: 32px;
+        height: 32px;
+      }
+    }
+  }
+
+  .issueInfo {
+    flex: 1;
+
+    h4 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 0.25rem;
+    }
+
+    h5 {
+      font-size: 1rem;
+      font-weight: 500;
+      color: #4b5563;
+      margin-bottom: 0.75rem;
+      line-height: 1.4;
+    }
+
+    .issueTitle {
+      font-size: 1rem;
+      font-weight: 500;
+      color: #111827;
+      display: block;
+      margin-bottom: 0.5rem;
+      line-height: 1.4;
+    }
+
+    .issueMetadata {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      font-size: 0.875rem;
+      color: #6b7280;
+
+      .issueDate,
+      .articleCount,
+      .issueStatus,
+      .issueArticles {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+      }
+
+      .issueStatus {
+        font-weight: 600;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        color: #111827 !important; // Dark text for better visibility
+        background: #f3f4f6;
+        border: 1px solid #e5e7eb;
+
+        &.published {
+          background: #dcfce7;
+          color: #166534 ;
+          border-color: #bbf7d0;
+        }
+
+        &.draft {
+          background: #fef3c7;
+          color: #92400e !important;
+          border-color: #fde68a;
+        }
+      }
+    }
+  }
+
+  .issueActions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+
+    .actionButton {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+      background: white;
+      color: #6b7280;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      text-decoration: none;
+
+      &:hover {
+        border-color: #6366f1;
+        color: #6366f1;
+        background: #f8faff;
+      }
+
+      &.deleteButton {
+        color: #dc2626;
+        border-color: #fecaca;
+        background: #fef2f2;
+
+        &:hover {
+          background: #fee2e2;
+          border-color: #fca5a5;
+        }
+      }
+
+      svg {
+        width: 16px;
+        height: 16px;
+      }
+    }
+  }
+}
+
+// Assign Button Styles
+.assignButton {
+  background: #10b981 !important;
+  color: white !important;
+
+  &:hover {
+    background: #059669 !important;
+  }
+}
+
+// Available for Publishing Section
+.availableForPublishingSection {
+  .sectionHeader {
+    margin-bottom: 2rem;
+    text-align: center;
+    
+    h3 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 0.5rem;
+    }
+    
+    p {
+      color: #6b7280;
+      font-size: 1rem;
+    }
+  }
+}
+
+.publishingIssuesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.publishingIssueCard {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+  }
+}
+
+.issueCardHeader {
+  margin-bottom: 1rem;
+  
+  h4 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 0.5rem;
+  }
+  
+  .issueTitle {
+    color: #6b7280;
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+}
+
+.issueCardContent {
+  margin-bottom: 1.5rem;
+  
+  .issueDescription {
+    color: #6b7280;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-top: 1rem;
+  }
+}
+
+.issueStats {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.statItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #6b7280;
+  
+  svg {
+    color: #9ca3af;
+  }
+}
+
+.issueCardActions {
+  display: flex;
+  gap: 0.75rem;
+  
+  .viewButton {
+    background-color: #f3f4f6;
+    color: #374151;
+    
+    &:hover {
+      background-color: #e5e7eb;
+      color: #1f2937;
+    }
+  }
+  
+  .publishButton {
+    background-color: #10b981;
+    color: white;
+    
+    &:hover:not(:disabled) {
+      background-color: #059669;
+    }
+    
+    &:disabled {
+      background-color: #d1d5db;
+      cursor: not-allowed;
+    }
+    
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid transparent;
+      border-top: 2px solid currentColor;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 0.5rem;
+    }
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+// Responsive Design for Publishing Cards
+@media (max-width: 768px) {
+  .publishingIssuesGrid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .publishingIssueCard {
+    padding: 1rem;
+  }
+  
+  .issueCardActions {
+    flex-direction: column;
+    
+    .actionButton {
+      justify-content: center;
+    }
+  }
+  
+  .issueStats {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
+
 // Responsive design
 @media (max-width: 768px) {
   .header {
@@ -528,5 +926,245 @@
   
   .filesSection {
     margin-top: 0.5rem;
+  }
+
+  .issueSelection {
+    padding: 1rem;
+
+    .issueDropdown {
+      max-width: none;
+    }
+  }
+
+  .publishedIssueCard {
+    padding: 1rem;
+
+    .issueHeader {
+      flex-direction: column;
+      align-items: flex-start;
+
+      .issueDate {
+        margin-left: 0;
+        margin-top: 0.5rem;
+      }
+    }
+  }
+
+  .yearGroup .yearHeader {
+    font-size: 1.25rem;
+  }
+}
+
+// All Volumes Section Styles
+.allVolumesSection {
+  margin-top: 2rem;
+}
+
+.allVolumesList {
+  .volumeGroup {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+  }
+
+  .volumeTitle {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 1rem;
+  }
+
+  .noIssues {
+    color: #64748b;
+    font-style: italic;
+    padding: 1rem;
+    text-align: center;
+  }
+
+  .issuesInVolume {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  // Issue Item for All Volumes tab
+  .issueItem {
+    display: flex;
+    align-items: center;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    transition: all 0.2s ease;
+    gap: 1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+    &:hover {
+      border-color: #6366f1;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
+      transform: translateY(-1px);
+    }
+  }
+
+  .issueImageContainer {
+    flex-shrink: 0;
+    width: 60px;
+    height: 75px;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+
+    .issueCoverImage {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .defaultCover {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #9ca3af;
+      font-size: 1.25rem;
+    }
+  }
+
+  .issueInfo {
+    flex: 1;
+    min-width: 0;
+
+    .issueTitle {
+      font-weight: 600;
+      color: #1e293b;
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .issueMetadata {
+      display: flex;
+      gap: 1rem;
+      font-size: 0.875rem;
+
+      .issueDate {
+        color: #64748b;
+      }
+
+      .issueStatus {
+        font-weight: 500;
+      }
+
+      .issueArticles {
+        color: #6366f1;
+        font-weight: 600;
+      }
+    }
+  }
+
+  .issueActions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-shrink: 0;
+
+    .actionButton {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      background: white;
+      color: #64748b;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      font-size: 1rem;
+
+      &:hover {
+        border-color: #6366f1;
+        color: #6366f1;
+        background: #f8faff;
+      }
+
+      &.deleteButton {
+        font-size: 1.25rem;
+        font-weight: bold;
+
+        &:hover {
+          border-color: #ef4444;
+          color: #ef4444;
+          background: #fef2f2;
+        }
+      }
+    }
+  }
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding: 1rem;
+
+  .paginationButton {
+    padding: 0.5rem 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    background: white;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover:not(:disabled) {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  .paginationInfo {
+    color: #64748b;
+    font-size: 0.875rem;
+  }
+}
+
+// Responsive styles for All Volumes
+@media (max-width: 768px) {
+  .allVolumesList {
+    .volumeGroup {
+      padding: 1rem;
+    }
+
+    .issueItem {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+
+      .issueActions {
+        align-self: flex-end;
+      }
+    }
+  }
+
+  .pagination {
+    flex-direction: column;
+    gap: 0.5rem;
+
+    .paginationButton {
+      width: 100%;
+      max-width: 200px;
+    }
   }
 }

@@ -18,7 +18,7 @@ interface Article {
   issue?: number; // Made optional and moved from nested object
   pages?: string; // Made optional and moved from nested object
   doi?: string; // Made optional and moved from nested object
-  metrics: {
+  metrics?: {
     views: number;
     downloads: number;
     citations: number;
@@ -59,6 +59,7 @@ export default function ArticlesPage() {
   const fetchArticles = async () => {
     setLoading(true);
     try {
+      console.log('🔍 ArticlesPage: Fetching articles...');
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: '12'
@@ -67,15 +68,28 @@ export default function ArticlesPage() {
       if (categoryFilter) params.append('category', categoryFilter);
       if (searchQuery) params.append('query', searchQuery);
 
-      const response = await fetch(`/api/articles?${params}`);
+      const url = `/api/articles?${params}`;
+      console.log('📡 ArticlesPage: Fetching from:', url);
+      
+      const response = await fetch(url);
+      console.log('📡 ArticlesPage: Response status:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
-        setArticles(data.articles);
+        console.log('✅ ArticlesPage: Received data:', data);
+        console.log('📄 ArticlesPage: Articles count:', data.articles?.length || 0);
+        
+        setArticles(data.articles || []);
         setPagination(data.pagination);
+      } else {
+        console.error('❌ ArticlesPage: Failed to fetch articles, status:', response.status);
+        const errorText = await response.text();
+        console.error('❌ ArticlesPage: Error response:', errorText);
       }
     } catch (error) {
-      console.error('Error fetching articles:', error);
+      console.error('❌ ArticlesPage: Error fetching articles:', error);
     } finally {
+      console.log('🏁 ArticlesPage: Setting loading to false');
       setLoading(false);
     }
   };

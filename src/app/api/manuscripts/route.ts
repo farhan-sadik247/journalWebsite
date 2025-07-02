@@ -202,6 +202,22 @@ export async function GET(request: NextRequest) {
     // Add additional filters
     if (status) filter.status = status;
     if (category) filter.category = category;
+    
+    // Add copyEditingStage filter
+    const copyEditingStage = searchParams.get('copyEditingStage');
+    if (copyEditingStage) {
+      filter.copyEditingStage = copyEditingStage;
+    }
+    
+    // Add unassigned filter for article assignment
+    const unassigned = searchParams.get('unassigned');
+    if (unassigned === 'true') {
+      filter.$and = [
+        { $or: [{ issue: { $exists: false } }, { issue: null }] },
+        { $or: [{ volume: { $exists: false } }, { volume: null }] }
+      ];
+    }
+    
     if (query) {
       filter.$text = { $search: query };
     }
