@@ -28,25 +28,30 @@ export async function createNotification(params: CreateNotificationParams) {
       return null; // Return null instead of throwing error
     }
 
-    const notification = new Notification({
-      recipient: recipient._id,
-      type: params.type,
-      title: params.title,
-      message: params.message,
-      relatedManuscript: params.manuscriptId ? new Types.ObjectId(params.manuscriptId) : undefined,
-      relatedPayment: params.paymentId ? new Types.ObjectId(params.paymentId) : undefined,
-      metadata: {
-        priority: params.priority || 'medium',
-        actionUrl: params.actionUrl,
-        createdBy: params.createdBy || 'system'
-      }
-    });
+    try {
+      const notification = new Notification({
+        recipient: recipient._id,
+        type: params.type,
+        title: params.title,
+        message: params.message,
+        relatedManuscript: params.manuscriptId ? new Types.ObjectId(params.manuscriptId) : undefined,
+        relatedPayment: params.paymentId ? new Types.ObjectId(params.paymentId) : undefined,
+        metadata: {
+          priority: params.priority || 'medium',
+          actionUrl: params.actionUrl,
+          createdBy: params.createdBy || 'system'
+        }
+      });
 
-    await notification.save();
-    return notification;
+      await notification.save();
+      return notification;
+    } catch (saveError) {
+      console.error('Error saving notification:', saveError);
+      return null; // Return null instead of throwing error
+    }
   } catch (error) {
     console.error('Error creating notification:', error);
-    throw error;
+    return null; // Return null instead of throwing error
   }
 }
 
@@ -176,6 +181,25 @@ export async function notifyReviewAssignment(
     priority: 'high',
     actionUrl: `/dashboard/reviewer/${manuscriptId}`,
     createdBy: 'editorial_system'
+  });
+}
+
+export async function notifyAuthorReviewSubmitted(
+  authorEmail: string,
+  manuscriptId: string,
+  manuscriptTitle: string,
+  reviewerName?: string
+) {
+  const reviewerText = reviewerName ? ` by ${reviewerName}` : '';
+  return createNotification({
+    recipientEmail: authorEmail,
+    type: 'review_submitted',
+    title: 'Review Submitted for Your Manuscript',
+    message: `A review has been submitted${reviewerText} for your manuscript "${manuscriptTitle}". The editorial team will review the feedback and update you on the next steps.`,
+    manuscriptId,
+    priority: 'medium',
+    actionUrl: `/dashboard/manuscripts/${manuscriptId}`,
+    createdBy: 'review_system'
   });
 }
 
@@ -322,51 +346,62 @@ export async function notifyManuscriptAcceptedWithFee(
     const feeCalculation = await getFeeForManuscript(manuscriptData);
     
     // First notification: Manuscript acceptance
-    const acceptanceNotification = await createNotification({
-      recipientEmail: authorEmail,
-      type: 'manuscript_status',
-      title: 'Manuscript Accepted for Publication',
-      message: `Congratulations! Your manuscript "${manuscriptTitle}" has been accepted for publication. This is an important milestone in your research journey.`,
-      manuscriptId,
-      priority: 'high',
-      actionUrl: `/dashboard/manuscripts/${manuscriptId}`,
-      createdBy: 'editorial_system'
-    });
+    let acceptanceNotification = null;
+    try {
+      acceptanceNotification = await createNotification({
+        recipientEmail: authorEmail,
+        type: 'manuscript_status',
+        title: 'Manuscript Accepted for Publication',
+        message: `Congratulations! Your manuscript "${manuscriptTitle}" has been accepted for publication. This is an important milestone in your research journey.`,
+        manuscriptId,
+        priority: 'high',
+        actionUrl: `/dashboard/manuscripts/${manuscriptId}`,
+        createdBy: 'editorial_system'
+      });
+    } catch (notifError) {
+      console.error('Error creating acceptance notification:', notifError);
+      // Continue despite notification error
+    }
     
     // Second notification: Payment requirement (if applicable)
     let paymentNotification = null;
     
-    if (feeCalculation.isWaiver || feeCalculation.finalFee === 0) {
-      // If fee is waived, send a notification about proceeding to production
-      paymentNotification = await createNotification({
-        recipientEmail: authorEmail,
-        type: 'manuscript_status',
-        title: 'Publication Fee Waived - Proceeding to Production',
-        message: `Based on your location/institution, the publication fee for "${manuscriptTitle}" has been waived. Your manuscript will now proceed directly to copy-editing and typesetting.`,
-        manuscriptId,
-        priority: 'medium',
-        actionUrl: `/dashboard/manuscripts/${manuscriptId}`,
-        createdBy: 'editorial_system'
-      });
-    } else {
-      // If payment is required, send specific payment notification
-      const deadlineDate = new Date();
-      deadlineDate.setDate(deadlineDate.getDate() + feeCalculation.paymentDeadlineDays);
-      
-      const paymentMessage = `To proceed with copy-editing and typesetting of "${manuscriptTitle}", please complete the Article Processing Charge (APC) payment of ${feeCalculation.currency} $${feeCalculation.finalFee}` +
-        (feeCalculation.discountAmount > 0 ? ` (${feeCalculation.discountReason})` : '') +
-        `. Payment deadline: ${deadlineDate.toLocaleDateString()}.`;
-      
-      paymentNotification = await createNotification({
-        recipientEmail: authorEmail,
-        type: 'payment_required',
-        title: 'Article Processing Charge (APC) Payment Required',
-        message: paymentMessage,
-        manuscriptId,
-        priority: 'high',
-        actionUrl: `/dashboard/payments/new?manuscriptId=${manuscriptId}&amount=${feeCalculation.finalFee}`,
-        createdBy: 'editorial_system'
-      });
+    try {
+      if (feeCalculation.isWaiver || feeCalculation.finalFee === 0) {
+        // If fee is waived, send a notification about proceeding to production
+        paymentNotification = await createNotification({
+          recipientEmail: authorEmail,
+          type: 'manuscript_status',
+          title: 'Publication Fee Waived - Proceeding to Production',
+          message: `Based on your location/institution, the publication fee for "${manuscriptTitle}" has been waived. Your manuscript will now proceed directly to copy-editing and typesetting.`,
+          manuscriptId,
+          priority: 'medium',
+          actionUrl: `/dashboard/manuscripts/${manuscriptId}`,
+          createdBy: 'editorial_system'
+        });
+      } else {
+        // If payment is required, send specific payment notification
+        const deadlineDate = new Date();
+        deadlineDate.setDate(deadlineDate.getDate() + feeCalculation.paymentDeadlineDays);
+        
+        const paymentMessage = `To proceed with copy-editing and typesetting of "${manuscriptTitle}", please complete the Article Processing Charge (APC) payment of ${feeCalculation.currency} $${feeCalculation.finalFee}` +
+          (feeCalculation.discountAmount > 0 ? ` (${feeCalculation.discountReason})` : '') +
+          `. Payment deadline: ${deadlineDate.toLocaleDateString()}.`;
+        
+        paymentNotification = await createNotification({
+          recipientEmail: authorEmail,
+          type: 'payment_required',
+          title: 'Article Processing Charge (APC) Payment Required',
+          message: paymentMessage,
+          manuscriptId,
+          priority: 'high',
+          actionUrl: `/dashboard/payments/new?manuscriptId=${manuscriptId}&amount=${feeCalculation.finalFee}`,
+          createdBy: 'editorial_system'
+        });
+      }
+    } catch (notifError) {
+      console.error('Error creating payment notification:', notifError);
+      // Continue despite notification error
     }
     
     return {
@@ -375,8 +410,14 @@ export async function notifyManuscriptAcceptedWithFee(
       feeCalculation
     };
   } catch (error) {
-    console.error('Error sending acceptance notification:', error);
-    throw error;
+    console.error('Error in fee calculation or notification process:', error);
+    // Return partial data instead of throwing error
+    return {
+      acceptanceNotification: null,
+      paymentNotification: null,
+      feeCalculation: null,
+      error
+    };
   }
 }
 

@@ -414,32 +414,6 @@ export default function PublicationDashboard() {
         </div>
       )}
       
-      {/* Debug Info - Remove this in production */}
-      {process.env.NODE_ENV === 'development' && (
-        <div style={{ 
-          background: '#f0f0f0', 
-          border: '1px solid #ccc', 
-          padding: '10px', 
-          margin: '10px 0',
-          fontFamily: 'monospace',
-          fontSize: '12px'
-        }}>
-          <h3>Debug Info</h3>
-          <p>Session: {session ? '✅ Authenticated' : '❌ Not authenticated'}</p>
-          <p><strong>User Role: {session?.user?.role || 'None'}</strong></p>
-          <p>Total Manuscripts: {manuscripts.length}</p>
-          <p>Available for Issue: {stats.availableForIssue}</p>
-          <p><strong>Available for Publishing: {stats.availableForPublishing}</strong></p>
-          <p>Published Issues: {stats.publishedIssues}</p>
-          <p><strong>All Volumes Data: {allVolumesData.length}</strong></p>
-          <p><strong>Total Volumes: {volumes.length}</strong></p>
-          <p><strong>Total Issues: {issues.length}</strong></p>
-          <p>Active Tab: {activeTab}</p>
-          <p>Filtered Manuscripts: {filteredManuscripts.length}</p>
-          <p>Current Page: {currentPage}</p>
-          <p>Total Pages: {totalPages}</p>
-        </div>
-      )}
       
       <div className="container">
         <div className={styles.header}>

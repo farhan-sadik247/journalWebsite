@@ -1,6 +1,7 @@
-.newIssuePage {
+.editIssuePage {
   padding: 2rem 0;
   min-height: 100vh;
+  background: #f8f9fa;
 }
 
 .header {
@@ -10,11 +11,11 @@
     font-size: 2rem;
     font-weight: 700;
     margin: 1rem 0 0.5rem 0;
-    color: var(--color-text);
+    color: #1a202c;
   }
   
   p {
-    color: var(--color-text-secondary);
+    color: #6b7280;
     font-size: 1.1rem;
   }
 }
@@ -23,7 +24,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  color: var(--color-text-secondary);
+  color: #6b7280;
   text-decoration: none;
   font-weight: 500;
   margin-bottom: 1rem;
@@ -38,28 +39,53 @@
   }
 }
 
-.formContainer {
-  max-width: 800px;
-  background-color: var(--color-bg-secondary);
-  border-radius: 12px;
-  padding: 2.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  border: 1px solid var(--color-border);
-}
-
-.warning {
-  margin-top: 0.5rem;
-  padding: 0.75rem;
-  background: #fff3cd;
-  border: 1px solid #ffeaa7;
-  border-radius: 6px;
+.headerInfo {
+  h1 {
+    margin-bottom: 0.5rem;
+  }
   
   p {
     margin: 0;
-    color: #856404;
-    font-size: 0.875rem;
-    font-weight: 500;
+    font-size: 1rem;
+    color: #6b7280;
   }
+}
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  gap: 1rem;
+
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #6366f1;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  p {
+    color: #6b7280;
+    font-size: 1.1rem;
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.formContainer {
+  max-width: 800px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 2.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
 }
 
 .form {
@@ -81,7 +107,7 @@
       display: block;
       font-weight: 600;
       margin-bottom: 0.5rem;
-      color: var(--color-text);
+      color: #1a202c;
       font-size: 0.95rem;
     }
     
@@ -136,17 +162,79 @@
   display: block;
   margin-top: 0.5rem;
   font-size: 0.875rem;
-  color: var(--color-text-secondary);
+  color: #6b7280;
   font-style: italic;
+}
+
+.fileInput {
+  padding: 0.75rem;
+  border: 2px dashed #e2e8f0;
+  border-radius: 8px;
+  background-color: #ffffff;
+  transition: border-color 0.2s ease;
+  cursor: pointer;
+
+  &:hover {
+    border-color: #6366f1;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  }
+}
+
+.imagePreview {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background-color: #ffffff;
+  text-align: center;
+}
+
+.previewImage {
+  max-width: 200px;
+  max-height: 150px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 0.75rem;
+  object-fit: cover;
+}
+
+.removeImageBtn {
+  padding: 0.5rem 1rem;
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: #dc2626;
+  }
 }
 
 .formActions {
   display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   margin-top: 2rem;
   padding-top: 2rem;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid #e2e8f0;
+  
+  .leftActions {
+    display: flex;
+    gap: 1rem;
+  }
+  
+  .rightActions {
+    display: flex;
+    gap: 1rem;
+  }
   
   .btn {
     padding: 0.875rem 1.5rem;
@@ -177,72 +265,30 @@
     }
     
     &.btn-secondary {
-      background-color: var(--color-bg-secondary);
-      color: var(--color-text-secondary);
-      border: 1px solid var(--color-border);
+      background-color: #f8f9fa;
+      color: #6b7280;
+      border: 1px solid #e2e8f0;
       
       &:hover {
-        background-color: var(--color-bg-hover);
-        color: var(--color-text);
+        background-color: #e9ecef;
+        color: #1a202c;
+      }
+    }
+    
+    &.btn-danger {
+      background-color: #ef4444;
+      color: white;
+      
+      &:hover {
+        background-color: #dc2626;
+        transform: translateY(-1px);
       }
     }
   }
 }
 
-.fileInput {
-  padding: 0.75rem;
-  border: 2px dashed var(--color-border);
-  border-radius: 8px;
-  background-color: var(--color-bg);
-  transition: border-color 0.2s ease;
-  cursor: pointer;
-
-  &:hover {
-    border-color: #6366f1;
-  }
-
-  &:focus {
-    outline: none;
-    border-color: #6366f1;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-  }
-}
-
-.imagePreview {
-  margin-top: 1rem;
-  padding: 1rem;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background-color: var(--color-bg);
-  text-align: center;
-}
-
-.previewImage {
-  max-width: 200px;
-  max-height: 150px;
-  border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  margin-bottom: 0.75rem;
-  object-fit: cover;
-}
-
-.removeImageBtn {
-  padding: 0.5rem 1rem;
-  background-color: #ef4444;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.875rem;
-  transition: background-color 0.2s ease;
-
-  &:hover {
-    background-color: #dc2626;
-  }
-}
-
 @media (max-width: 768px) {
-  .newIssuePage {
+  .editIssuePage {
     padding: 1rem 0;
   }
   
@@ -253,9 +299,17 @@
   
   .formActions {
     flex-direction: column;
+    gap: 1rem;
+    
+    .leftActions,
+    .rightActions {
+      width: 100%;
+      justify-content: center;
+    }
     
     .btn {
       justify-content: center;
+      width: 100%;
     }
   }
 }

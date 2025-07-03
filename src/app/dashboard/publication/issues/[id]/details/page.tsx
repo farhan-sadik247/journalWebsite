@@ -190,7 +190,7 @@ export default function IssueDetailsPage() {
         {/* Issue Info Card */}
         <div className={styles.issueCard}>
           <div className={styles.issueContent}>
-            <div className={styles.issueDetails}>
+            <div className={styles.issueInfo}>
               <div className={styles.basicInfo}>
                 <h3>Issue Information</h3>
                 {issue.description && (

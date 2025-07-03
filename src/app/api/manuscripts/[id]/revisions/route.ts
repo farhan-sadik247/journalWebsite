@@ -35,10 +35,11 @@ export async function POST(
       return NextResponse.json({ error: 'Manuscript not found or unauthorized' }, { status: 404 });
     }
 
-    // Check if manuscript is in revision-requested status
-    if (manuscript.status !== 'revision-requested') {
+    // Check if manuscript is in a valid revision status
+    const validRevisionStatuses = ['revision-requested', 'major-revision-requested', 'minor-revision-requested'];
+    if (!validRevisionStatuses.includes(manuscript.status)) {
       return NextResponse.json({ 
-        error: 'Manuscript is not in revision-requested status' 
+        error: 'Manuscript is not in a revision-requested status' 
       }, { status: 400 });
     }
 

@@ -42,7 +42,7 @@ const manuscriptFileSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['manuscript', 'supplement', 'figure', 'table'],
+    enum: ['manuscript', 'supplement', 'figure', 'table', 'revision'],
     required: true,
   },
   size: {

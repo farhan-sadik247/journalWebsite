@@ -44,7 +44,7 @@ export default function RevisionPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const params = useParams();
-  const manuscriptId = params?.manuscriptId as string;
+  const manuscriptId = params?.id as string;
 
   const [manuscript, setManuscript] = useState<Manuscript | null>(null);
   const [loading, setLoading] = useState(true);
@@ -61,30 +61,44 @@ export default function RevisionPage() {
   });
 
   useEffect(() => {
+    console.log('Revision page useEffect - status:', status, 'manuscriptId:', manuscriptId);
     if (status === 'loading') return;
     
     if (!session) {
+      console.log('No session, redirecting to signin');
       router.push('/auth/signin');
       return;
     }
 
     if (manuscriptId) {
+      console.log('Fetching manuscript for ID:', manuscriptId);
       fetchManuscript();
+    } else {
+      console.log('No manuscript ID found');
     }
   }, [session, status, manuscriptId, router]);
 
   const fetchManuscript = async () => {
     try {
+      console.log('Fetching manuscript with ID:', manuscriptId);
       const response = await fetch(`/api/manuscripts/${manuscriptId}`);
       if (response.ok) {
         const data = await response.json();
+        console.log('Manuscript data received:', {
+          id: data.manuscript._id,
+          status: data.manuscript.status,
+          title: data.manuscript.title?.substring(0, 50) + '...'
+        });
         setManuscript(data.manuscript);
         
         // Check if user can submit revisions
-        if (data.manuscript.status !== 'revision-requested') {
+        const validRevisionStatuses = ['revision-requested', 'major-revision-requested', 'minor-revision-requested'];
+        if (!validRevisionStatuses.includes(data.manuscript.status)) {
+          console.log('Invalid status for revision:', data.manuscript.status);
           router.push(`/dashboard/manuscripts/${manuscriptId}`);
         }
       } else {
+        console.error('Failed to fetch manuscript:', response.status, response.statusText);
         router.push('/dashboard/manuscripts');
       }
     } catch (error) {

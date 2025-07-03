@@ -23,7 +23,7 @@ export interface EmailOptions {
   }>;
 }
 
-export async function sendEmail(options: EmailOptions): Promise<void> {
+export async function sendEmail(options: EmailOptions): Promise<{ success: boolean, error?: any }> {
   try {
     await transporter.sendMail({
       from: process.env.EMAIL_FROM,
@@ -33,9 +33,14 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
       text: options.text,
       attachments: options.attachments,
     });
+    return { success: true };
   } catch (error) {
     console.error('Error sending email:', error);
-    throw error;
+    // Instead of throwing an error, return failure status
+    return { 
+      success: false, 
+      error 
+    };
   }
 }
 

@@ -1382,7 +1382,7 @@
 
     &.pending {
       background-color: #fef3c7;
-      color: #92400e;
+      color: #d97706;
     }
 
     &.inprogress {
@@ -1894,6 +1894,411 @@
         &:disabled {
           opacity: 0.6;
           cursor: not-allowed;
+        }
+      }
+    }
+  }
+
+  // Editorial Status Overview styles
+  .editorialOverview {
+    background-color: #ffffff;
+    border-radius: $radius-lg;
+    border: 1px solid $border-color;
+    padding: 1.5rem;
+
+    .statusTable {
+      width: 100%;
+      border-collapse: collapse;
+      
+      tbody {
+        tr {
+          border-bottom: 1px solid $border-light;
+          
+          &:last-child {
+            border-bottom: none;
+          }
+          
+          td {
+            padding: 1rem 0;
+            vertical-align: top;
+            
+            &.statusLabel {
+              width: 40%;
+              font-weight: 600;
+              color: #1f2937 !important; // Explicit dark color
+              padding-right: 1rem;
+            }
+            
+            &.statusValue {
+              width: 60%;
+              color: #1f2937 !important; // Explicit dark color
+              font-weight: 500;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Copy Editing Review Section Styles
+  .copyEditReview {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: $card-shadow;
+    border: 1px solid $border-color;
+
+    .reviewHeader {
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid $border-light;
+
+      .reviewMeta {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+
+        p {
+          margin: 0.5rem 0;
+          font-size: 0.95rem;
+
+          strong {
+            color: $text-dark;
+            font-weight: 600;
+          }
+        }
+
+        .completionStatus {
+          padding: 0.25rem 0.75rem;
+          border-radius: 20px;
+          font-size: 0.85rem;
+          font-weight: 500;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+
+          &.completed {
+            background: rgba($success-color, 0.1);
+            color: $success-color;
+            border: 1px solid rgba($success-color, 0.3);
+          }
+
+          &.needsRevision {
+            background: rgba($warning-color, 0.1);
+            color: $warning-color;
+            border: 1px solid rgba($warning-color, 0.3);
+          }
+        }
+      }
+    }
+
+    .reviewComments {
+      margin-bottom: 1.5rem;
+
+      h4 {
+        color: $text-dark;
+        margin-bottom: 0.75rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+      }
+
+      .commentsBox {
+        background: $background-light;
+        border: 1px solid $border-light;
+        border-radius: 8px;
+        padding: 1.25rem;
+        border-left: 4px solid $primary-color;
+
+        p {
+          margin: 0.5rem 0;
+          line-height: 1.6;
+          color: $text-muted;
+
+          &:first-child {
+            margin-top: 0;
+          }
+
+          &:last-child {
+            margin-bottom: 0;
+          }
+        }
+      }
+    }
+
+    .galleyProof {
+      h4 {
+        color: $text-dark;
+        margin-bottom: 0.75rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+      }
+
+      .fileDownload {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: $primary-color;
+        color: white;
+        padding: 0.75rem 1.25rem;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 500;
+        transition: all $transition-fast;
+
+        &:hover {
+          background: $primary-dark;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba($primary-color, 0.3);
+        }
+
+        svg {
+          font-size: 1.1rem;
+        }
+
+        .downloadLink {
+          color: inherit;
+          text-decoration: none;
+        }
+      }
+    }
+
+    // Author approval section styles
+    .authorApproval {
+      margin-top: 2rem;
+      padding-top: 2rem;
+      border-top: 1px solid $border-light;
+
+      h4 {
+        color: $success-color;
+        margin-bottom: 1rem;
+        font-size: 1.2rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .reviewForm {
+        background: $background-light;
+        border-radius: 8px;
+        padding: 1.5rem;
+        border: 1px solid $border-light;
+
+        .reviewDecision {
+          margin-bottom: 1.5rem;
+
+          h5 {
+            margin-bottom: 0.75rem;
+            color: $text-dark;
+            font-weight: 600;
+          }
+
+          .radioGroup {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+
+            .radioLabel {
+              display: flex;
+              align-items: center;
+              gap: 0.75rem;
+              cursor: pointer;
+              padding: 0.75rem;
+              border-radius: 6px;
+              transition: background-color $transition-fast;
+
+              &:hover {
+                background: rgba($primary-color, 0.05);
+              }
+
+              input[type="radio"] {
+                margin: 0;
+                transform: scale(1.2);
+                accent-color: $primary-color;
+              }
+
+              .radioText {
+                font-weight: 500;
+                color: $text-muted;
+              }
+            }
+          }
+        }
+
+        .commentsSection {
+          h5 {
+            margin-bottom: 0.75rem;
+            color: $text-dark;
+            font-weight: 600;
+
+            .required {
+              color: $error-color;
+              margin-left: 0.25rem;
+            }
+          }
+
+          .commentsTextarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 0.75rem;
+            border: 1px solid $border-color;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            resize: vertical;
+            transition: border-color $transition-fast;
+
+            &:focus {
+              outline: none;
+              border-color: $primary-color;
+              box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+            }
+
+            &::placeholder {
+              color: $text-light;
+            }
+          }
+        }
+
+        .uploadSection {
+          margin-top: 1.5rem;
+
+          h5 {
+            margin-bottom: 0.75rem;
+            color: $text-dark;
+            font-weight: 600;
+          }
+
+          .uploadArea {
+            border: 2px dashed $border-color;
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            transition: all $transition-fast;
+            cursor: pointer;
+
+            &:hover,
+            &.dragActive {
+              border-color: $primary-color;
+              background: rgba($primary-color, 0.05);
+            }
+
+            .uploadIcon {
+              font-size: 2rem;
+              color: $text-light;
+              margin-bottom: 0.5rem;
+            }
+
+            .uploadText {
+              color: $text-muted;
+              margin-bottom: 0.25rem;
+            }
+
+            .uploadHint {
+              font-size: 0.85rem;
+              color: $text-light;
+            }
+
+            input[type="file"] {
+              display: none;
+            }
+          }
+
+          .fileList {
+            margin-top: 1rem;
+
+            .fileItem {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              padding: 0.75rem;
+              background: white;
+              border: 1px solid $border-light;
+              border-radius: 6px;
+              margin-bottom: 0.5rem;
+
+              .fileInfo {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+
+                svg {
+                  color: $primary-color;
+                }
+
+                .fileName {
+                  font-weight: 500;
+                  color: $text-dark;
+                }
+
+                .fileSize {
+                  font-size: 0.85rem;
+                  color: $text-light;
+                }
+              }
+
+              .removeButton {
+                background: none;
+                border: none;
+                color: $error-color;
+                cursor: pointer;
+                padding: 0.25rem;
+                border-radius: 4px;
+                transition: background-color $transition-fast;
+
+                &:hover {
+                  background: rgba($error-color, 0.1);
+                }
+              }
+            }
+          }
+        }
+
+        .submitButtons {
+          display: flex;
+          gap: 1rem;
+          margin-top: 2rem;
+
+          .submitButton {
+            background: $primary-color;
+            color: white;
+            border: none;
+            padding: 0.875rem 1.5rem;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all $transition-fast;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+
+            &:hover:not(:disabled) {
+              background: $primary-dark;
+              transform: translateY(-1px);
+            }
+
+            &:disabled {
+              opacity: 0.6;
+              cursor: not-allowed;
+              transform: none;
+            }
+          }
+
+          .cancelButton {
+            background: transparent;
+            color: $text-muted;
+            border: 1px solid $border-color;
+            padding: 0.875rem 1.5rem;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all $transition-fast;
+
+            &:hover {
+              background: $background-light;
+              border-color: $text-muted;
+            }
+          }
         }
       }
     }
@@ -2568,23 +2973,6 @@
             background: rgba(239, 68, 68, 0.1);
           }
         }
-      }
-    }
-  }
-  
-  .submitSection {
-    margin-top: 2rem;
-    padding-top: 1rem;
-    border-top: 1px solid $border-light;
-    
-    .btn {
-      min-width: 180px;
-      padding: 0.75rem 1.5rem;
-      font-weight: 600;
-      
-      &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
       }
     }
   }

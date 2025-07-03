@@ -131,6 +131,7 @@ const NotificationBar = () => {
       case 'payment_required': return '💳';
       case 'payment_confirmed': return '✅';
       case 'review_assignment': return '🔍';
+      case 'review_submitted': return '📝';
       case 'copy_edit_assigned': return '✏️';
       case 'draft_ready': return '📝';
       case 'publication_ready': return '📰';

@@ -895,8 +895,8 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
   // Author-specific sections
   const renderAuthorSpecificSections = () => (
     <>
-      {/* Simplified Copy Editing Review Section - Author View */}
-      {manuscript.copyEditReview && (
+      {/* Copy Editing Review Section - Only shown when copy editor has submitted their work */}
+      {manuscript.copyEditReview && manuscript.copyEditReview.submittedAt && (
         <section className={styles.section} data-section="copy-editing">
           <h2>
             <FiFileText />
@@ -946,7 +946,7 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
             )}
 
             {/* Enhanced Author Review Section with File Upload */}
-            {manuscript.copyEditReview && isAuthor && (
+            {manuscript.copyEditReview && manuscript.copyEditReview.submittedAt && isAuthor && (
               <>
                 {!manuscript.authorCopyEditReview ? (
                   <div className={styles.authorApproval}>
@@ -1554,7 +1554,7 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
           <h2>Copy Editing Status</h2>
           <div className={styles.copyEditingStatus}>
             <p><strong>Current Stage:</strong> {manuscript.copyEditingStage.replace('-', ' ').toUpperCase()}</p>
-            {manuscript.copyEditReview && (
+            {manuscript.copyEditReview && manuscript.copyEditReview.submittedAt && (
               <div className={styles.reviewStatus}>
                 <p><strong>Review Status:</strong> {manuscript.copyEditReview.completionStatus}</p>
                 {manuscript.copyEditReview.submittedAt && (

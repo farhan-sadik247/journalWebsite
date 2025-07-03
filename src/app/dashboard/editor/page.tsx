@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import styles from './EditorDashboard.module.scss';
 import Link from 'next/link';
-import { FiBook, FiEdit3 } from 'react-icons/fi';
+import { FiBook, FiEdit3, FiSearch, FiFilter } from 'react-icons/fi';
 
 interface Manuscript {
   _id: string;
@@ -49,6 +49,7 @@ export default function EditorDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [manuscripts, setManuscripts] = useState<Manuscript[]>([]);
+  const [filteredManuscripts, setFilteredManuscripts] = useState<Manuscript[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [reviewers, setReviewers] = useState<User[]>([]);
   const [copyEditors, setCopyEditors] = useState<User[]>([]);
@@ -64,6 +65,8 @@ export default function EditorDashboard() {
   const [reviewType, setReviewType] = useState<'single_blind' | 'double_blind'>('double_blind');
   const [reviewerSearchTerm, setReviewerSearchTerm] = useState<string>('');
   const [showReviewerSearch, setShowReviewerSearch] = useState<boolean>(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const searchRef = useRef<HTMLDivElement>(null);
 
   // Close search dropdown when clicking outside
@@ -96,6 +99,21 @@ export default function EditorDashboard() {
     fetchData();
   }, [session, status, router]);
 
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/auth/signin');
+      return;
+    }
+
+    if (session) {
+      fetchData();
+    }
+  }, [session, status, router]);
+
+  useEffect(() => {
+    filterManuscripts();
+  }, [manuscripts, searchTerm, statusFilter]);
+
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -103,6 +121,7 @@ export default function EditorDashboard() {
       const manuscriptsResponse = await fetch('/api/manuscripts?editor=true');
       const manuscriptsData = await manuscriptsResponse.json();
       setManuscripts(manuscriptsData.manuscripts || []);
+      setFilteredManuscripts(manuscriptsData.manuscripts || []); // Initialize filtered manuscripts
 
       // Fetch reviews
       const reviewsResponse = await fetch('/api/reviews?role=editor');
@@ -123,6 +142,26 @@ export default function EditorDashboard() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const filterManuscripts = () => {
+    let filtered = manuscripts;
+
+    if (searchTerm) {
+      filtered = filtered.filter(manuscript =>
+        manuscript.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        manuscript.authors.some(author => 
+          author.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          author.email.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      );
+    }
+
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(manuscript => manuscript.status === statusFilter);
+    }
+
+    setFilteredManuscripts(filtered);
   };
 
   const handleAssignCopyEditor = async () => {
@@ -187,6 +226,10 @@ export default function EditorDashboard() {
   const handleAssignReview = async () => {
     if (!selectedManuscript || selectedReviewers.length === 0) return;
 
+    // Check if this is a re-assignment for a revision
+    const manuscript = manuscripts.find(m => m._id === selectedManuscript);
+    const isReassignment = manuscript && ['revision-requested', 'major-revision-requested', 'minor-revision-requested'].includes(manuscript.status);
+    
     try {
       // Assign reviews to multiple reviewers
       const assignmentPromises = selectedReviewers.map(reviewerId => 
@@ -198,7 +241,8 @@ export default function EditorDashboard() {
           body: JSON.stringify({
             manuscriptId: selectedManuscript,
             reviewerId: reviewerId,
-            type: reviewType
+            type: reviewType,
+            isReReview: isReassignment // Flag to indicate if this is a re-review
           }),
         })
       );
@@ -213,7 +257,13 @@ export default function EditorDashboard() {
         setReviewerSearchTerm('');
         setShowReviewerSearch(false);
         fetchData(); // Refresh data
-        alert(`Reviews assigned successfully to ${selectedReviewers.length} reviewer(s)!`);
+        
+        // Show different message for re-assignment
+        if (isReassignment) {
+          alert(`Re-review ${selectedReviewers.length > 1 ? 'assignments' : 'assignment'} created successfully!`);
+        } else {
+          alert(`Reviews assigned successfully to ${selectedReviewers.length} reviewer(s)!`);
+        }
       } else {
         // Handle partial failures
         const failedCount = responses.filter(r => !r.ok).length;
@@ -274,6 +324,26 @@ export default function EditorDashboard() {
       r.status !== 'completed' && new Date(r.dueDate) < new Date()
     ).length : 0;
   };
+
+  // Filter manuscripts based on search term and status
+  useEffect(() => {
+    let filtered = manuscripts;
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(manuscript => 
+        manuscript.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        manuscript.authors.some(author => author.name.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
+
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(manuscript => manuscript.status === statusFilter);
+    }
+
+    setFilteredManuscripts(filtered);
+  }, [searchTerm, statusFilter, manuscripts]);
 
   if (loading) {
     return (
@@ -348,13 +418,70 @@ export default function EditorDashboard() {
           <div className={styles.sectionHeader}>
             <h2 style={{ color: 'white' }}>Manuscripts</h2>
           </div>
-          {!Array.isArray(manuscripts) || manuscripts.length === 0 ? (
+
+          {/* Search and Filter Section */}
+          <div className={styles.searchFilter}>
+            <div className={styles.searchGroup}>
+              <FiSearch className={styles.searchIcon} />
+              <input
+                type="text"
+                placeholder="Search manuscripts by title, author name, or email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className={styles.searchInput}
+              />
+            </div>
+
+            <div className={styles.filterGroup}>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className={styles.statusFilter}
+              >
+                <option value="all">All Statuses</option>
+                <option value="submitted">Submitted</option>
+                <option value="under-review">Under Review</option>
+                <option value="under-editorial-review">Under Editorial Review</option>
+                <option value="revision-requested">Revision Requested</option>
+                <option value="major-revision-requested">Major Revision</option>
+                <option value="minor-revision-requested">Minor Revision</option>
+                <option value="reviewed">Reviewed</option>
+                <option value="accepted">Accepted</option>
+                <option value="accepted-awaiting-copy-edit">Accepted - Awaiting Copy Edit</option>
+                <option value="in-copy-editing">In Copy Editing</option>
+                <option value="copy-editing-complete">Copy Editing Complete</option>
+                <option value="ready-for-publication">Ready for Publication</option>
+                <option value="in-production">In Production</option>
+                <option value="published">Published</option>
+                <option value="rejected">Rejected</option>
+                <option value="payment-required">Payment Required</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Results Summary */}
+          <div className={styles.resultsHeader}>
+            <span>{filteredManuscripts.length} manuscript(s) found</span>
+          </div>
+
+          {!Array.isArray(filteredManuscripts) || filteredManuscripts.length === 0 ? (
             <div className={styles.emptyState}>
               <h3>No manuscripts found</h3>
-              <p>No manuscripts are currently in the system.</p>
+              <p>{searchTerm || statusFilter !== 'all' ? 'No manuscripts match your search criteria.' : 'No manuscripts are currently in the system.'}</p>
+              {(searchTerm || statusFilter !== 'all') && (
+                <button 
+                  onClick={() => {
+                    setSearchTerm('');
+                    setStatusFilter('all');
+                  }}
+                  className={styles.clearFiltersButton}
+                >
+                  Clear Filters
+                </button>
+              )}
             </div>
           ) : (
-            manuscripts.map((manuscript) => (
+            filteredManuscripts.map((manuscript) => (
               <div key={manuscript._id} className={styles.manuscriptCard}>
                 <div className={styles.manuscriptInfo}>
                   <h3>{manuscript.title}</h3>
@@ -391,6 +518,21 @@ export default function EditorDashboard() {
                   >
                     Assign Review
                   </button>
+                  {['revision-requested', 'major-revision-requested', 'minor-revision-requested'].includes(manuscript.status) && (
+                    <button
+                      className={styles.assignButton}
+                      onClick={() => {
+                        setSelectedManuscript(manuscript._id);
+                        setActiveTab('assign');
+                      }}
+                      style={{
+                        background: '#2c3e50',
+                        borderColor: '#34495e'
+                      }}
+                    >
+                      Re-assign Reviewer
+                    </button>
+                  )}
                   {['accepted', 'accepted-awaiting-copy-edit', 'in-copy-editing'].includes(manuscript.status) && (
                     <>
                       {(!manuscript.requiresPayment || 
@@ -481,7 +623,17 @@ export default function EditorDashboard() {
       {activeTab === 'assign' && (
         <div className={styles.assignSection}>
           <div className={styles.sectionHeader}>
-            <h2>Assign Reviews</h2>
+            {/* Check if the selected manuscript is in revision status */}
+            {selectedManuscript && manuscripts.find(m => 
+              m._id === selectedManuscript && 
+              ['revision-requested', 'major-revision-requested', 'minor-revision-requested'].includes(m.status)
+            ) ? (
+              <>
+                <h2>Re-assign Reviewers for Revised Manuscript</h2>
+              </>
+            ) : (
+              <h2>Assign Reviews</h2>
+            )}
           </div>
           
           <div className={styles.assignForm}>
@@ -493,10 +645,10 @@ export default function EditorDashboard() {
               >
                 <option value="">Choose manuscript...</option>
                 {Array.isArray(manuscripts) && manuscripts
-                  .filter(m => ['submitted', 'under-review'].includes(m.status))
+                  .filter(m => ['submitted', 'under-review', 'revision-requested', 'major-revision-requested', 'minor-revision-requested'].includes(m.status))
                   .map((manuscript) => (
                     <option key={manuscript._id} value={manuscript._id}>
-                      {manuscript.title}
+                      {manuscript.title} {['revision-requested', 'major-revision-requested', 'minor-revision-requested'].includes(manuscript.status) ? '(REVISED)' : ''}
                     </option>
                   ))}
               </select>
@@ -603,8 +755,16 @@ export default function EditorDashboard() {
               className={styles.assignButton}
               onClick={handleAssignReview}
               disabled={!selectedManuscript || selectedReviewers.length === 0}
+              style={
+                selectedManuscript && 
+                manuscripts.find(m => m._id === selectedManuscript && ['revision-requested', 'major-revision-requested', 'minor-revision-requested'].includes(m.status)) ?
+                { background: '#2c3e50', borderColor: '#34495e' } : {}
+              }
             >
-              Assign Review{selectedReviewers.length > 1 ? 's' : ''} ({selectedReviewers.length} reviewer{selectedReviewers.length !== 1 ? 's' : ''})
+              {selectedManuscript && 
+               manuscripts.find(m => m._id === selectedManuscript && ['revision-requested', 'major-revision-requested', 'minor-revision-requested'].includes(m.status)) ?
+               `Re-assign for Review (${selectedReviewers.length} reviewer${selectedReviewers.length !== 1 ? 's' : ''})` :
+               `Assign Review${selectedReviewers.length > 1 ? 's' : ''} (${selectedReviewers.length} reviewer${selectedReviewers.length !== 1 ? 's' : ''})`}
             </button>
           </div>
         </div>
@@ -615,7 +775,6 @@ export default function EditorDashboard() {
         <div className={styles.assignSection}>
           <div className={styles.sectionHeader}>
             <h2 style={{ color: 'white' }}>Assign Copy Editors</h2>
-            <p>Assign copy editors to accepted manuscripts ready for copy editing</p>
             <div style={{ 
               background: 'rgba(255, 255, 255, 0.1)', 
               padding: '0.75rem', 
@@ -757,18 +916,6 @@ export default function EditorDashboard() {
           </div>
         </div>
       )}
-
-      {/* Navigation Links for Publication Dashboard and Corrections */}
-      <div className={styles.actions}>
-        <Link href="/dashboard/publication" className={styles.actionButton}>
-          <FiBook />
-          <span>Publication Dashboard</span>
-        </Link>
-        <Link href="/dashboard/corrections" className={styles.actionButton}>
-          <FiEdit3 />
-          <span>Corrections</span>
-        </Link>
-      </div>
     </div>
   );
 }

@@ -134,27 +134,11 @@ export function Header() {
                       <FiUser />
                       Dashboard
                     </Link>
-                    {(session.user.role === 'copy-editor' || 
-                      session.user.roles?.includes('copy-editor') || 
-                      session.user.role === 'admin') && (
-                      <Link href="/dashboard/copy-editor/simple" className={styles.dropdownItem}>
-                        <FiSettings />
-                        Copy Editor (Simple)
-                      </Link>
-                    )}
                     {(session.user.role === 'admin' || session.user.role === 'editor') && (
                       <>
                         <Link href="/dashboard/analytics" className={styles.dropdownItem}>
                           <FiSettings />
                           Analytics
-                        </Link>
-                        <Link href="/dashboard/corrections" className={styles.dropdownItem}>
-                          <FiSettings />
-                          Corrections
-                        </Link>
-                        <Link href="/dashboard/payments" className={styles.dropdownItem}>
-                          <FiSettings />
-                          Payments
                         </Link>
                       </>
                     )}

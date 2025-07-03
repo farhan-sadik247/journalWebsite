@@ -254,9 +254,9 @@ export default function AdminDashboard() {
             </button>
             <button
               className={styles.actionButton}
-              onClick={() => alert('System settings feature coming soon!')}
+              onClick={() => router.push('/dashboard/admin/home-management')}
             >
-              System Settings
+              Home Page Management
             </button>
           </div>
         </div>

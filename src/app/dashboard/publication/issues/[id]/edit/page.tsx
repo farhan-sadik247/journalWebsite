@@ -1,78 +1,106 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { FiArrowLeft, FiSave } from 'react-icons/fi';
-import styles from './NewIssue.module.scss';
+import { FiArrowLeft, FiSave, FiTrash2 } from 'react-icons/fi';
+import toast from 'react-hot-toast';
+import styles from './EditIssue.module.scss';
 
 interface Volume {
   _id: string;
   number: number;
   year: number;
   title: string;
-  status: string;
-  issues?: Issue[];
 }
 
 interface Issue {
   _id: string;
   number: number;
   title: string;
+  description: string;
+  editorialNote: string;
+  isPublished: boolean;
+  publishedDate?: string;
+  volume: Volume;
+  coverImage?: {
+    url: string;
+    publicId: string;
+    originalName: string;
+  };
 }
 
-export default function NewIssuePage() {
+export default function EditIssuePage() {
+  const params = useParams();
   const router = useRouter();
   const { data: session } = useSession();
   const [isLoading, setIsLoading] = useState(false);
-  const [volumes, setVolumes] = useState<Volume[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [issue, setIssue] = useState<Issue | null>(null);
   const [formData, setFormData] = useState({
-    volumeId: '',
-    number: '',
     title: '',
     description: '',
     editorialNote: '',
-    coverImage: '',
     status: 'draft',
     publishDate: ''
   });
-  const [selectedVolumeIssueCount, setSelectedVolumeIssueCount] = useState(0);
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [coverImagePreview, setCoverImagePreview] = useState<string>('');
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
-  useEffect(() => {
-    fetchVolumes();
-  }, []);
+  const issueId = params?.id as string;
 
-  const fetchVolumes = async () => {
+  useEffect(() => {
+    if (session && issueId) {
+      fetchIssueData();
+    }
+  }, [session, issueId]);
+
+  const fetchIssueData = async () => {
     try {
-      const response = await fetch('/api/volumes');
+      const response = await fetch(`/api/issues/${issueId}`);
+      
       if (response.ok) {
         const data = await response.json();
-        setVolumes(data.volumes || []);
+        const issueData = data.issue;
+        setIssue(issueData);
+        
+        // Populate form data
+        setFormData({
+          title: issueData.title || '',
+          description: issueData.description || '',
+          editorialNote: issueData.editorialNote || '',
+          status: issueData.isPublished ? 'published' : 'draft',
+          publishDate: issueData.publishedDate ? 
+            new Date(issueData.publishedDate).toISOString().split('T')[0] : ''
+        });
+
+        // Set cover image preview if exists
+        if (issueData.coverImage?.url) {
+          setCoverImagePreview(issueData.coverImage.url);
+        }
+      } else {
+        toast.error('Failed to load issue data');
+        router.push('/dashboard/publication');
       }
     } catch (error) {
-      console.error('Error fetching volumes:', error);
+      console.error('Error fetching issue data:', error);
+      toast.error('Error loading issue data');
+      router.push('/dashboard/publication');
+    } finally {
+      setIsLoadingData(false);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Check issue limit (3-4 issues per volume)
-    if (selectedVolumeIssueCount >= 4) {
-      alert('This volume already has the maximum number of issues (4). Please select a different volume.');
-      return;
-    }
-    
     setIsLoading(true);
 
     try {
-      let submissionData = { ...formData };
+      let submissionData: any = { ...formData };
 
-      // Upload cover image if exists
+      // Upload cover image if a new one is selected
       if (coverImageFile) {
         setIsUploadingImage(true);
         try {
@@ -84,15 +112,15 @@ export default function NewIssuePage() {
           });
         } catch (uploadError) {
           console.error('Cover image upload failed:', uploadError);
-          alert('Failed to upload cover image. Please try again.');
+          toast.error('Failed to upload cover image. Please try again.');
           return;
         } finally {
           setIsUploadingImage(false);
         }
       }
 
-      const response = await fetch('/api/issues', {
-        method: 'POST',
+      const response = await fetch(`/api/issues/${issueId}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -101,14 +129,15 @@ export default function NewIssuePage() {
 
       if (response.ok) {
         const result = await response.json();
-        router.push('/dashboard/publication');
+        toast.success('Issue updated successfully!');
+        router.push(`/dashboard/publication/issues/${issueId}`);
       } else {
         const error = await response.json();
-        alert(`Error creating issue: ${error.error}`);
+        toast.error(`Error updating issue: ${error.error}`);
       }
     } catch (error) {
-      console.error('Error creating issue:', error);
-      alert('Failed to create issue');
+      console.error('Error updating issue:', error);
+      toast.error('Failed to update issue');
     } finally {
       setIsLoading(false);
     }
@@ -120,12 +149,6 @@ export default function NewIssuePage() {
       ...prev,
       [name]: value
     }));
-
-    // Check issue count when volume is selected
-    if (name === 'volumeId') {
-      const selectedVolume = volumes.find(v => v._id === value);
-      setSelectedVolumeIssueCount(selectedVolume?.issues?.length || 0);
-    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -140,6 +163,11 @@ export default function NewIssuePage() {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleRemoveCoverImage = () => {
+    setCoverImageFile(null);
+    setCoverImagePreview('');
   };
 
   const uploadCoverImage = async (file: File): Promise<{ url: string; publicId: string; originalName: string }> => {
@@ -161,75 +189,82 @@ export default function NewIssuePage() {
     return result.data;
   };
 
+  const handleDeleteIssue = async () => {
+    if (!confirm(`Are you sure you want to delete this issue? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/issues/${issueId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        toast.success('Issue deleted successfully!');
+        router.push('/dashboard/publication');
+      } else {
+        const error = await response.json();
+        toast.error(`Error deleting issue: ${error.error}`);
+      }
+    } catch (error) {
+      console.error('Error deleting issue:', error);
+      toast.error('Failed to delete issue');
+    }
+  };
+
   if (!session || (session.user.role !== 'editor' && session.user.role !== 'admin')) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1>Access Denied</h1>
-          <p>You don't have permission to create issues.</p>
+          <p>You don't have permission to edit issues.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoadingData) {
+    return (
+      <div className={styles.loadingContainer}>
+        <div className={styles.spinner}></div>
+        <p>Loading issue data...</p>
+      </div>
+    );
+  }
+
+  if (!issue) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1>Issue Not Found</h1>
+          <p>The issue you're looking for doesn't exist.</p>
+          <Link href="/dashboard/publication" className="btn btn-primary">
+            Back to Publication Dashboard
+          </Link>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={styles.newIssuePage}>
+    <div className={styles.editIssuePage}>
       <div className="container">
         <div className={styles.header}>
-          <Link href="/dashboard/publication" className={styles.backButton}>
+          <Link 
+            href={`/dashboard/publication/issues/${issueId}`} 
+            className={styles.backButton}
+          >
             <FiArrowLeft />
-            Back to Publication Dashboard
+            Back to Issue Details
           </Link>
-          <h1>Create New Issue</h1>
-          <p>Create a new issue within a journal volume</p>
+          <div className={styles.headerInfo}>
+            <h1>Edit Issue</h1>
+            <p>Volume {issue.volume.number}, Issue {issue.number} - {issue.volume.title} ({issue.volume.year})</p>
+          </div>
         </div>
 
         <div className={styles.formContainer}>
           <form onSubmit={handleSubmit} className={styles.form}>
-            <div className={styles.formRow}>
-              <div className={styles.formGroup}>
-                <label htmlFor="volumeId">Select Volume *</label>
-                <select
-                  id="volumeId"
-                  name="volumeId"
-                  value={formData.volumeId}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="">Select a volume</option>
-                  {volumes.map((volume) => (
-                    <option 
-                      key={volume._id} 
-                      value={volume._id}
-                      disabled={volume.issues && volume.issues.length >= 4}
-                    >
-                      Volume {volume.number} ({volume.year}) - {volume.title}
-                      {volume.issues && volume.issues.length >= 4 && ' (Max issues reached)'}
-                    </option>
-                  ))}
-                </select>
-                {formData.volumeId && selectedVolumeIssueCount >= 3 && (
-                  <div className={styles.warning}>
-                    <p>⚠️ This volume has {selectedVolumeIssueCount} issues. Maximum is 4 issues per volume.</p>
-                  </div>
-                )}
-              </div>
-
-              <div className={styles.formGroup}>
-                <label htmlFor="number">Issue Number *</label>
-                <input
-                  type="number"
-                  id="number"
-                  name="number"
-                  value={formData.number}
-                  onChange={handleChange}
-                  required
-                  min="1"
-                  placeholder="e.g., 1"
-                />
-              </div>
-            </div>
-
             <div className={styles.formGroup}>
               <label htmlFor="title">Issue Title *</label>
               <input
@@ -260,7 +295,7 @@ export default function NewIssuePage() {
               <textarea
                 id="editorialNote"
                 name="editorialNote"
-                value={formData.editorialNote || ''}
+                value={formData.editorialNote}
                 onChange={handleChange}
                 rows={3}
                 placeholder="Editorial note or special theme for this issue"
@@ -289,10 +324,7 @@ export default function NewIssuePage() {
                   />
                   <button
                     type="button"
-                    onClick={() => {
-                      setCoverImageFile(null);
-                      setCoverImagePreview('');
-                    }}
+                    onClick={handleRemoveCoverImage}
                     className={styles.removeImageBtn}
                   >
                     Remove
@@ -329,23 +361,39 @@ export default function NewIssuePage() {
             </div>
 
             <div className={styles.formActions}>
-              <Link href="/dashboard/publication" className="btn btn-secondary">
-                Cancel
-              </Link>
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={isLoading || !formData.volumeId}
-              >
-                {isLoading ? (
-                  <>Creating...</>
-                ) : (
-                  <>
-                    <FiSave />
-                    Create Issue
-                  </>
-                )}
-              </button>
+              <div className={styles.leftActions}>
+                <button
+                  type="button"
+                  onClick={handleDeleteIssue}
+                  className="btn btn-danger"
+                >
+                  <FiTrash2 />
+                  Delete Issue
+                </button>
+              </div>
+              
+              <div className={styles.rightActions}>
+                <Link 
+                  href={`/dashboard/publication/issues/${issueId}`} 
+                  className="btn btn-secondary"
+                >
+                  Cancel
+                </Link>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>Saving...</>
+                  ) : (
+                    <>
+                      <FiSave />
+                      Save Changes
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </form>
         </div>

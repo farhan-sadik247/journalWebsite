@@ -8,7 +8,7 @@ import Manuscript from '@/models/Manuscript';
 import User from '@/models/User';
 import Notification from '@/models/Notification';
 import { sendEmail } from '@/lib/email';
-import { notifyManuscriptAcceptedWithFee } from '@/lib/notificationUtils';
+import { notifyManuscriptAcceptedWithFee, notifyAuthorReviewSubmitted } from '@/lib/notificationUtils';
 
 // GET /api/reviews/[id] - Get specific review details
 export async function GET(
@@ -62,41 +62,51 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await dbConnect();
-
-    const review = await Review.findById(params.id)
-      .populate('manuscriptId', 'title authors')
-      .populate('assignedBy', 'email name');
-
-    if (!review) {
-      return NextResponse.json({ error: 'Review not found' }, { status: 404 });
+    const { id } = params;
+    
+    // Check authentication
+    if (!session?.user) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    // Check if user is the assigned reviewer
-    if (review.reviewerId.toString() !== session.user.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    }
-
-    const body = await request.json();
+    // Parse request body
     const {
-      recommendation,
+      comments,
       confidentialComments,
-      publicComments,
+      recommendation,
       technicalQuality,
       novelty,
       significance,
       clarity,
       overallScore,
-      detailedComments
-    } = body;
+    } = await request.json();
 
-    // Update review using the correct model structure
+    // Connect to database
+    await dbConnect();
+
+    // Find review and populate related document references
+    const review = await Review.findById(id)
+      .populate('manuscriptId')
+      .populate('reviewerId')
+      .populate('assignedBy');
+    
+    if (!review) {
+      return NextResponse.json({ error: "Review not found" }, { status: 404 });
+    }
+
+    // Check permissions (only reviewer can submit their own review)
+    if (review.reviewerId._id.toString() !== session.user.id && 
+        !session.user.roles?.includes('admin')) {
+      return NextResponse.json(
+        { error: "Not authorized to submit this review" }, 
+        { status: 403 }
+      );
+    }
+
+    // Update review data
+    review.comments = comments;
+    review.confidentialComments = confidentialComments;
     review.recommendation = recommendation;
-    review.comments = {
-      confidentialToEditor: confidentialComments || '',
-      forAuthors: publicComments || '',
-      detailedReview: detailedComments || ''
-    };
     review.ratings = {
       technicalQuality: technicalQuality || 5,
       novelty: novelty || 5,
@@ -107,96 +117,181 @@ export async function PUT(
     review.status = 'completed';
     // completedDate will be set by the pre-save hook
 
-    await review.save();
+    try {
+      await review.save();
+    } catch (saveError) {
+      console.error('Error saving review:', saveError);
+      return NextResponse.json({ error: 'Error saving review' }, { status: 500 });
+    }
+
+    // Notify the author that a review has been submitted - errors here shouldn't stop the process
+    try {
+      const manuscriptData = review.manuscriptId as any;
+      const reviewer = await User.findById(review.reviewerId);
+      
+      // Notify all authors of the manuscript
+      if (manuscriptData.authors && Array.isArray(manuscriptData.authors)) {
+        for (const author of manuscriptData.authors) {
+          if (author.email) {
+            try {
+              // Send in-app notification
+              await notifyAuthorReviewSubmitted(
+                author.email,
+                manuscriptData._id.toString(),
+                manuscriptData.title,
+                reviewer?.name
+              );
+            } catch (notifyError) {
+              console.error('Error sending in-app notification:', notifyError);
+              // Continue despite notification error
+            }
+
+            try {
+              // Send email notification
+              const reviewerText = reviewer?.name ? ` by ${reviewer.name}` : '';
+              const emailResult = await sendEmail({
+                to: author.email,
+                subject: `Review Submitted for Your Manuscript: ${manuscriptData.title}`,
+                html: `
+                  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #2c3e50;">Review Submitted</h2>
+                    <p>Dear ${author.name || 'Author'},</p>
+                    <p>We wanted to inform you that a review has been submitted${reviewerText} for your manuscript:</p>
+                    <div style="background-color: #f8f9fa; padding: 15px; border-left: 4px solid #007bff; margin: 20px 0;">
+                      <strong>"${manuscriptData.title}"</strong>
+                    </div>
+                    <p>The editorial team will now review the feedback and make a decision on the next steps for your manuscript. You will receive another notification once the editorial decision has been made.</p>
+                    <p>You can view the status of your manuscript in your dashboard:</p>
+                    <p style="text-align: center; margin: 25px 0;">
+                      <a href="${process.env.NEXTAUTH_URL}/dashboard/manuscripts/${manuscriptData._id}" 
+                         style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                        View Manuscript Status
+                      </a>
+                    </p>
+                    <p>Thank you for your submission to our journal.</p>
+                    <hr style="margin: 30px 0; border: none; border-top: 1px solid #dee2e6;">
+                    <p style="font-size: 12px; color: #6c757d;">
+                      This is an automated message from the journal submission system. Please do not reply to this email.
+                    </p>
+                  </div>
+                `,
+                text: `A review has been submitted${reviewerText} for your manuscript "${manuscriptData.title}". The editorial team will review the feedback and update you on the next steps. You can view your manuscript status at: ${process.env.NEXTAUTH_URL}/dashboard/manuscripts/${manuscriptData._id}`
+              });
+              
+              if (!emailResult.success) {
+                console.warn('Email failed to send but continuing with review submission:', emailResult.error);
+              }
+            } catch (emailError) {
+              console.error('Error sending email notification:', emailError);
+              // Continue despite email error
+            }
+          }
+        }
+      }
+    } catch (notificationError) {
+      console.error('Error in author notification process:', notificationError);
+      // Continue with the request even if notification fails
+    }
 
     // Check if all reviews are completed for this manuscript
-    const manuscript = await Manuscript.findById(review.manuscriptId._id);
-    const allReviews = await Review.find({ manuscriptId: review.manuscriptId._id });
-    const completedReviews = allReviews.filter(r => r.status === 'completed');
+    let manuscript;
+    try {
+      manuscript = await Manuscript.findById(review.manuscriptId._id);
+      const allReviews = await Review.find({ manuscriptId: review.manuscriptId._id });
+      const completedReviews = allReviews.filter(r => r.status === 'completed');
 
-    // Auto-update manuscript status based on reviews - more flexible thresholds
-    let shouldUpdateStatus = false;
-    let newStatus = manuscript.status;
-    
-    if (completedReviews.length >= 1) { // At least 1 review completed
-      // If we have 2+ reviews, use majority rule
-      if (completedReviews.length >= 2) {
-        newStatus = determineManuscriptStatus(completedReviews);
-        shouldUpdateStatus = true;
-      } 
-      // If we have only 1 review but it's a strong recommendation (accept/reject), consider updating
-      else if (completedReviews.length === 1) {
-        const singleRecommendation = completedReviews[0].recommendation;
-        if (singleRecommendation === 'accept') {
-          newStatus = 'accepted';
+      // Auto-update manuscript status based on reviews - more flexible thresholds
+      let shouldUpdateStatus = false;
+      let newStatus = manuscript.status;
+      
+      if (completedReviews.length >= 1) { // At least 1 review completed
+        // If we have 2+ reviews, use majority rule
+        if (completedReviews.length >= 2) {
+          newStatus = determineManuscriptStatus(completedReviews);
           shouldUpdateStatus = true;
-        } else if (singleRecommendation === 'reject') {
-          newStatus = 'rejected';
-          shouldUpdateStatus = true;
-        } else if (singleRecommendation === 'major-revision') {
-          newStatus = 'major-revision-requested';
-          shouldUpdateStatus = true;
-        } else if (singleRecommendation === 'minor-revision') {
-          newStatus = 'minor-revision-requested';
-          shouldUpdateStatus = true;
+        } 
+        // If we have only 1 review but it's a strong recommendation (accept/reject), consider updating
+        else if (completedReviews.length === 1) {
+          const singleRecommendation = completedReviews[0].recommendation;
+          if (singleRecommendation === 'accept') {
+            newStatus = 'accepted';
+            shouldUpdateStatus = true;
+          } else if (singleRecommendation === 'reject') {
+            newStatus = 'rejected';
+            shouldUpdateStatus = true;
+          } else if (singleRecommendation === 'major-revision') {
+            newStatus = 'major-revision-requested';
+            shouldUpdateStatus = true;
+          } else if (singleRecommendation === 'minor-revision') {
+            newStatus = 'minor-revision-requested';
+            shouldUpdateStatus = true;
+          }
+          // For mixed or unclear recommendations with single review, keep current status
         }
-        // For mixed or unclear recommendations with single review, keep current status
       }
-    }
-    
-    if (shouldUpdateStatus && newStatus !== manuscript.status) {
-      const previousStatus = manuscript.status;
-      manuscript.status = newStatus;
       
-      // Add timeline entry for status change
-      manuscript.timeline.push({
-        event: 'status-change',
-        description: `Status changed to ${newStatus} based on review recommendations`,
-        performedBy: session.user.id, // Use the reviewer's ID instead of null
-        metadata: {
-          previousStatus: previousStatus,
-          newStatus: newStatus,
-          reviewCount: completedReviews.length,
-          recommendations: completedReviews.map(r => r.recommendation),
-          triggeredBy: 'review-completion',
-          reviewerId: session.user.id
-        }
-      });
-      
-      try {
-        console.log('Saving manuscript with updated timeline:', {
-          manuscriptId: manuscript._id,
-          newStatus,
-          timelineEntryCount: manuscript.timeline.length
+      if (shouldUpdateStatus && newStatus !== manuscript.status) {
+        const previousStatus = manuscript.status;
+        manuscript.status = newStatus;
+        
+        // Add timeline entry for status change
+        manuscript.timeline.push({
+          event: 'status-change',
+          description: `Status changed to ${newStatus} based on review recommendations`,
+          performedBy: session.user.id, // Use the reviewer's ID instead of null
+          metadata: {
+            previousStatus: previousStatus,
+            newStatus: newStatus,
+            reviewCount: completedReviews.length,
+            recommendations: completedReviews.map(r => r.recommendation),
+            triggeredBy: 'review-completion',
+            reviewerId: session.user.id
+          }
         });
-        await manuscript.save();
-        console.log('Manuscript saved successfully');
-      } catch (saveError) {
-        console.error('Error saving manuscript with timeline update:', saveError);
-        throw saveError;
+        
+        try {
+          console.log('Saving manuscript with updated timeline:', {
+            manuscriptId: manuscript._id,
+            newStatus,
+            timelineEntryCount: manuscript.timeline.length
+          });
+          await manuscript.save();
+          console.log('Manuscript saved successfully');
+        } catch (saveError) {
+          console.error('Error saving manuscript with timeline update:', saveError);
+          // Continue despite save error - we've already saved the review
+        }
+        
+        // If accepted, trigger additional workflow steps
+        if (newStatus === 'accepted') {
+          try {
+            await handleAcceptedManuscript(manuscript, session.user.id);
+          } catch (acceptError) {
+            console.error('Error in accepted manuscript workflow:', acceptError);
+            // Continue despite error
+          }
+        }
       }
-      
-      // If accepted, trigger additional workflow steps
-      if (newStatus === 'accepted') {
-        await handleAcceptedManuscript(manuscript, session.user.id);
-      }
-    }
 
-    // IMPORTANT: Also trigger notifications if this specific review is "accept" 
-    // regardless of overall manuscript status change
-    if (recommendation === 'accept') {
-      try {
-        await handleAcceptedManuscript(manuscript);
-      } catch (notificationError) {
-        console.error('Error sending accept review notifications:', notificationError);
-        // Continue with the request even if notification fails
+      // IMPORTANT: Also trigger notifications if this specific review is "accept" 
+      // regardless of overall manuscript status change
+      if (recommendation === 'accept') {
+        try {
+          await handleAcceptedManuscript(manuscript);
+        } catch (notificationError) {
+          console.error('Error sending accept review notifications:', notificationError);
+          // Continue with the request even if notification fails
+        }
       }
+    } catch (manuscriptError) {
+      console.error('Error processing manuscript status updates:', manuscriptError);
+      // Continue despite manuscript processing error - the review is already saved
     }
 
     // Send notification to editor (but don't fail if email fails)
     if (review.assignedBy && review.assignedBy.email) {
       try {
-        await sendEmail({
+        const emailResult = await sendEmail({
           to: review.assignedBy.email,
           subject: `Review Completed - ${review.manuscriptId.title}`,
           html: `
@@ -209,8 +304,12 @@ export async function PUT(
             <p>Best regards,<br>Journal System</p>
           `
         });
+        
+        if (!emailResult.success) {
+          console.warn('Email to editor failed to send but continuing with review submission:', emailResult.error);
+        }
       } catch (emailError) {
-        console.log('Email notification failed (non-critical):', (emailError as Error).message);
+        console.log('Email notification to editor failed (non-critical):', (emailError as Error).message);
         // Continue with the request even if email fails
       }
     }
@@ -260,7 +359,8 @@ async function handleAcceptedManuscript(manuscript: any, performedByUserId?: str
     // Get corresponding author info first
     const correspondingAuthor = manuscript.authors.find((author: any) => author.isCorresponding);
     if (!correspondingAuthor) {
-      throw new Error('No corresponding author found for accepted manuscript');
+      console.error('No corresponding author found for accepted manuscript');
+      return; // Exit gracefully instead of throwing an error
     }
 
     // Check if acceptance notifications have already been sent for this manuscript
@@ -321,29 +421,10 @@ async function handleAcceptedManuscript(manuscript: any, performedByUserId?: str
       });
     } catch (notificationError) {
       console.error('Error sending acceptance notifications:', notificationError);
-      // Continue with fallback email notification
+      // Continue without throwing error - notification failure shouldn't block the process
     }
-    
-    // Send fallback email notification to author about acceptance
-    try {
-      await sendEmail({
-        to: correspondingAuthor.email,
-        subject: `Manuscript Accepted - ${manuscript.title}`,
-        html: `
-          <h2>Congratulations! Your Manuscript Has Been Accepted</h2>
-          <p>We are pleased to inform you that your manuscript "<strong>${manuscript.title}</strong>" has been accepted for publication.</p>
-          <p>Please check your dashboard for payment information and next steps in the publication process.</p>
-          <p><a href="${process.env.NEXTAUTH_URL}/dashboard/manuscripts/${manuscript._id}">View Manuscript Status</a></p>
-          <p>Congratulations and thank you for your contribution!</p>
-          <p>Best regards,<br>Editorial Team</p>
-        `
-      });
-    } catch (emailError) {
-      console.log('Acceptance email notification failed (non-critical):', (emailError as Error).message);
-    }
-    
   } catch (error) {
-    console.error('Error handling accepted manuscript:', error);
-    // Don't throw error to prevent breaking the main flow
+    console.error('Error in handleAcceptedManuscript function:', error);
+    // Don't rethrow the error, just log it and continue
   }
 }
