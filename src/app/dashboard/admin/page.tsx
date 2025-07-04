@@ -242,9 +242,9 @@ export default function AdminDashboard() {
             </button>
             <button
               className={styles.actionButton}
-              onClick={() => router.push('/dashboard/admin/fee-config')}
+              onClick={() => router.push('/dashboard/admin/bank-config')}
             >
-              Publication Fees
+              Bank Configuration
             </button>
             <button
               className={styles.actionButton}
@@ -256,7 +256,31 @@ export default function AdminDashboard() {
               className={styles.actionButton}
               onClick={() => router.push('/dashboard/admin/home-management')}
             >
-              Home Page Management
+              Index/Repository Management
+            </button>
+            <button
+              className={styles.actionButton}
+              onClick={() => router.push('/dashboard/admin/editorial-board-management')}
+            >
+              Editorial Board Management
+            </button>
+            <button
+              className={styles.actionButton}
+              onClick={() => router.push('/dashboard/admin/user-manual-settings')}
+            >
+              User Manual Settings
+            </button>
+            <button
+              className={styles.actionButton}
+              onClick={() => router.push('/admin/contact-messages')}
+            >
+              Contact Messages
+            </button>
+            <button
+              className={styles.actionButton}
+              onClick={() => router.push('/admin/categories')}
+            >
+              Category Management
             </button>
           </div>
         </div>

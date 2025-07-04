@@ -117,13 +117,14 @@ export default function PublishManuscriptPage({ params }: { params: { id: string
     const volume = volumes.find(v => v.number.toString() === selectedVolume);
     if (!volume) return '';
 
-    // Generate DOI in format: 10.xxxx/journal.year.volume.issue.sequence
+    // Generate DOI in format: 10.1578/gjadt{year}{volume}{issue}{sequence}
     const year = volume.year;
-    const volNum = volume.number;
-    const issueNum = issueNumber || '1';
-    const sequence = Math.floor(Math.random() * 1000) + 1; // In real app, this would be sequential
+    const volNum = String(volume.number).padStart(2, '0'); // Pad to 2 digits
+    const issueNum = String(issueNumber || '1').padStart(2, '0'); // Pad to 2 digits
+    // For preview, show placeholder sequence - actual sequence will be generated server-side
+    const sequencePlaceholder = '001';
     
-    return `10.1234/researchjournal.${year}.${volNum}.${issueNum}.${sequence}`;
+    return `10.1578/gjadt${year}${volNum}${issueNum}${sequencePlaceholder}`;
   };
 
   const handlePublish = async () => {
@@ -131,8 +132,6 @@ export default function PublishManuscriptPage({ params }: { params: { id: string
 
     setIsPublishing(true);
     try {
-      const finalDoi = generateDoi ? generateDoiString() : doi;
-      
       const response = await fetch(`/api/manuscripts/${manuscript._id}/publish`, {
         method: 'POST',
         headers: {
@@ -140,10 +139,12 @@ export default function PublishManuscriptPage({ params }: { params: { id: string
         },
         body: JSON.stringify({
           volume: parseInt(selectedVolume),
-          issue: issueNumber ? parseInt(issueNumber) : undefined,
+          issue: issueNumber ? parseInt(issueNumber) : 1,
           pages,
-          doi: finalDoi,
+          doi: generateDoi ? null : doi, // Only send custom DOI if not auto-generating
+          generateDoi, // Flag to indicate auto-generation
           publishedDate,
+          action: 'formal-publish'
         }),
       });
 
@@ -338,6 +339,13 @@ export default function PublishManuscriptPage({ params }: { params: { id: string
                     <div className={styles.doiPreview}>
                       {selectedVolume ? generateDoiString() : 'Please select a volume first'}
                     </div>
+                    <p className={styles.doiNote}>
+                      Format: 10.1578/gjadt{'{year}{volume}{issue}{sequence}'}
+                      <br />
+                      Example: 10.1578/gjadt202511123
+                      <br />
+                      <small>The sequence number will be automatically assigned based on publication order.</small>
+                    </p>
                   </div>
                 ) : (
                   <div className={styles.formGroup}>
@@ -392,7 +400,9 @@ export default function PublishManuscriptPage({ params }: { params: { id: string
               
               <div className={styles.infoItem}>
                 <span className={styles.label}>Status</span>
-                <span className={styles.value}>{manuscript.status}</span>
+                <span className={styles.value}>
+                  {manuscript.status === 'published' ? 'Published' : manuscript.status.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                </span>
               </div>
               
               <div className={styles.infoItem}>

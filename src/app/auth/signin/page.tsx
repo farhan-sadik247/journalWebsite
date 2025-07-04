@@ -63,7 +63,7 @@ export default function SignInPage() {
       <div className={styles.authCard}>
         <div className={styles.authHeader}>
           <Link href="/" className={styles.logo}>
-            <h1>ResearchJournal</h1>
+            <h1>Global Journal of Advanced Technology</h1>
           </Link>
           <h2>Sign In</h2>
           <p>Welcome back! Please sign in to your account.</p>

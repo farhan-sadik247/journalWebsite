@@ -179,21 +179,45 @@ export async function GET(request: NextRequest) {
     const userRole = session.user.currentActiveRole || session.user.role || 'author';
     const userRoles = session.user.roles || [userRole];
     const isCopyEditor = userRole === 'copy-editor' || userRoles.includes('copy-editor');
+    const isReviewer = userRole === 'reviewer' || userRoles.includes('reviewer');
     const isEditor = userRole === 'editor' || userRoles.includes('editor');
     const isAdmin = userRole === 'admin' || userRoles.includes('admin');
     
     if (userRole === 'author' && !editor && !copyEditing) {
       filter.submittedBy = new mongoose.Types.ObjectId(session.user.id);
       console.log('Author filter applied - submittedBy:', session.user.id, 'as ObjectId:', filter.submittedBy);
-    } else if (userRole === 'reviewer' && !editor && !copyEditing) {
-      // Reviewers see manuscripts assigned to them
-      // This would need to be implemented based on Review model
-      console.log('Reviewer filter applied');
-    } else if (isCopyEditor && copyEditing) {
-      // Copy-editors see only manuscripts assigned to them
-      filter.assignedCopyEditor = new mongoose.Types.ObjectId(session.user.id);
-      filter.status = { $in: ['accepted', 'accepted-awaiting-copy-edit', 'in-copy-editing', 'copy-editing-complete', 'in-production'] };
-      console.log('Copy-editor filter applied - showing only assigned manuscripts for user:', session.user.id);
+    } else if (isReviewer && !editor && !copyEditing && !isEditor && !isAdmin) {
+      // Reviewers can only see:
+      // 1. Manuscripts assigned to them for review
+      // 2. Published manuscripts
+      
+      // Get manuscripts assigned to this reviewer
+      const assignedReviews = await Review.find({ 
+        reviewerId: new mongoose.Types.ObjectId(session.user.id) 
+      }).select('manuscriptId').lean();
+      
+      const assignedManuscriptIds = assignedReviews.map(review => review.manuscriptId);
+      
+      filter.$or = [
+        { _id: { $in: assignedManuscriptIds } }, // Assigned manuscripts
+        { status: 'published' } // Published manuscripts
+      ];
+      console.log('Reviewer filter applied - assigned manuscripts:', assignedManuscriptIds.length, 'manuscripts + published');
+    } else if (isCopyEditor && (!isEditor && !isAdmin)) {
+      // Copy editors can only see:
+      // 1. Manuscripts assigned to them for copy editing (any role context)
+      // 2. Published manuscripts
+      
+      filter.$or = [
+        { 
+          $or: [
+            { assignedCopyEditor: new mongoose.Types.ObjectId(session.user.id) },
+            { 'copyEditorAssignment.copyEditorId': new mongoose.Types.ObjectId(session.user.id) }
+          ]
+        }, // Assigned manuscripts (both old and new assignment structure)
+        { status: 'published' } // Published manuscripts
+      ];
+      console.log('Copy-editor filter applied - showing only assigned manuscripts + published for user:', session.user.id);
     } else if ((isEditor || isAdmin) || editor) {
       // Editors and admins see all manuscripts
       console.log('Editor/Admin filter applied - showing all manuscripts');

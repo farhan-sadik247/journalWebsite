@@ -16,8 +16,11 @@ import {
   FiFileText,
   FiClock,
   FiDollarSign,
-  FiCreditCard
+  FiCreditCard,
+  FiInfo
 } from 'react-icons/fi';
+import PaymentInfoModal from '@/components/PaymentInfoModal';
+import PaymentInfoDisplay from '@/components/PaymentInfoDisplay';
 import styles from './ManuscriptDetail.module.scss';
 
 interface Manuscript {
@@ -25,6 +28,7 @@ interface Manuscript {
   title: string;
   abstract: string;
   status: string;
+  paymentStatus?: string;
   category: string;
   submissionDate: string;
   lastModified: string;
@@ -102,6 +106,8 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedArticleType, setSelectedArticleType] = useState<string>('');
+  const [bankConfig, setBankConfig] = useState<any>(null);
+  const [showPaymentInfoModal, setShowPaymentInfoModal] = useState(false);
 
   // Get user role and permissions
   const userRole = session?.user?.currentActiveRole || session?.user?.role || 'author';
@@ -172,6 +178,55 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
       setPaymentInfo(null);
     } finally {
       setPaymentLoading(false);
+    }
+  };
+
+  // Fetch bank configuration
+  const fetchBankConfig = async () => {
+    try {
+      const response = await fetch('/api/bank-config');
+      if (response.ok) {
+        const data = await response.json();
+        setBankConfig(data.config);
+      } else {
+        console.error('Failed to fetch bank config');
+      }
+    } catch (error) {
+      console.error('Error fetching bank config:', error);
+    }
+  };
+
+  // Handle payment info submission
+  const handlePaymentInfoSubmit = async (paymentData: any) => {
+    if (!manuscript) {
+      toast.error('Manuscript data not available');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/payment-info', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          manuscriptId: manuscript._id,
+          ...paymentData,
+        }),
+      });
+
+      if (response.ok) {
+        toast.success('Payment information submitted successfully!');
+        setShowPaymentInfoModal(false);
+        // Refresh manuscript data to show updated payment status
+        fetchManuscript();
+      } else {
+        const data = await response.json();
+        toast.error(data.error || 'Failed to submit payment information');
+      }
+    } catch (error) {
+      console.error('Error submitting payment info:', error);
+      toast.error('Failed to submit payment information');
     }
   };
 
@@ -258,6 +313,7 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
         setSelectedArticleType(initialType);
       }
       fetchPaymentInfo();
+      fetchBankConfig();
     }
   }, [manuscript?.status, manuscript?.category, selectedArticleType]);
 
@@ -898,7 +954,7 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
       {/* Copy Editing Review Section - Only shown when copy editor has submitted their work */}
       {manuscript.copyEditReview && manuscript.copyEditReview.submittedAt && (
         <section className={styles.section} data-section="copy-editing">
-          <h2>
+          <h2 style={{ color: '#1f2937' }}>
             <FiFileText />
             Copy Editing Review
           </h2>
@@ -906,9 +962,9 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
           <div className={styles.copyEditReview}>
             <div className={styles.reviewHeader}>
               <div className={styles.reviewMeta}>
-                <p><strong>Copy Editor:</strong> {manuscript.copyEditReview.copyEditorName}</p>
-                <p><strong>Submitted:</strong> {new Date(manuscript.copyEditReview.submittedAt || '').toLocaleDateString()}</p>
-                <p>
+                <p style={{ color: '#1f2937' }}><strong>Copy Editor:</strong> {manuscript.copyEditReview.copyEditorName}</p>
+                <p style={{ color: '#1f2937' }}><strong>Submitted:</strong> {new Date(manuscript.copyEditReview.submittedAt || '').toLocaleDateString()}</p>
+                <p style={{ color: '#1f2937' }}>
                   <strong>Status:</strong> 
                   <span className={`${styles.completionStatus} ${manuscript.copyEditReview.completionStatus === 'completed' ? styles.completed : styles.needsRevision}`}>
                     {manuscript.copyEditReview.completionStatus === 'completed' ? 'Copy Editing Completed' : 'Revision Required'}
@@ -919,10 +975,10 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
             
             {manuscript.copyEditReview.comments && (
               <div className={styles.reviewComments}>
-                <h4>Copy Editor Comments:</h4>
+                <h4 style={{ color: '#1f2937' }}>Copy Editor Comments:</h4>
                 <div className={styles.commentsBox}>
                   {manuscript.copyEditReview.comments.split('\n').map((line, index) => (
-                    <p key={index}>{line}</p>
+                    <p key={index} style={{ color: '#1f2937' }}>{line}</p>
                   ))}
                 </div>
               </div>
@@ -930,7 +986,7 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
             
             {manuscript.copyEditReview.galleyProofUrl && (
               <div className={styles.galleyProof}>
-                <h4>Galley Proof:</h4>
+                <h4 style={{ color: '#1f2937' }}>Galley Proof:</h4>
                 <div className={styles.fileDownload}>
                   <FiDownload />
                   <a 
@@ -1255,7 +1311,7 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
             </div>
             
             <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#6c757d', fontStyle: 'italic' }}>
-              <strong>Note:</strong> Click "View Details" to see comprehensive review feedback and scores.
+              <strong>Note:</strong> Click &quot;View Details&quot; to see comprehensive review feedback and scores.
             </p>
           </div>
         ) : (
@@ -1277,63 +1333,72 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
           </h2>
           
           <div className={styles.paymentSection}>
-            <div className={styles.paymentInfo}>
-              <div className={styles.paymentHeader}>
-                <h3>🎉 Congratulations! Your manuscript has been accepted for publication.</h3>
-                <p>To proceed with publication, please complete the payment process below.</p>
-              </div>
-
-              {/* Payment content */}
-              {paymentLoading ? (
-                <div className={styles.loadingPayment}>
-                  <div className="spinner" />
-                  <p>Loading payment information...</p>
+            {manuscript.paymentStatus === 'completed' ? (
+              // Show paid status
+              <div className={styles.paymentCompleted}>
+                <div className={styles.paidStatus}>
+                  <div className={styles.paidIcon}>✅</div>
+                  <h3>Payment Completed</h3>
+                  <p className={styles.paidText}>Paid</p>
+                  <p>Your payment has been verified and approved. Your manuscript is now being processed for publication.</p>
                 </div>
-              ) : paymentInfo ? (
-                <div className={styles.paymentDetails}>
-                  <div className={styles.feeBreakdown}>
-                    <h4 style={{ color: '#333', marginBottom: '1rem' }}>Article Publication Fee</h4>
-                    <div className={styles.feeItem} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid #eee' }}>
-                      <span style={{ color: '#333', fontWeight: '500' }}>Article Type: {paymentInfo.articleType}</span>
-                      <span style={{ color: '#333', fontWeight: '500' }}>${paymentInfo.baseFee}</span>
-                    </div>
-                    
-                    <div className={styles.feeTotal} style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem 0', borderTop: '2px solid #007bff', marginTop: '0.5rem' }}>
-                      <span style={{ color: '#333', fontWeight: 'bold', fontSize: '1.1rem' }}><strong>Total Amount</strong></span>
-                      <span style={{ color: '#007bff', fontWeight: 'bold', fontSize: '1.2rem' }}><strong>${paymentInfo.finalFee}</strong></span>
+              </div>
+            ) : (
+              // Show payment form
+              <div className={styles.paymentInfo}>
+                <div className={styles.paymentHeader}>
+                    <p style={{ color: '#28a745' }}>To proceed with publication, please complete the payment process using bank transfer.</p>
+                </div>
+
+                {/* Bank Details and Payment Information */}
+                {bankConfig ? (
+                  <div className={styles.bankDetails}>
+                    <div className={styles.bankCard}>
+                      <h4>Bank Transfer Details</h4>
+                      
+                      <div className={styles.detailsGrid}>
+                        <div className={styles.detailItem}>
+                          <label>Payable Amount:</label>
+                          <span className={styles.amount}>{bankConfig.currency} ${bankConfig.payableAmount.toFixed(2)}</span>
+                        </div>
+                        
+                        <div className={styles.detailItem}>
+                          <label>Bank Name:</label>
+                          <span>{bankConfig.bankName}</span>
+                        </div>
+                        
+                        <div className={styles.detailItem}>
+                          <label>Account Number:</label>
+                          <span>{bankConfig.accountNumber}</span>
+                        </div>
+                        
+                        <div className={styles.detailItem + ' ' + styles.fullWidth}>
+                          <label>Bank Account Details:</label>
+                          <span>{bankConfig.accountDetails}</span>
+                        </div>
+                      </div>
+                      
+                      <div className={styles.noteSection}>
+                        <h5>Note for Author:</h5>
+                        <p>After completing the payment, please send your payment information using the button below.</p>
+                      </div>
+                      
+                      {/* Use PaymentInfoDisplay component for showing payment status and actions */}
+                      <PaymentInfoDisplay 
+                        manuscriptId={manuscript._id} 
+                        userRole={userRole}
+                        isAuthor={isAuthor}
+                      />
                     </div>
                   </div>
-                  
-                  {paymentInfo.finalFee > 0 ? (
-                    <button 
-                      onClick={proceedToPayment}
-                      className="btn btn-primary"
-                      style={{ width: '100%', marginTop: '1rem' }}
-                      disabled={paymentLoading}
-                    >
-                      <FiCreditCard />
-                      {paymentLoading ? 'Processing...' : 'Proceed to Payment Portal'}
-                    </button>
-                  ) : (
-                    <div className={styles.errorMessage}>
-                      <p style={{color: 'red', fontWeight: 'bold'}}>
-                        ❌ Payment configuration error - Please contact support
-                      </p>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className={styles.paymentPlaceholder}>
-                  <p>Payment information will be displayed here once available.</p>
-                  <button 
-                    onClick={() => fetchPaymentInfo()}
-                    className="btn btn-primary"
-                  >
-                    Load Payment Details
-                  </button>
-                </div>
-              )}
-            </div>
+                ) : (
+                  <div className={styles.loadingPayment}>
+                    <div className="spinner" />
+                    <p>Loading bank details...</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </section>
       )}
@@ -1394,6 +1459,21 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
               Assign Copy Editor
             </Link>
           </div>
+        </section>
+      )}
+
+      {/* Payment Information section for editors only */}
+      {manuscript.status === 'accepted' && isEditor && !isAuthor && (
+        <section className={styles.section}>
+          <h2>
+            <FiDollarSign />
+            Payment Review Section (Editor Only)
+          </h2>
+          <PaymentInfoDisplay 
+            manuscriptId={manuscript._id} 
+            userRole={userRole}
+            isAuthor={isAuthor}
+          />
         </section>
       )}
 
@@ -2013,6 +2093,15 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
           </div>
         </div>
       )}
+
+      {/* Payment Info Modal */}
+      <PaymentInfoModal
+        isOpen={showPaymentInfoModal}
+        onClose={() => setShowPaymentInfoModal(false)}
+        onSubmit={handlePaymentInfoSubmit}
+        amount={bankConfig?.payableAmount || 0}
+        manuscriptId={manuscript?._id || ''}
+      />
     </div>
   );
 }

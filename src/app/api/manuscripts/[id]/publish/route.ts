@@ -5,6 +5,7 @@ import dbConnect from '@/lib/mongodb';
 import Manuscript from '@/models/Manuscript';
 import Volume from '@/models/Volume';
 import { notifyPublicationComplete } from '@/lib/notificationUtils';
+import { generateManuscriptDOI, isDOIUnique } from '@/lib/doiUtils';
 
 export async function POST(
   request: NextRequest,
@@ -25,7 +26,7 @@ export async function POST(
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
-    const { volume, issue, pages, doi, publishedDate, action } = await request.json();
+    const { volume, issue, pages, doi, publishedDate, action, generateDoi } = await request.json();
 
     // For direct publish, we don't require volume and pages
     if (action !== 'direct-publish' && (!volume || !pages || !publishedDate)) {
@@ -62,10 +63,19 @@ export async function POST(
       }
     }
 
+    // Generate DOI if requested
+    let finalDoi = doi;
+    if (generateDoi && volume) {
+      const volumeDoc = await Volume.findOne({ number: volume });
+      if (volumeDoc) {
+        finalDoi = await generateManuscriptDOI(volumeDoc.year, volume, issue || 1);
+      }
+    }
+
     // Check if DOI already exists
-    if (doi) {
-      const existingDoi = await Manuscript.findOne({ doi, _id: { $ne: params.id } });
-      if (existingDoi) {
+    if (finalDoi) {
+      const isUnique = await isDOIUnique(finalDoi, params.id);
+      if (!isUnique) {
         return NextResponse.json({ error: 'DOI already exists' }, { status: 400 });
       }
     }
@@ -84,14 +94,14 @@ export async function POST(
     }
 
     if (issue) updateData.issue = issue;
-    if (doi) updateData.doi = doi;
+    if (finalDoi) updateData.doi = finalDoi;
 
     // Add timeline event
     const timelineEvent = {
       event: 'Manuscript Published',
       description: action === 'direct-publish' 
-        ? `Published directly to archive${doi ? ` with DOI: ${doi}` : ''}`
-        : `Published in Volume ${volume}${issue ? `, Issue ${issue}` : ''}, pages ${pages}${doi ? ` with DOI: ${doi}` : ''}`,
+        ? `Published directly to archive${finalDoi ? ` with DOI: ${finalDoi}` : ''}`
+        : `Published in Volume ${volume}${issue ? `, Issue ${issue}` : ''}, pages ${pages}${finalDoi ? ` with DOI: ${finalDoi}` : ''}`,
       date: new Date(),
       performedBy: session.user.id
     };

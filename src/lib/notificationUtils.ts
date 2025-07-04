@@ -570,3 +570,22 @@ export async function notifyCopyEditorAuthorApproval(
     throw error;
   }
 }
+
+export async function notifyPaymentRejected(
+  authorEmail: string,
+  manuscriptId: string,
+  manuscriptTitle: string,
+  rejectionReason: string,
+  paymentAmount: number
+) {
+  return createNotification({
+    recipientEmail: authorEmail,
+    type: 'payment_required',
+    title: 'Payment Rejected - Resubmission Required',
+    message: `Your payment submission for "${manuscriptTitle}" has been rejected. Reason: ${rejectionReason}. Please resubmit your payment of $${paymentAmount} to proceed with publication.`,
+    manuscriptId,
+    priority: 'high',
+    actionUrl: `/dashboard/manuscripts/${manuscriptId}`,
+    createdBy: 'payment_system'
+  });
+}

@@ -488,7 +488,7 @@ export default function EditorDashboard() {
                   <p>Authors: {manuscript.authors.map(a => a.name).join(', ')}</p>
                   <div className={styles.metadata}>
                     <span style={{ color: getStatusColor(manuscript.status) }}>
-                      {manuscript.status.toUpperCase()}
+                      {manuscript.status === 'published' ? 'Published' : manuscript.status.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                     </span>
                     <span>Submitted: {new Date(manuscript.submissionDate).toLocaleDateString()}</span>
                     <span>Reviews: {manuscript.completedReviews}/{manuscript.reviewsCount}</span>
@@ -509,16 +509,18 @@ export default function EditorDashboard() {
                       Make Decision
                     </button>
                   )}
-                  <button
-                    className={styles.assignButton}
-                    onClick={() => {
-                      setSelectedManuscript(manuscript._id);
-                      setActiveTab('assign');
-                    }}
-                  >
-                    Assign Review
-                  </button>
-                  {['revision-requested', 'major-revision-requested', 'minor-revision-requested'].includes(manuscript.status) && (
+                  {manuscript.status !== 'published' && (
+                    <button
+                      className={styles.assignButton}
+                      onClick={() => {
+                        setSelectedManuscript(manuscript._id);
+                        setActiveTab('assign');
+                      }}
+                    >
+                      Assign Review
+                    </button>
+                  )}
+                  {['revision-requested', 'major-revision-requested', 'minor-revision-requested'].includes(manuscript.status) && manuscript.status !== 'published' && (
                     <button
                       className={styles.assignButton}
                       onClick={() => {
@@ -533,7 +535,7 @@ export default function EditorDashboard() {
                       Re-assign Reviewer
                     </button>
                   )}
-                  {['accepted', 'accepted-awaiting-copy-edit', 'in-copy-editing'].includes(manuscript.status) && (
+                  {['accepted', 'accepted-awaiting-copy-edit', 'in-copy-editing'].includes(manuscript.status) && manuscript.status !== 'published' && (
                     <>
                       {(!manuscript.requiresPayment || 
                         manuscript.paymentStatus === 'completed' || 
@@ -645,6 +647,7 @@ export default function EditorDashboard() {
               >
                 <option value="">Choose manuscript...</option>
                 {Array.isArray(manuscripts) && manuscripts
+                  // Filter out published manuscripts and only show manuscripts that can have reviewers assigned
                   .filter(m => ['submitted', 'under-review', 'revision-requested', 'major-revision-requested', 'minor-revision-requested'].includes(m.status))
                   .map((manuscript) => (
                     <option key={manuscript._id} value={manuscript._id}>

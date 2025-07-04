@@ -149,7 +149,7 @@ export async function GET(request: NextRequest) {
       }
 
       const users = await User.find(query)
-        .select('name email role roles specializations createdAt')
+        .select('name email role roles affiliation bio expertise orcid profileImage designation designationRole createdAt')
         .sort({ createdAt: -1 })
         .lean();
 

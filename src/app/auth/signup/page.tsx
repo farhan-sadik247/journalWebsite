@@ -151,7 +151,7 @@ export default function SignUpPage() {
       <div className={styles.authCard}>
         <div className={styles.authHeader}>
           <Link href="/" className={styles.logo}>
-            <h1>ResearchJournal</h1>
+            <h1>Global Journal of Advanced Technology</h1>
           </Link>
           <h2>Create Account</h2>
           <p>Join our research community and start publishing your work.</p>

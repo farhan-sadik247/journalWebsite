@@ -58,7 +58,7 @@ export default function CopyEditorDashboard() {
 
   const fetchManuscripts = async () => {
     try {
-      const response = await fetch('/api/manuscripts?copyEditing=true');
+      const response = await fetch('/api/copy-editor/manuscripts');
       if (response.ok) {
         const data = await response.json();
         setManuscripts(data.manuscripts || []);
@@ -285,7 +285,7 @@ export default function CopyEditorDashboard() {
                       </td>
                       <td data-label="Status">
                         <span className={`${styles.statusBadge} ${styles[manuscript.status.replace('-', '')]}`}>
-                          {manuscript.status.replace('-', ' ')}
+                          {manuscript.status === 'published' ? 'Published' : manuscript.status.replace('-', ' ')}
                         </span>
                       </td>
                       <td data-label="Actions">

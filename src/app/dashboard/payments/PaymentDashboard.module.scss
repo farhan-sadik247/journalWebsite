@@ -439,6 +439,30 @@
             border-color: #34d399;
           }
         }
+
+        &.acceptButton:hover {
+          background: rgba(34, 197, 94, 0.1);
+          color: #22c55e;
+          border-color: #22c55e;
+          
+          @media (prefers-color-scheme: dark) {
+            background: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+            border-color: #4ade80;
+          }
+        }
+
+        &.rejectButton:hover {
+          background: rgba(239, 68, 68, 0.1);
+          color: #ef4444;
+          border-color: #ef4444;
+          
+          @media (prefers-color-scheme: dark) {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border-color: #f87171;
+          }
+        }
       }
     }
 
@@ -540,80 +564,200 @@
   .iconSecondary {
     color: var(--text-secondary);
   }
-}
 
-// Responsive design
-@media (max-width: 1024px) {
-  .paymentDashboard {
-    .filtersSection {
-      flex-direction: column;
-      align-items: stretch;
+  // Submissions Tab Styles
+  .submissionsContainer {
+    margin-top: 2rem;
+  }
 
-      .filterGroup,
-      .searchGroup {
-        justify-content: flex-start;
-      }
-
-      .searchInput {
-        min-width: auto;
-        width: 100%;
-      }
+  .submissionsHeader {
+    margin-bottom: 2rem;
+    text-align: center;
+    
+    h3 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
     }
+    
+    p {
+      color: var(--text-secondary);
+      margin: 0;
+    }
+  }
 
-    .tableContainer {
-      overflow-x: auto;
+  .loadingSpinner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    
+    .spinner {
+      margin-bottom: 1rem;
+    }
+    
+    p {
+      color: var(--text-secondary);
+      margin: 0;
+    }
+  }
 
-      .paymentsTable {
-        min-width: 800px;
+  .submissionsGrid {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  }
+
+  // Tab Navigation Styles
+  .tabNavigation {
+    display: flex;
+    border-bottom: 2px solid var(--border-color);
+    margin-bottom: 2rem;
+    gap: 0;
+  }
+
+  .tab {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 1.5rem;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: var(--text-secondary);
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    
+    svg {
+      width: 18px;
+      height: 18px;
+    }
+    
+    &:hover {
+      color: var(--primary-color);
+      background: rgba(0, 102, 204, 0.05);
+    }
+    
+    &.active {
+      color: var(--primary-color);
+      border-bottom-color: var(--primary-color);
+      background: rgba(0, 102, 204, 0.05);
+      
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: var(--primary-color);
+        border-radius: 2px 2px 0 0;
       }
     }
   }
-}
 
-@media (max-width: 768px) {
-  .paymentDashboard {
-    padding: 1rem 0;
+  // Responsive design
+  @media (max-width: 1024px) {
+    .paymentDashboard {
+      .filtersSection {
+        flex-direction: column;
+        align-items: stretch;
 
-    .header {
-      margin-bottom: 1.5rem;
+        .filterGroup,
+        .searchGroup {
+          justify-content: flex-start;
+        }
 
-      .headerContent h1 {
-        font-size: 1.5rem;
+        .searchInput {
+          min-width: auto;
+          width: 100%;
+        }
       }
-    }
 
-    .statsGrid {
-      grid-template-columns: 1fr;
-      gap: 1rem;
-      margin-bottom: 1.5rem;
+      .tableContainer {
+        overflow-x: auto;
 
-      .statCard {
-        padding: 1rem;
-      }
-    }
-
-    .filtersSection {
-      padding: 1rem;
-      margin-bottom: 1.5rem;
-    }
-
-    .tableContainer {
-      margin-bottom: 1.5rem;
-
-      .paymentsTable {
-        thead th,
-        tbody td {
-          padding: 0.75rem 0.5rem;
-          font-size: 0.8rem;
+        .paymentsTable {
+          min-width: 800px;
         }
       }
     }
+  }
 
-    .pagination {
-      .pageNumbers {
-        max-width: 200px;
-        overflow-x: auto;
+  @media (max-width: 768px) {
+    .paymentDashboard {
+      padding: 1rem 0;
+
+      .header {
+        margin-bottom: 1.5rem;
+
+        .headerContent h1 {
+          font-size: 1.5rem;
+        }
       }
+
+      .statsGrid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+
+        .statCard {
+          padding: 1rem;
+        }
+      }
+
+      .filtersSection {
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .tableContainer {
+        margin-bottom: 1.5rem;
+
+        .paymentsTable {
+          thead th,
+          tbody td {
+            padding: 0.75rem 0.5rem;
+            font-size: 0.8rem;
+          }
+        }
+      }
+
+      .pagination {
+        .pageNumbers {
+          max-width: 200px;
+          overflow-x: auto;
+        }
+      }
+    }
+  }
+
+  // Responsive adjustments for submissions
+  @media (max-width: 768px) {
+    .submissionsGrid {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+    
+    .tabNavigation {
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      
+      &::-webkit-scrollbar {
+        display: none;
+      }
+    }
+    
+    .tab {
+      white-space: nowrap;
+      padding: 0.75rem 1rem;
+      font-size: 0.9rem;
     }
   }
 }

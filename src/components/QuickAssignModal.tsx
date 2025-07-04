@@ -144,7 +144,7 @@ export default function QuickAssignModal({
                 <div className={styles.manuscriptList}>
                   {availableManuscripts.length === 0 ? (
                     <div className={styles.emptyState}>
-                      No available "Author Approved" articles
+                      No available &quot;Author Approved&quot; articles
                     </div>
                   ) : (
                     availableManuscripts.map((manuscript) => (

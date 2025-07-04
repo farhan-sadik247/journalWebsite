@@ -198,7 +198,7 @@ export default function CopyEditingAssignmentPage() {
               <option value="">Choose a manuscript...</option>
               {getAssignableManuscripts().map((manuscript) => (
                 <option key={manuscript._id} value={manuscript._id}>
-                  {manuscript.title} - {manuscript.authors.map(a => a.name).join(', ')} ({manuscript.status})
+                  {manuscript.title} - {manuscript.authors.map(a => a.name).join(', ')} ({manuscript.status === 'published' ? 'Published' : manuscript.status.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())})
                 </option>
               ))}
             </select>
@@ -271,7 +271,7 @@ export default function CopyEditingAssignmentPage() {
                   <p>Authors: {manuscript.authors.map(a => a.name).join(', ')}</p>
                   <div className={styles.metadata}>
                     <span style={{ color: getStatusColor(manuscript.status) }}>
-                      {manuscript.status.toUpperCase()}
+                      {manuscript.status === 'published' ? 'Published' : manuscript.status.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                     </span>
                     <span>Submitted: {new Date(manuscript.submissionDate).toLocaleDateString()}</span>
                     {manuscript.copyEditingStage && (

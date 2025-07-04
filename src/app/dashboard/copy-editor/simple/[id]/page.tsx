@@ -239,7 +239,7 @@ export default function CopyEditorWorkPage() {
               <strong>Authors:</strong> {manuscript.authors.map(author => author.name).join(', ')}
             </p>
             <p className="text-gray-600 mb-2">
-              <strong>Status:</strong> {manuscript.status}
+              <strong>Status:</strong> {manuscript.status === 'published' ? 'Published' : manuscript.status.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
             </p>
             <div className="mt-4">
               <h4 className="font-semibold mb-2">Abstract:</h4>

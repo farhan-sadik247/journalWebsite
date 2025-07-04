@@ -59,11 +59,7 @@ export default function CopyEditorManuscriptDetailPage({ params }: { params: { i
   const [manuscript, setManuscript] = useState<Manuscript | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showStageUpdateModal, setShowStageUpdateModal] = useState(false);
   const [showReviewForm, setShowReviewForm] = useState(false);
-  const [newStage, setNewStage] = useState('');
-  const [notes, setNotes] = useState('');
-  const [isUpdating, setIsUpdating] = useState(false);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [selectedWorkingFiles, setSelectedWorkingFiles] = useState<File[]>([]);
 
@@ -131,39 +127,6 @@ export default function CopyEditorManuscriptDetailPage({ params }: { params: { i
       'ready-for-publication': 'ready'
     };
     return classMap[stage || ''] || 'default';
-  };
-
-  const handleStageUpdate = async () => {
-    if (!newStage || !manuscript) return;
-
-    setIsUpdating(true);
-    try {
-      const response = await fetch(`/api/manuscripts/${manuscript._id}/copy-editing`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          stage: newStage,
-          notes: notes,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setManuscript(data.manuscript);
-        setShowStageUpdateModal(false);
-        setNewStage('');
-        setNotes('');
-      } else {
-        throw new Error('Failed to update stage');
-      }
-    } catch (error) {
-      console.error('Error updating stage:', error);
-      alert('Failed to update stage. Please try again.');
-    } finally {
-      setIsUpdating(false);
-    }
   };
 
   const handleReviewSubmission = async (reviewData: CopyEditReviewData) => {
@@ -301,7 +264,7 @@ export default function CopyEditorManuscriptDetailPage({ params }: { params: { i
               <h1>{manuscript.title}</h1>
               <div className={styles.statusBadges}>
                 <span className={`status-badge status-${manuscript.status.replace('-', '')}`}>
-                  {manuscript.status.replace('-', ' ')}
+                  {manuscript.status === 'published' ? 'Published' : manuscript.status.replace('-', ' ')}
                 </span>
                 <span className={`${styles.stageBadge} ${styles[getStageBadgeClass(manuscript.copyEditingStage)]}`}>
                   {getStageDisplayText(manuscript.copyEditingStage)}
@@ -317,13 +280,6 @@ export default function CopyEditorManuscriptDetailPage({ params }: { params: { i
               >
                 <FiSend />
                 {manuscript.copyEditReview && manuscript.copyEditReview.submittedAt ? 'Review Submitted' : 'Submit Review'}
-              </button>
-              <button 
-                onClick={() => setShowStageUpdateModal(true)}
-                className="btn btn-primary"
-              >
-                <FiEdit3 />
-                Update Stage
               </button>
               <Link
                 href={`/dashboard/copy-editor/manuscripts/${manuscript._id}/edit`}
@@ -568,15 +524,15 @@ export default function CopyEditorManuscriptDetailPage({ params }: { params: { i
             {/* Copy Edit Review (if submitted) */}
             {manuscript.copyEditReview && manuscript.copyEditReview.submittedAt && (
               <section className={styles.section}>
-                <h2>
+                <h2 style={{ color: '#1f2937' }}>
                   <FiCheck />
                   Copy Editing Review
                 </h2>
                 <div className={styles.reviewCard}>
                   <div className={styles.reviewHeader}>
                     <div className={styles.reviewInfo}>
-                      <h4>Review by {manuscript.copyEditReview.copyEditorName}</h4>
-                      <p className={styles.reviewDate}>
+                      <h4 style={{ color: '#1f2937' }}>Review by {manuscript.copyEditReview.copyEditorName}</h4>
+                      <p className={styles.reviewDate} style={{ color: '#6b7280' }}>
                         Submitted on {new Date(manuscript.copyEditReview.submittedAt).toLocaleDateString()}
                       </p>
                     </div>
@@ -586,12 +542,12 @@ export default function CopyEditorManuscriptDetailPage({ params }: { params: { i
                   </div>
                   
                   <div className={styles.reviewContent}>
-                    <h5>Comments:</h5>
-                    <p className={styles.reviewComments}>{manuscript.copyEditReview.comments}</p>
+                    <h5 style={{ color: '#1f2937' }}>Comments:</h5>
+                    <p className={styles.reviewComments} style={{ color: '#1f2937' }}>{manuscript.copyEditReview.comments}</p>
                     
                     {manuscript.copyEditReview.galleyProofUrl && (
                       <div className={styles.galleyProof}>
-                        <h5>Galley Proof:</h5>
+                        <h5 style={{ color: '#1f2937' }}>Galley Proof:</h5>
                         <a 
                           href={manuscript.copyEditReview.galleyProofUrl}
                           target="_blank"
@@ -650,14 +606,6 @@ export default function CopyEditorManuscriptDetailPage({ params }: { params: { i
             <div className={styles.actionsCard}>
               <h3>Quick Actions</h3>
               <div className={styles.actionsList}>
-                <button 
-                  onClick={() => setShowStageUpdateModal(true)}
-                  className={styles.actionItem}
-                >
-                  <FiEdit3 />
-                  Update Production Stage
-                </button>
-                
                 <Link
                   href={`/dashboard/copy-editor/manuscripts/${manuscript._id}/edit`}
                   className={styles.actionItem}
@@ -678,75 +626,6 @@ export default function CopyEditorManuscriptDetailPage({ params }: { params: { i
           </div>
         </div>
       </div>
-
-      {/* Stage Update Modal */}
-      {showStageUpdateModal && (
-        <div className={styles.modalOverlay} onClick={() => setShowStageUpdateModal(false)}>
-          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <h3>Update Production Stage</h3>
-              <button 
-                className={styles.closeModal} 
-                onClick={() => setShowStageUpdateModal(false)}
-              >
-                &times;
-              </button>
-            </div>
-            
-            <div className={styles.modalBody}>
-              <div className={styles.formGroup}>
-              <label htmlFor="stage">New Stage</label>
-              <select
-                id="stage"
-                value={newStage}
-                onChange={(e) => setNewStage(e.target.value)}
-                className={styles.formControl}
-                style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}
-              >
-                <option value="">Select stage...</option>
-                <option value="copy-editing">Copy Editing</option>
-                <option value="author-review">Author Review</option>
-                <option value="proofreading">Proofreading</option>
-                <option value="typesetting">Typesetting</option>
-                <option value="final-review">Final Review</option>
-                <option value="ready-for-publication">Ready for Publication</option>
-              </select>
-              </div>
-
-              <div className={styles.formGroup}>
-                <label htmlFor="notes">Notes (Optional)</label>
-                <textarea
-                  id="notes"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  className={styles.formControl}
-                  rows={4}
-                  placeholder="Add any notes about this stage update..."
-                />
-              </div>
-
-              <div className={styles.modalActions}>
-                <button
-                  type="button"
-                  onClick={() => setShowStageUpdateModal(false)}
-                  className="btn btn-secondary"
-                  disabled={isUpdating}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleStageUpdate}
-                  className="btn btn-primary"
-                  disabled={!newStage || isUpdating}
-                >
-                  {isUpdating ? 'Updating...' : 'Update Stage'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Review Submission Form */}
       {showReviewForm && manuscript && (

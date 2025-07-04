@@ -1,0 +1,365 @@
+@import '../../../styles/variables';
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.header {
+  margin-bottom: 3rem;
+}
+
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: $primary-color;
+  text-decoration: none;
+  margin-bottom: 2rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translateX(-2px);
+    text-decoration: underline;
+  }
+
+  svg {
+    font-size: 1.1rem;
+  }
+}
+
+.categoryHeader {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: $card-shadow;
+  border: 1px solid $border-color;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
+  }
+}
+
+.categoryImage {
+  flex-shrink: 0;
+  width: 120px;
+  height: 120px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: $background-light;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  @media (max-width: 768px) {
+    width: 80px;
+    height: 80px;
+  }
+}
+
+.categoryInfo {
+  flex: 1;
+
+  h1 {
+    color: $primary-color;
+    margin-bottom: 0.5rem;
+    font-size: 2rem;
+
+    @media (max-width: 768px) {
+      font-size: 1.5rem;
+    }
+  }
+}
+
+.categoryDescription {
+  color: $text-light;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+.articleCount {
+  color: $text-dark;
+  font-weight: 600;
+  background: $background-light;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  display: inline-block;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
+  font-size: 1.25rem;
+  color: $text-light;
+}
+
+.noArticles {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+}
+
+.noArticlesContent {
+  text-align: center;
+  max-width: 600px;
+  background: white;
+  padding: 3rem;
+  border-radius: 12px;
+  box-shadow: $card-shadow;
+  border: 1px solid $border-color;
+
+  h2 {
+    color: $text-dark;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+  }
+
+  p {
+    color: $text-light;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+  }
+
+  .actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 2rem;
+  }
+
+  .submitButton {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: $primary-color;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: $primary-dark;
+      transform: translateY(-2px);
+    }
+
+    svg {
+      font-size: 1.1rem;
+    }
+  }
+
+  .browseButton {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: transparent;
+    color: $primary-color;
+    padding: 0.75rem 1.5rem;
+    border: 2px solid $primary-color;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: $primary-color;
+      color: white;
+      transform: translateY(-2px);
+    }
+  }
+}
+
+.articlesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: 2rem;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+.articleCard {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: $card-shadow;
+  border: 1px solid $border-color;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+
+  &:hover {
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+  }
+}
+
+.articleHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.category {
+  background: $primary-color;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 15px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.publication {
+  color: $text-light;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.title {
+  margin-bottom: 0.75rem;
+  line-height: 1.4;
+
+  a {
+    color: $text-dark;
+    text-decoration: none;
+    font-size: 1.1rem;
+    font-weight: 600;
+    transition: color 0.2s ease;
+
+    &:hover {
+      color: $primary-color;
+    }
+  }
+}
+
+.authors {
+  color: $text-light;
+  font-style: italic;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.abstract {
+  color: $text-dark;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+  flex: 1;
+  font-size: 0.9rem;
+}
+
+.keywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.keyword {
+  background: $background-light;
+  color: $text-dark;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.moreKeywords {
+  background: $primary-light;
+  color: $primary-color;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.articleFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.metadata {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.date {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: $text-light;
+  font-size: 0.875rem;
+
+  svg {
+    font-size: 0.875rem;
+  }
+}
+
+.doi {
+  color: $text-light;
+  font-size: 0.75rem;
+  font-family: monospace;
+}
+
+.metrics {
+  display: flex;
+  gap: 1rem;
+
+  span {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: $text-light;
+    font-size: 0.875rem;
+
+    svg {
+      font-size: 0.875rem;
+    }
+  }
+}
+
+.readMore {
+  background: $primary-color;
+  color: white;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  text-decoration: none;
+  text-align: center;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  margin-top: auto;
+
+  &:hover {
+    background: $primary-dark;
+    transform: translateY(-1px);
+  }
+}

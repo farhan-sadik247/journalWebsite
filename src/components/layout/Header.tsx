@@ -2,17 +2,45 @@
 
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FiMenu, FiX, FiUser, FiLogOut, FiSettings, FiChevronDown, FiSearch, FiBook, FiInfo, FiMail, FiUsers, FiFileText, FiDollarSign } from 'react-icons/fi';
 import styles from './Header.module.scss';
 import NotificationBar from './NotificationBar';
-import AdminPaymentConfig from './AdminPaymentConfig';
 
 export function Header() {
   const { data: session, status } = useSession();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout | null = null;
+
+    const handleScroll = () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      
+      timeoutId = setTimeout(() => {
+        const scrollTop = window.scrollY;
+        const shouldBeScrolled = scrollTop > 100;
+        
+        if (shouldBeScrolled !== isScrolled) {
+          setIsScrolled(shouldBeScrolled);
+        }
+      }, 10); // Small debounce
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [isScrolled]);
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const toggleUserMenu = () => setIsUserMenuOpen(!isUserMenuOpen);
@@ -35,7 +63,7 @@ export function Header() {
       items: [
         { name: 'About Journal', href: '/about', icon: FiInfo },
         { name: 'Editorial Board', href: '/editorial-board', icon: FiUsers },
-        { name: 'Publication Fees', href: '/publication-fees', icon: FiDollarSign },
+        { name: 'User Manual', href: '/user-manual', icon: FiBook },
         { name: 'Contact Us', href: '/contact', icon: FiMail },
       ]
     }
@@ -46,14 +74,20 @@ export function Header() {
   ];
 
   return (
-    <header className={styles.header}>
+    <header className={`${styles.header} ${isScrolled ? styles.scrolled : ''}`}>
       <div className={styles.container}>
-        <div className={styles.headerContent}>
-          {/* Logo */}
+        {/* Top Row - Journal Name and Motto */}
+        <div className={styles.topRow}>
           <Link href="/" className={styles.logo}>
-            <h1>ResearchJournal</h1>
+            <div className={styles.logoContent}>
+              <h1>Global Journal of Advanced Technology</h1>
+              <span className={styles.motto}>Innovating the Future, One Breakthrough at a Time</span>
+            </div>
           </Link>
+        </div>
 
+        {/* Bottom Row - Navigation and User Section */}
+        <div className={styles.bottomRow}>
           {/* Desktop Navigation */}
           <nav className={styles.nav}>
             <Link href="/" className={styles.navLink}>
@@ -103,10 +137,9 @@ export function Header() {
             ))}
           </nav>
 
-          {/* User Section with Notifications and Admin Controls */}
+          {/* User Section with Notifications */}
           <div className={styles.userSection}>
             {session && <NotificationBar />}
-            {session?.user?.role === 'admin' && <AdminPaymentConfig />}
             
             {status === 'loading' ? (
               <div className="spinner" />
@@ -158,11 +191,8 @@ export function Header() {
               </div>
             ) : (
               <div className={styles.authButtons}>
-                <Link href="/auth/signin" className="btn btn-secondary">
-                  Sign In
-                </Link>
-                <Link href="/auth/signup" className="btn btn-primary">
-                  Sign Up
+                <Link href="/auth/signin" className="btn btn-primary">
+                  Sign In / Sign Up
                 </Link>
               </div>
             )}
@@ -224,11 +254,8 @@ export function Header() {
             
             {!session && (
               <div className={styles.mobileAuthButtons}>
-                <Link href="/auth/signin" className="btn btn-secondary">
-                  Sign In
-                </Link>
-                <Link href="/auth/signup" className="btn btn-primary">
-                  Sign Up
+                <Link href="/auth/signin" className="btn btn-primary">
+                  Sign In / Sign Up
                 </Link>
               </div>
             )}

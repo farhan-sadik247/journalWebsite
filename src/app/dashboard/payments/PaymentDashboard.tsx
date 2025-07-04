@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import PaymentInfoDisplay from '@/components/PaymentInfoDisplay';
+import PaymentSubmissionCard from '@/components/PaymentSubmissionCard';
 import styles from './PaymentDashboard.module.scss';
 import {
   FiDollarSign,
@@ -21,27 +23,28 @@ import {
 
 interface Payment {
   _id: string;
-  manuscriptId: {
+  manuscriptId?: {
     _id: string;
     title: string;
     status: string;
-  };
+  } | null;
   userId: {
     _id: string;
     name: string;
     email: string;
   };
-  amount: number;
-  currency: string;
+  amount?: number;
+  currency?: string;
   status: string;
-  paymentMethod: string;
-  baseFee: number;
-  discountAmount: number;
-  discountReason: string;
-  dueDate: string;
+  paymentMethod?: string;
+  baseFee?: number;
+  discountAmount?: number;
+  discountReason?: string;
+  dueDate?: string;
   paymentDate?: string;
-  invoiceNumber: string;
+  invoiceNumber?: string;
   waiverReason?: string;
+  transactionId?: string;
   createdAt: string;
 }
 
@@ -51,11 +54,14 @@ export default function PaymentDashboard() {
   const searchParams = useSearchParams();
   const viewMode = searchParams?.get('view') || 'default'; // admin, editor, or default
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [paymentSubmissions, setPaymentSubmissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [submissionsLoading, setSubmissionsLoading] = useState(false);
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [activeTab, setActiveTab] = useState('payments'); // 'payments' or 'submissions'
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -65,6 +71,7 @@ export default function PaymentDashboard() {
 
     if (session) {
       fetchPayments();
+      fetchPaymentSubmissions();
     }
   }, [session, status, filter, currentPage]);
 
@@ -92,6 +99,36 @@ export default function PaymentDashboard() {
       console.error('Error fetching payments:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPaymentSubmissions = async () => {
+    if (!session?.user) {
+      console.log('No session, skipping payment submissions fetch');
+      return;
+    }
+    
+    // Only fetch if user is admin or editor
+    if (session.user.role !== 'admin' && session.user.role !== 'editor') {
+      console.log('User is not admin or editor, skipping payment submissions fetch');
+      return;
+    }
+
+    console.log('Fetching payment submissions...');
+    try {
+      setSubmissionsLoading(true);
+      const response = await fetch('/api/payment-info?status=pending');
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Payment submissions fetched successfully:', data.paymentInfos?.length);
+        setPaymentSubmissions(data.paymentInfos || []);
+      } else {
+        console.error('Failed to fetch payment submissions');
+      }
+    } catch (error) {
+      console.error('Error fetching payment submissions:', error);
+    } finally {
+      setSubmissionsLoading(false);
     }
   };
 
@@ -144,10 +181,13 @@ export default function PaymentDashboard() {
     });
   };
 
-  const filteredPayments = payments.filter(payment =>
-    payment.manuscriptId.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    payment.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredPayments = payments.filter(payment => {
+    const manuscriptTitle = payment.manuscriptId?.title || '';
+    const invoiceNumber = payment.invoiceNumber || '';
+    
+    return manuscriptTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+           invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase());
+  });
 
   const stats = {
     total: payments.length,
@@ -156,7 +196,107 @@ export default function PaymentDashboard() {
     waived: payments.filter(p => p.status === 'waived').length,
     totalAmount: payments
       .filter(p => p.status === 'completed')
-      .reduce((sum, p) => sum + p.amount, 0),
+      .reduce((sum, p) => sum + (p.amount || 0), 0),
+  };
+
+  const handleAcceptPayment = async (paymentId: string) => {
+    if (!confirm('Are you sure you want to accept this payment?')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      console.log('Sending payment acceptance request for ID:', paymentId);
+      const response = await fetch(`/api/payments/${paymentId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: 'completed',
+          action: 'accept'
+        }),
+      });
+
+      const responseText = await response.text();
+      console.log('Raw API response:', responseText);
+      
+      let result;
+      try {
+        // Parse the response text as JSON
+        result = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Failed to parse response as JSON:', e);
+        alert('Server returned an invalid response format');
+        return;
+      }
+
+      if (response.ok) {
+        console.log('Payment acceptance successful, refreshing payment list');
+        console.log('Updated payment data:', result.payment);
+        await fetchPayments();
+        alert('Payment accepted successfully');
+      } else {
+        console.error('Payment acceptance failed with server error:', result);
+        alert(`Error: ${result.error || 'Failed to accept payment'}`);
+      }
+    } catch (error) {
+      console.error('Error accepting payment:', error);
+      alert('An error occurred while accepting the payment');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRejectPayment = async (paymentId: string) => {
+    const reason = prompt('Please provide a reason for rejecting this payment:');
+    if (!reason || !reason.trim()) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      console.log('Sending payment rejection request for ID:', paymentId);
+      const response = await fetch(`/api/payments/${paymentId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: 'pending',
+          action: 'reject',
+          rejectionReason: reason.trim()
+        }),
+      });
+
+      const responseText = await response.text();
+      console.log('Raw API response:', responseText);
+      
+      let result;
+      try {
+        // Parse the response text as JSON
+        result = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Failed to parse response as JSON:', e);
+        alert('Server returned an invalid response format');
+        return;
+      }
+
+      if (response.ok) {
+        console.log('Payment rejection successful, refreshing payment list');
+        console.log('Updated payment data:', result.payment);
+        await fetchPayments();
+        alert('Payment rejected successfully');
+      } else {
+        console.error('Payment rejection failed with server error:', result);
+        alert(`Error: ${result.error || 'Failed to reject payment'}`);
+      }
+    } catch (error) {
+      console.error('Error rejecting payment:', error);
+      alert('An error occurred while rejecting the payment');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (status === 'loading' || loading) {
@@ -263,17 +403,72 @@ export default function PaymentDashboard() {
           </div>
         </div>
 
+        {/* Tab Navigation - Only show for editors/admins */}
+        {(session?.user?.role === 'admin' || session?.user?.role === 'editor') && (
+          <div className={styles.tabNavigation}>
+            <button
+              className={`${styles.tab} ${activeTab === 'payments' ? styles.active : ''}`}
+              onClick={() => setActiveTab('payments')}
+            >
+              <FiCreditCard />
+              Payment Records
+            </button>
+            <button
+              className={`${styles.tab} ${activeTab === 'submissions' ? styles.active : ''}`}
+              onClick={() => setActiveTab('submissions')}
+            >
+              <FiFileText />
+              Payment Submissions ({paymentSubmissions.length})
+            </button>
+          </div>
+        )}
+
+        {/* Payment Submissions Tab Content */}
+        {activeTab === 'submissions' && (
+          <div className={styles.submissionsContainer}>
+            <div className={styles.submissionsHeader}>
+              <h3>Payment Submissions for Review</h3>
+              <p>Review and approve payment information submitted by authors</p>
+            </div>
+
+            {submissionsLoading ? (
+              <div className={styles.loadingSpinner}>
+                <div className="spinner" />
+                <p>Loading payment submissions...</p>
+              </div>
+            ) : paymentSubmissions.length === 0 ? (
+              <div className={styles.emptyState}>
+                <FiFileText />
+                <h3>No payment submissions</h3>
+                <p>All payment submissions have been reviewed.</p>
+              </div>
+            ) : (
+              <div className={styles.submissionsGrid}>
+                {paymentSubmissions.map((submission) => (
+                  <div key={submission._id} className={styles.submissionCard}>
+                    <PaymentSubmissionCard
+                      submission={submission}
+                      onUpdate={fetchPaymentSubmissions}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Payments Table */}
-        <div className={styles.tableContainer}>
-          <table className={styles.paymentsTable}>
+        {activeTab === 'payments' && (
+          <>
+            <div className={styles.tableContainer}>
+              <table className={styles.paymentsTable}>
             <thead>
               <tr>
                 <th>Invoice</th>
                 <th>Manuscript</th>
                 <th>Amount</th>
+                <th>TrXID</th>
                 <th>Status</th>
-                <th>Method</th>
-                <th>Due Date</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -283,65 +478,47 @@ export default function PaymentDashboard() {
                   <td>
                     <div className={styles.invoiceCell}>
                       <FiFileText />
-                      <span>{payment.invoiceNumber}</span>
+                      <span>{payment.invoiceNumber || 'N/A'}</span>
                     </div>
                   </td>
                   <td>
                     <div className={styles.manuscriptCell}>
-                      <h4>{payment.manuscriptId.title}</h4>
-                      <span>ID: {payment.manuscriptId._id.slice(-8)}</span>
+                      <h4>{payment.manuscriptId?.title || 'Unknown Manuscript'}</h4>
+                      <span>ID: {payment.manuscriptId?._id?.slice(-8) || 'N/A'}</span>
                     </div>
                   </td>
                   <td>
                     <div className={styles.amountCell}>
-                      <strong>{formatCurrency(payment.amount, payment.currency)}</strong>
-                      {payment.discountAmount > 0 && (
+                      <strong>{formatCurrency(payment.amount || 0, payment.currency || 'USD')}</strong>
+                      {payment.discountAmount && payment.discountAmount > 0 && (
                         <div className={styles.discountInfo}>
                           <small>
-                            Original: {formatCurrency(payment.baseFee, payment.currency)}
+                            Original: {formatCurrency(payment.baseFee || 0, payment.currency || 'USD')}
                           </small>
                           <small className={styles.discountText}>
-                            -{formatCurrency(payment.discountAmount, payment.currency)}
+                            -{formatCurrency(payment.discountAmount, payment.currency || 'USD')}
                           </small>
                         </div>
+                      )}
+                    </div>
+                  </td>
+                  <td>
+                    <div className={styles.transactionCell}>
+                      {payment.transactionId ? (
+                        <code className={styles.transactionId}>{payment.transactionId}</code>
+                      ) : (
+                        <span className={styles.noTransaction}>-</span>
                       )}
                     </div>
                   </td>
                   <td>
                     <div className={`${styles.statusBadge} ${getStatusBadgeClass(payment.status)}`}>
                       {getStatusIcon(payment.status)}
-                      <span>{payment.status.replace('-', ' ').toUpperCase()}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <div className={styles.methodCell}>
-                      <FiCreditCard />
-                      <span>{payment.paymentMethod.replace('_', ' ').toUpperCase()}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <div className={styles.dateCell}>
-                      <FiCalendar />
-                      <span>{formatDate(payment.dueDate)}</span>
-                      {new Date(payment.dueDate) < new Date() && payment.status === 'pending' && (
-                        <div className={styles.overdueIndicator}>
-                          <FiAlertCircle />
-                          Overdue
-                        </div>
-                      )}
+                      <span>{payment.status?.replace('-', ' ').toUpperCase() || 'UNKNOWN'}</span>
                     </div>
                   </td>
                   <td>
                     <div className={styles.actionsCell}>
-                      {payment.status === 'pending' && payment.amount > 0 && (
-                        <button
-                          onClick={() => router.push(`/dashboard/payments/portal?paymentId=${payment._id}`)}
-                          className={`${styles.actionButton} ${styles.payButton}`}
-                          title="Proceed to Payment"
-                        >
-                          <FiCreditCard />
-                        </button>
-                      )}
                       <button
                         onClick={() => router.push(`/dashboard/payments/${payment._id}`)}
                         className={`${styles.actionButton} ${styles.viewButton}`}
@@ -349,13 +526,23 @@ export default function PaymentDashboard() {
                       >
                         <FiEye />
                       </button>
-                      {payment.status === 'completed' && (
-                        <button
-                          className={`${styles.actionButton} ${styles.downloadButton}`}
-                          title="Download Receipt"
-                        >
-                          <FiDownload />
-                        </button>
+                      {(session?.user?.role === 'admin' || session?.user?.role === 'editor') && payment.status === 'pending' && (
+                        <>
+                          <button
+                            onClick={() => handleAcceptPayment(payment._id)}
+                            className={`${styles.actionButton} ${styles.acceptButton}`}
+                            title="Accept Payment"
+                          >
+                            <FiCheck />
+                          </button>
+                          <button
+                            onClick={() => handleRejectPayment(payment._id)}
+                            className={`${styles.actionButton} ${styles.rejectButton}`}
+                            title="Reject Payment"
+                          >
+                            <FiX />
+                          </button>
+                        </>
                       )}
                     </div>
                   </td>
@@ -409,6 +596,9 @@ export default function PaymentDashboard() {
             </button>
           </div>
         )}
+          </>
+        )}
+
       </div>
     </div>
   );

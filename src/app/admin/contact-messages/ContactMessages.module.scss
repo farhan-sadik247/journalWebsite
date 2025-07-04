@@ -1,0 +1,486 @@
+@import '../../../styles/variables';
+
+.contactMessages {
+  padding: 2rem 0;
+  min-height: 100vh;
+  background: $background-light;
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid $border-color;
+
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: $text-dark;
+      margin: 0;
+    }
+
+    .filters {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+
+      .statusFilter {
+        padding: 0.5rem 1rem;
+        border: 1px solid $border-color;
+        border-radius: 8px;
+        background: white;
+        font-size: 1rem;
+        cursor: pointer;
+
+        &:focus {
+          outline: none;
+          border-color: $primary-color;
+          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+      }
+    }
+  }
+
+  .loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid $border-color;
+      border-top: 4px solid $primary-color;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 1rem;
+    }
+
+    p {
+      color: $text-light;
+      font-size: 1.125rem;
+    }
+  }
+
+  .messagesList {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .messageCard {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: $card-shadow;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .messageHeader {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+
+      .messageInfo {
+        flex: 1;
+
+        h3 {
+          font-size: 1.25rem;
+          font-weight: 600;
+          color: $text-dark;
+          margin: 0 0 0.5rem 0;
+        }
+
+        .messageDetails {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 1rem;
+          font-size: 0.875rem;
+          color: $text-light;
+
+          span {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+
+            svg {
+              width: 14px;
+              height: 14px;
+            }
+          }
+        }
+      }
+
+      .messageActions {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 0.5rem;
+
+        .status {
+          padding: 0.25rem 0.75rem;
+          border-radius: 20px;
+          color: white;
+          font-size: 0.75rem;
+          font-weight: 600;
+          text-transform: uppercase;
+        }
+
+        .actionButtons {
+          display: flex;
+          gap: 0.5rem;
+
+          button {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+
+            svg {
+              width: 14px;
+              height: 14px;
+            }
+
+            &.viewButton {
+              background: $primary-color;
+              color: white;
+
+              &:hover {
+                background: $primary-dark;
+              }
+            }
+
+            &.markReadButton {
+              background: #10b981;
+              color: white;
+
+              &:hover {
+                background: #059669;
+              }
+            }
+
+            &.resolveButton {
+              background: #6b7280;
+              color: white;
+
+              &:hover {
+                background: #4b5563;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    .messagePreview {
+      border-top: 1px solid $border-color;
+      padding-top: 1rem;
+
+      strong {
+        color: $text-dark;
+        font-weight: 600;
+      }
+
+      p {
+        margin: 0.5rem 0 0 0;
+        color: $text-light;
+        line-height: 1.5;
+      }
+    }
+  }
+
+  .emptyState {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: $card-shadow;
+
+    .emptyIcon {
+      width: 64px;
+      height: 64px;
+      color: $text-light;
+      margin-bottom: 1rem;
+    }
+
+    h3 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: $text-dark;
+      margin-bottom: 0.5rem;
+    }
+
+    p {
+      color: $text-light;
+      font-size: 1rem;
+    }
+  }
+
+  // Modal styles
+  .modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+
+    .modalContent {
+      background: white;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 800px;
+      max-height: 90vh;
+      overflow-y: auto;
+
+      .modalHeader {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem;
+        border-bottom: 1px solid $border-color;
+
+        h2 {
+          font-size: 1.5rem;
+          font-weight: 600;
+          color: $text-dark;
+          margin: 0;
+        }
+
+        .closeButton {
+          background: none;
+          border: none;
+          font-size: 1.5rem;
+          color: $text-light;
+          cursor: pointer;
+          padding: 0.5rem;
+          border-radius: 6px;
+          transition: background-color 0.2s ease;
+
+          &:hover {
+            background: $background-light;
+          }
+        }
+      }
+
+      .modalBody {
+        padding: 1.5rem;
+
+        .messageDetails {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          gap: 1rem;
+          margin-bottom: 2rem;
+
+          .detail {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+
+            strong {
+              font-weight: 600;
+              color: $text-dark;
+              font-size: 0.875rem;
+            }
+
+            .statusBadge {
+              padding: 0.25rem 0.75rem;
+              border-radius: 20px;
+              color: white;
+              font-size: 0.75rem;
+              font-weight: 600;
+              text-transform: uppercase;
+              display: inline-block;
+              width: fit-content;
+            }
+          }
+        }
+
+        .messageContent {
+          margin-bottom: 2rem;
+
+          strong {
+            display: block;
+            font-weight: 600;
+            color: $text-dark;
+            margin-bottom: 0.5rem;
+          }
+
+          .messageText {
+            background: $background-light;
+            padding: 1rem;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            line-height: 1.6;
+            color: $text-dark;
+          }
+        }
+
+        .adminResponse {
+          margin-bottom: 2rem;
+          padding: 1rem;
+          background: #f0fdf4;
+          border-radius: 8px;
+          border-left: 4px solid #10b981;
+
+          strong {
+            display: block;
+            font-weight: 600;
+            color: $text-dark;
+            margin-bottom: 0.5rem;
+          }
+
+          .responseText {
+            background: white;
+            padding: 1rem;
+            border-radius: 6px;
+            white-space: pre-wrap;
+            line-height: 1.6;
+            color: $text-dark;
+            margin-bottom: 0.5rem;
+          }
+
+          .responseInfo {
+            font-size: 0.875rem;
+            color: #065f46;
+            font-style: italic;
+          }
+        }
+
+        .responseSection {
+          strong {
+            display: block;
+            font-weight: 600;
+            color: $text-dark;
+            margin-bottom: 0.5rem;
+          }
+
+          .responseTextarea {
+            width: 100%;
+            padding: 1rem;
+            border: 1px solid $border-color;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 1rem;
+            line-height: 1.5;
+            resize: vertical;
+            margin-bottom: 1rem;
+
+            &:focus {
+              outline: none;
+              border-color: $primary-color;
+              box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+            }
+          }
+
+          .sendResponseButton {
+            background: $primary-color;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: background-color 0.2s ease;
+
+            &:hover {
+              background: $primary-dark;
+            }
+
+            &:disabled {
+              background: #9ca3af;
+              cursor: not-allowed;
+            }
+
+            svg {
+              width: 16px;
+              height: 16px;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+// Container styles
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .contactMessages {
+    .header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+
+      .filters {
+        width: 100%;
+        justify-content: flex-start;
+      }
+    }
+
+    .messageCard {
+      .messageHeader {
+        flex-direction: column;
+        gap: 1rem;
+
+        .messageActions {
+          align-items: flex-start;
+          flex-direction: row;
+          justify-content: space-between;
+          width: 100%;
+
+          .actionButtons {
+            flex-wrap: wrap;
+          }
+        }
+      }
+    }
+
+    .modal {
+      .modalContent {
+        margin: 0.5rem;
+        max-height: calc(100vh - 1rem);
+
+        .modalBody {
+          .messageDetails {
+            grid-template-columns: 1fr;
+          }
+        }
+      }
+    }
+  }
+}

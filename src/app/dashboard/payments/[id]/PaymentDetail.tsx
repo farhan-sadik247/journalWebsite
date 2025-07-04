@@ -26,7 +26,7 @@ import {
 
 interface Payment {
   _id: string;
-  manuscriptId: {
+  manuscriptId?: {
     _id: string;
     title: string;
     status: string;
@@ -36,7 +36,7 @@ interface Payment {
       affiliation: string;
       isCorresponding: boolean;
     }>;
-  };
+  } | null;
   userId: {
     _id: string;
     name: string;
@@ -175,6 +175,74 @@ export default function PaymentDetail({ paymentId }: { paymentId: string }) {
     }
   };
 
+  const handleAcceptPayment = async () => {
+    if (!confirm('Are you sure you want to accept this payment?')) {
+      return;
+    }
+
+    try {
+      setUpdating(true);
+      const response = await fetch(`/api/payments/${payment?._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'accept'
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setPayment(data.payment);
+        alert('Payment accepted successfully');
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.error || 'Failed to accept payment'}`);
+      }
+    } catch (error) {
+      console.error('Error accepting payment:', error);
+      alert('Failed to accept payment');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleRejectPayment = async () => {
+    const reason = prompt('Please provide a reason for rejecting this payment:');
+    if (!reason || !reason.trim()) {
+      return;
+    }
+
+    try {
+      setUpdating(true);
+      const response = await fetch(`/api/payments/${payment?._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'reject',
+          rejectionReason: reason.trim()
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setPayment(data.payment);
+        alert('Payment rejected successfully');
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.error || 'Failed to reject payment'}`);
+      }
+    } catch (error) {
+      console.error('Error rejecting payment:', error);
+      alert('Failed to reject payment');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed':
@@ -261,7 +329,7 @@ export default function PaymentDetail({ paymentId }: { paymentId: string }) {
   }
 
   const isAdmin = session?.user?.role === 'admin' || session?.user?.role === 'editor';
-  const correspondingAuthor = payment.manuscriptId.authors.find(author => author.isCorresponding);
+  const correspondingAuthor = payment.manuscriptId?.authors?.find(author => author.isCorresponding);
 
   return (
     <div className={styles.paymentDetail}>
@@ -289,20 +357,20 @@ export default function PaymentDetail({ paymentId }: { paymentId: string }) {
                 {payment.status === 'pending' && (
                   <>
                     <button
-                      onClick={() => updatePaymentStatus('completed', prompt('Enter transaction ID:') || '')}
+                      onClick={() => handleAcceptPayment()}
                       disabled={updating}
                       className="btn btn-success"
                     >
                       <FiCheck />
-                      Mark as Paid
+                      Accept Payment
                     </button>
                     <button
-                      onClick={() => updatePaymentStatus('failed')}
+                      onClick={() => handleRejectPayment()}
                       disabled={updating}
                       className="btn btn-danger"
                     >
                       <FiX />
-                      Mark as Failed
+                      Reject Payment
                     </button>
                   </>
                 )}
@@ -417,12 +485,16 @@ export default function PaymentDetail({ paymentId }: { paymentId: string }) {
               </h2>
               
               <div className={styles.manuscriptInfo}>
-                <h3>{payment.manuscriptId.title}</h3>
+                <h3>{payment.manuscriptId?.title || 'Unknown Manuscript'}</h3>
                 <p>
-                  <strong>Manuscript ID:</strong> {payment.manuscriptId._id}
+                  <strong>Manuscript ID:</strong> {payment.manuscriptId?._id || 'N/A'}
                 </p>
                 <p>
-                  <strong>Status:</strong> {payment.manuscriptId.status.replace('-', ' ').toUpperCase()}
+                  <strong>Status:</strong> {
+                    payment.manuscriptId?.status === 'published' 
+                      ? 'Published' 
+                      : payment.manuscriptId?.status?.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'UNKNOWN'
+                  }
                 </p>
                 
                 {correspondingAuthor && (
@@ -560,13 +632,15 @@ export default function PaymentDetail({ paymentId }: { paymentId: string }) {
             <div className={styles.sidebarCard}>
               <h3>Actions</h3>
               <div className={styles.actionsList}>
-                <Link
-                  href={`/dashboard/manuscripts/${payment.manuscriptId._id}`}
-                  className={styles.actionButton}
-                >
-                  <FiFileText />
-                  View Manuscript
-                </Link>
+                {payment.manuscriptId?._id && (
+                  <Link
+                    href={`/dashboard/manuscripts/${payment.manuscriptId._id}`}
+                    className={styles.actionButton}
+                  >
+                    <FiFileText />
+                    View Manuscript
+                  </Link>
+                )}
                 
                 {payment.status === 'completed' && (
                   <button className={styles.actionButton}>

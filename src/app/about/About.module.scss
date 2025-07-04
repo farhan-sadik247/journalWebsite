@@ -1,6 +1,15 @@
 @import '../../styles/variables';
 
 .aboutPage {
+  // Global styles for headers and paragraphs
+  h1, h3, h4, h5, h6 {
+    color: white !important;
+  }
+
+  p {
+    color: white !important;
+  }
+
   .hero {
     background: linear-gradient(135deg, $primary-color 0%, $primary-dark 100%);
     color: white;
@@ -72,13 +81,13 @@
       .statValue {
         font-size: 2.5rem;
         font-weight: 700;
-        color: $text-dark;
+        color: white;
         margin-bottom: 0.5rem;
       }
 
       .statLabel {
         font-size: 1rem;
-        color: $text-light;
+        color: white;
         font-weight: 500;
       }
     }
@@ -103,14 +112,12 @@
         h2 {
           font-size: 2.5rem;
           font-weight: 700;
-          color: $text-dark;
           margin-bottom: 2rem;
         }
 
         p {
           font-size: 1.125rem;
           line-height: 1.7;
-          color: $text-light;
           margin-bottom: 1.5rem;
 
           &:last-child {
@@ -143,7 +150,6 @@
     h2 {
       font-size: 2.5rem;
       font-weight: 700;
-      color: $text-dark;
       text-align: center;
       margin-bottom: 3rem;
     }
@@ -175,14 +181,14 @@
       h3 {
         font-size: 1.5rem;
         font-weight: 600;
-        color: $text-dark;
         margin-bottom: 1rem;
+        color: black !important;
       }
 
       p {
         font-size: 1rem;
         line-height: 1.6;
-        color: $text-light;
+        color: black !important;
       }
     }
   }
@@ -197,7 +203,6 @@
       h2 {
         font-size: 2.5rem;
         font-weight: 700;
-        color: $text-dark;
         text-align: center;
         margin-bottom: 4rem;
       }
@@ -253,14 +258,12 @@
             h3 {
               font-size: 1.25rem;
               font-weight: 600;
-              color: $text-dark;
               margin-bottom: 0.5rem;
             }
 
             p {
               font-size: 1rem;
               line-height: 1.6;
-              color: $text-light;
             }
           }
 

@@ -1,40 +1,29 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { FiMail, FiExternalLink, FiAward, FiBookOpen, FiUser, FiMapPin } from 'react-icons/fi';
+import { FiMail, FiExternalLink, FiUser, FiMapPin } from 'react-icons/fi';
 import styles from './EditorialBoard.module.scss';
 
 interface EditorProfile {
   _id: string;
   name: string;
   email: string;
-  affiliation: string;
-  bio: string;
-  specializations: string[];
+  affiliation?: string;
+  bio?: string;
+  expertise?: string[];
   orcid?: string;
   profileImage?: string;
-  joinedDate: string;
-  isFounder?: boolean;
-  roles?: string[];
-  currentRole?: string;
-  designation?: string;
-  designationRole?: string;
+  designation: string;
+  designationRole: string;
 }
 
 interface DesignationGroup {
-  name: string;
-  roles: Array<{ _id: string, name: string }>;
+  designation: string;
   editors: EditorProfile[];
 }
 
-interface GroupedEditors {
-  noDesignation: EditorProfile[];
-  byDesignation: { [key: string]: DesignationGroup };
-}
-
 export default function EditorialBoardPage() {
-  const [editors, setEditors] = useState<EditorProfile[]>([]);
-  const [groupedEditors, setGroupedEditors] = useState<GroupedEditors>({ noDesignation: [], byDesignation: {} });
+  const [designationGroups, setDesignationGroups] = useState<DesignationGroup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,14 +34,52 @@ export default function EditorialBoardPage() {
   const fetchEditorialBoard = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/editorial-board');
+      const response = await fetch('/api/editorial-board-assignments');
       const data = await response.json();
 
-      if (data.success) {
-        setEditors(data.editors);
-        if (data.groupedEditors) {
-          setGroupedEditors(data.groupedEditors);
-        }
+      if (data.success && data.assignments) {
+        // Group assignments by designation
+        const groupsMap: { [key: string]: EditorProfile[] } = {};
+        
+        data.assignments.forEach((assignment: any) => {
+          const editor: EditorProfile = {
+            _id: assignment.user._id,
+            name: assignment.user.name,
+            email: assignment.user.email,
+            affiliation: assignment.user.affiliation,
+            bio: assignment.user.bio,
+            expertise: assignment.user.expertise || [],
+            orcid: assignment.user.orcid,
+            profileImage: assignment.user.profileImage,
+            designation: assignment.designation,
+            designationRole: assignment.role
+          };
+
+          if (!groupsMap[assignment.designation]) {
+            groupsMap[assignment.designation] = [];
+          }
+          groupsMap[assignment.designation].push(editor);
+        });
+
+        // Convert to array format and sort
+        const groups = Object.entries(groupsMap).map(([designation, editors]) => ({
+          designation,
+          editors: editors.sort((a, b) => {
+            // Sort by role hierarchy (Editor-in-Chief first, then alphabetically)
+            if (a.designationRole.toLowerCase().includes('chief')) return -1;
+            if (b.designationRole.toLowerCase().includes('chief')) return 1;
+            return a.name.localeCompare(b.name);
+          })
+        }));
+
+        // Sort designations (Senior first, then alphabetically)
+        groups.sort((a, b) => {
+          if (a.designation.toLowerCase().includes('senior')) return -1;
+          if (b.designation.toLowerCase().includes('senior')) return 1;
+          return a.designation.localeCompare(b.designation);
+        });
+
+        setDesignationGroups(groups);
       } else {
         setError(data.error || 'Failed to load editorial board');
       }
@@ -64,27 +91,9 @@ export default function EditorialBoardPage() {
     }
   };
 
-  // Separate editors by their role/position from the non-designation group
-  const noDesignationEditors = groupedEditors.noDesignation || [];
-  
-  const founderEditor = editors.find(editor => editor.isFounder);
-  
-  // Editor-in-Chief is either the founder or someone with "Chief" in their designation role
-  const editorInChief = 
-    editors.find(editor => editor.designation && editor.designationRole?.toLowerCase().includes('chief')) ||
-    founderEditor || 
-    (noDesignationEditors.length > 0 ? noDesignationEditors[0] : null);
-  
-  // Remove editor-in-chief from the no designation group if found there
-  const remainingNoDesignation = noDesignationEditors.filter(editor => editor !== editorInChief);
-  
-  // For backwards compatibility, treat the rest as associate editors and board members
-  const associateEditors = remainingNoDesignation.slice(0, 2); // First 2 as associate editors
-  const boardMembers = remainingNoDesignation.slice(2); // The rest as board members
-
-  // Card component for Editor-in-Chief and other designated editors
-  const EditorCard = ({ editor, isChief = false }: { editor: EditorProfile; isChief?: boolean }) => (
-    <div className={`${styles.editorCard} ${isChief ? styles.editorChief : ''}`}>
+  // Card component for editors
+  const EditorCard = ({ editor }: { editor: EditorProfile }) => (
+    <div className={styles.editorCard}>
       <div className={styles.editorHeader}>
         <div className={styles.editorImage}>
           {editor.profileImage ? (
@@ -97,17 +106,18 @@ export default function EditorialBoardPage() {
         </div>
         <div className={styles.editorInfo}>
           <h3 className={styles.editorName}>{editor.name}</h3>
-          <p className={styles.editorTitle}>
-            {editor.designation ? 
-              (editor.designationRole ? `${editor.designation} - ${editor.designationRole}` : editor.designation) :
-              editor.isFounder ? 'Founder & Editor-in-Chief' :
-              isChief ? 'Editor-in-Chief' : 
-              associateEditors.includes(editor) ? 'Associate Editor' : 'Editorial Board Member'}
-          </p>
-          <p className={styles.editorAffiliation}>
-            <FiMapPin />
-            {editor.affiliation}
-          </p>
+          <p className={styles.editorTitle}>{editor.designationRole}</p>
+          {editor.affiliation && editor.affiliation.trim() !== '' ? (
+            <p className={styles.editorAffiliation}>
+              <FiMapPin />
+              {editor.affiliation}
+            </p>
+          ) : (
+            <p className={styles.editorAffiliation}>
+              <FiMapPin />
+              Affiliation not specified
+            </p>
+          )}
           {editor.orcid && (
             <p className={styles.editorOrcid}>
               ORCID: <a href={`https://orcid.org/${editor.orcid}`} target="_blank" rel="noopener noreferrer">
@@ -118,20 +128,28 @@ export default function EditorialBoardPage() {
         </div>
       </div>
 
-      {editor.specializations && editor.specializations.length > 0 && (
+      {editor.expertise && editor.expertise.length > 0 && (
         <div className={styles.editorSpecializations}>
           <h4>Areas of Expertise</h4>
           <div className={styles.tags}>
-            {editor.specializations.map((spec, index) => (
+            {editor.expertise.map((spec, index) => (
               <span key={index} className={styles.tag}>{spec}</span>
             ))}
           </div>
         </div>
       )}
 
-      <div className={styles.editorBio}>
-        <p>{editor.bio}</p>
-      </div>
+      {editor.bio && editor.bio.trim() !== '' ? (
+        <div className={styles.editorBio}>
+          <h4>Biography</h4>
+          <p>{editor.bio}</p>
+        </div>
+      ) : (
+        <div className={styles.editorBio}>
+          <h4>Biography</h4>
+          <p><em>Biography not available</em></p>
+        </div>
+      )}
 
       <div className={styles.editorActions}>
         <a href={`mailto:${editor.email}`} className={styles.contactButton}>
@@ -149,39 +167,6 @@ export default function EditorialBoardPage() {
             ORCID Profile
           </a>
         )}
-      </div>
-    </div>
-  );
-  
-  // List item component for Associate Editors
-  const EditorListItem = ({ editor }: { editor: EditorProfile }) => (
-    <div className={styles.editorListItem}>
-      <div className={styles.editorImage}>
-        {editor.profileImage ? (
-          <img src={editor.profileImage} alt={editor.name} />
-        ) : (
-          <div className={styles.editorInitials}>
-            {editor.name.split(' ').map(n => n[0]).join('')}
-          </div>
-        )}
-      </div>
-      <div className={styles.editorListInfo}>
-        <h3 className={styles.editorName}>{editor.name}</h3>
-        <p className={styles.editorTitle}>
-          {editor.designation ? 
-            (editor.designationRole ? `${editor.designationRole}` : editor.designation) :
-            'Associate Editor'}
-        </p>
-        <p className={styles.editorEmail}>
-          <FiMail />
-          <a href={`mailto:${editor.email}`}>{editor.email}</a>
-        </p>
-      </div>
-      <div className={styles.editorContactBtn}>
-        <a href={`mailto:${editor.email}`}>
-          <FiMail />
-          Contact
-        </a>
       </div>
     </div>
   );
@@ -231,6 +216,7 @@ export default function EditorialBoardPage() {
       </div>
     );
   }
+
   return (
     <div className={styles.editorialPage}>
       {/* Hero Section */}
@@ -253,98 +239,22 @@ export default function EditorialBoardPage() {
         </div>
       </section>
 
-      {/* Editor-in-Chief */}
-      {editorInChief && (
-        <section className={styles.editorInChief}>
-          <div className="container">
-            <h2>Editor-in-Chief</h2>
-            <EditorCard editor={editorInChief} isChief={true} />
-          </div>
-        </section>
-      )}
-
-      {/* Associate Editors - Displayed as cards grouped by designation categories */}
-      {(Object.keys(groupedEditors.byDesignation).length > 0 || associateEditors.length > 0) && (
-        <section className={styles.associateEditors}>
-          <div className="container">
-            <h2>Associate Editors</h2>
-            <div className={styles.designationCards}>
-              {/* Cards for designation categories */}
-              {Object.entries(groupedEditors.byDesignation).map(([designationName, group]) => (
-                <div key={designationName} className={styles.designationCard}>
-                  <div className={styles.designationCardHeader}>
-                    <h3>{designationName}</h3>
-                  </div>
-                  <div className={styles.designationCardBody}>
-                    {group.editors.length > 0 ? (
-                      <ul className={styles.editorsList}>
-                        {group.editors.map((editor) => (
-                          <li key={editor._id} className={styles.editorListItem}>
-                            <div className={styles.editorInfo}>
-                              <strong className={styles.editorName}>{editor.name}</strong>
-                              {editor.designationRole && (
-                                <span className={styles.editorRole}>{editor.designationRole}</span>
-                              )}
-                              <a href={`mailto:${editor.email}`} className={styles.editorEmail}>
-                                <FiMail />
-                                {editor.email}
-                              </a>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className={styles.noEditors}>No editors assigned to this designation yet.</p>
-                    )}
-                  </div>
-                </div>
-              ))}
-              
-              {/* Card for editors without special designation */}
-              {associateEditors.length > 0 && (
-                <div className={styles.designationCard}>
-                  <div className={styles.designationCardHeader}>
-                    <h3>General Associate Editors</h3>
-                  </div>
-                  <div className={styles.designationCardBody}>
-                    <ul className={styles.editorsList}>
-                      {associateEditors.map((editor) => (
-                        <li key={editor._id} className={styles.editorListItem}>
-                          <div className={styles.editorInfo}>
-                            <strong className={styles.editorName}>{editor.name}</strong>
-                            <span className={styles.editorRole}>Associate Editor</span>
-                            <a href={`mailto:${editor.email}`} className={styles.editorEmail}>
-                              <FiMail />
-                              {editor.email}
-                            </a>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              )}
+      {/* Editorial Board by Designations */}
+      {designationGroups.length > 0 ? (
+        designationGroups.map((group) => (
+          <section key={group.designation} className={styles.designationSection}>
+            <div className="container">
+              <h2 className={styles.designationTitle}>{group.designation}</h2>
+              <div className={styles.editorsGrid}>
+                {group.editors.map((editor) => (
+                  <EditorCard key={editor._id} editor={editor} />
+                ))}
+              </div>
             </div>
-          </div>
-        </section>
-      )}
-
-      {/* Editorial Board Members (from those without special designation) */}
-      {boardMembers.length > 0 && (
-        <section className={styles.boardMembers}>
-          <div className="container">
-            <h2>Editorial Board Members</h2>
-            <div className={styles.editorsGrid}>
-              {boardMembers.map((editor) => (
-                <EditorCard key={editor._id} editor={editor} />
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Empty State */}
-      {editors.length === 0 && (
+          </section>
+        ))
+      ) : (
+        /* Empty State */
         <section className={styles.emptyState}>
           <div className="container">
             <div className="text-center py-12">

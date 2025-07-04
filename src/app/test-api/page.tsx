@@ -86,7 +86,7 @@ export default function TestPublicationAPI() {
               {data.manuscripts.map((manuscript: Manuscript, index: number) => (
                 <div key={manuscript._id} style={{ border: '1px solid #ccc', padding: '10px', margin: '5px 0' }}>
                   <h4>{manuscript.title}</h4>
-                  <p>Status: {manuscript.status}</p>
+                  <p>Status: {manuscript.status === 'published' ? 'Published' : manuscript.status.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
                   <p>Copy Editing Stage: {manuscript.copyEditingStage || 'None'}</p>
                   <p>Category: {manuscript.category}</p>
                   <p>Latest Files: {manuscript.latestManuscriptFiles?.length || 0}</p>

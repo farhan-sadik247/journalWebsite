@@ -48,23 +48,60 @@ export async function GET(
     if (userRole === 'author' && !isEditor && !isAdmin && !isCopyEditor && !isReviewer) {
       filter.submittedBy = new mongoose.Types.ObjectId(session.user.id);
     }
-    // Copy editors can see manuscripts assigned to them (unless they have editor/admin roles)
+    // Copy editors can see manuscripts assigned to them OR published manuscripts (unless they have editor/admin roles)
     else if (userRole === 'copy-editor' && !isEditor && !isAdmin) {
-      filter.assignedCopyEditor = new mongoose.Types.ObjectId(session.user.id);
-    }
-    // Reviewers can only see manuscripts they are assigned to review (unless they have editor/admin roles)
-    else if (userRole === 'reviewer' && !isEditor && !isAdmin) {
-      // Check if this reviewer has been assigned to review this manuscript
-      const hasReviewAssignment = await Review.findOne({
-        manuscriptId: new mongoose.Types.ObjectId(params.id),
-        reviewerId: new mongoose.Types.ObjectId(session.user.id)
-      });
+      // First check if manuscript is published (everyone can see published manuscripts)
+      const manuscript = await Manuscript.findById(params.id).select('status assignedCopyEditor copyEditorAssignment').lean();
       
-      if (!hasReviewAssignment) {
+      if (!manuscript) {
         return NextResponse.json(
-          { error: 'You are not assigned to review this manuscript' },
+          { error: 'Manuscript not found' },
+          { status: 404 }
+        );
+      }
+      
+      // Type assertion for better TypeScript handling
+      const manuscriptData = manuscript as any;
+      
+      // Allow access if published or assigned to this copy editor
+      const isAssigned = manuscriptData.assignedCopyEditor?.toString() === session.user.id ||
+                        manuscriptData.copyEditorAssignment?.copyEditorId?.toString() === session.user.id;
+      
+      if (manuscriptData.status !== 'published' && !isAssigned) {
+        return NextResponse.json(
+          { error: 'You are not assigned to edit this manuscript and it is not published' },
           { status: 403 }
         );
+      }
+    }
+    // Reviewers can only see manuscripts they are assigned to review OR published manuscripts (unless they have editor/admin roles)
+    else if (userRole === 'reviewer' && !isEditor && !isAdmin) {
+      // First check if manuscript is published (everyone can see published manuscripts)
+      const manuscript = await Manuscript.findById(params.id).select('status').lean();
+      
+      if (!manuscript) {
+        return NextResponse.json(
+          { error: 'Manuscript not found' },
+          { status: 404 }
+        );
+      }
+      
+      // Type assertion for better TypeScript handling
+      const manuscriptData = manuscript as any;
+      
+      if (manuscriptData.status !== 'published') {
+        // Check if this reviewer has been assigned to review this manuscript
+        const hasReviewAssignment = await Review.findOne({
+          manuscriptId: new mongoose.Types.ObjectId(params.id),
+          reviewerId: new mongoose.Types.ObjectId(session.user.id)
+        });
+        
+        if (!hasReviewAssignment) {
+          return NextResponse.json(
+            { error: 'You are not assigned to review this manuscript and it is not published' },
+            { status: 403 }
+          );
+        }
       }
     }
     // Editors and admins can see all manuscripts

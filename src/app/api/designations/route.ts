@@ -84,7 +84,8 @@ export async function POST(request: NextRequest) {
 
     // Create new designation with optional roles
     const designationData: any = {
-      name: body.name.trim()
+      name: body.name.trim(),
+      description: body.description?.trim() || ''
     };
     
     // Add roles if provided

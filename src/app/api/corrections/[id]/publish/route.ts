@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
+import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/pages/api/auth/[...nextauth]';
 import dbConnect from '@/lib/mongodb';
 import Correction from '@/models/Correction';
+import { generateCorrectionDOI } from '@/lib/doiUtils';
 
 export async function POST(
   request: NextRequest,
@@ -34,17 +35,9 @@ export async function POST(
       );
     }
 
-    // Generate DOI for the correction
+    // Generate DOI for the correction using journal format
     const currentYear = new Date().getFullYear();
-    const correctionCount = await Correction.countDocuments({
-      status: 'published',
-      publishedDate: {
-        $gte: new Date(currentYear, 0, 1),
-        $lt: new Date(currentYear + 1, 0, 1)
-      }
-    });
-    
-    const doi = `10.1000/correction.${currentYear}.${String(correctionCount + 1).padStart(4, '0')}`;
+    const doi = await generateCorrectionDOI(currentYear);
 
     // Update correction
     correction.status = 'published';

@@ -202,7 +202,7 @@ export default function ArticleAssignmentPage() {
           Assign Articles to Issues
         </h1>
         <p className={styles.subtitle}>
-          Assign "Author Approved" manuscripts to issues. Issues can be published with any number of articles (including just one).
+          Assign &quot;Author Approved&quot; manuscripts to issues. Issues can be published with any number of articles (including just one).
         </p>
       </header>
 

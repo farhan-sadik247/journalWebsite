@@ -149,6 +149,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Manuscript not found' }, { status: 404 });
     }
 
+    // Prevent review assignment for published manuscripts
+    if (manuscript.status === 'published') {
+      return NextResponse.json({ 
+        error: 'Cannot assign reviewers to published manuscripts',
+        manuscriptStatus: manuscript.status 
+      }, { status: 400 });
+    }
+
     // Check if reviewer exists and has reviewer role
     const reviewer = await User.findById(reviewerId);
     if (!reviewer) {

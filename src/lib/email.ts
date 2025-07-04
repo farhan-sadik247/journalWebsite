@@ -117,4 +117,37 @@ export const emailTemplates = {
       </div>
     `,
   }),
+
+  contactMessage: (name: string, email: string, subject: string, message: string) => ({
+    subject: `New Contact Message: ${subject}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #2563eb;">New Contact Message Received</h2>
+        
+        <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="margin: 0 0 15px 0; color: #374151;">Contact Information:</h3>
+          <p style="margin: 5px 0;"><strong>Name:</strong> ${name}</p>
+          <p style="margin: 5px 0;"><strong>Email:</strong> ${email}</p>
+          <p style="margin: 5px 0;"><strong>Subject:</strong> ${subject}</p>
+          <p style="margin: 5px 0;"><strong>Date:</strong> ${new Date().toLocaleString()}</p>
+        </div>
+        
+        <div style="background: #ffffff; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e5e7eb;">
+          <h3 style="margin: 0 0 15px 0; color: #374151;">Message:</h3>
+          <p style="white-space: pre-wrap; line-height: 1.6;">${message}</p>
+        </div>
+        
+        <div style="background: #eff6ff; padding: 15px; border-radius: 8px; margin: 20px 0;">
+          <p style="margin: 0; color: #1e40af;">
+            <strong>Note:</strong> Please log into the admin dashboard to respond to this message.
+          </p>
+        </div>
+        
+        <p style="margin-top: 30px;">
+          Best regards,<br>
+          Journal Website System
+        </p>
+      </div>
+    `,
+  }),
 };

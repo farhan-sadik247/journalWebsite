@@ -22,9 +22,12 @@ export async function GET(request: NextRequest) {
 
     await connectDB();
 
-    // Get manuscripts assigned to this copy editor
+    // Get manuscripts assigned to this copy editor only (no published manuscripts)
     const manuscripts = await Manuscript.find({
-      'copyEditorAssignment.copyEditorId': session.user.id,
+      $or: [
+        { 'copyEditorAssignment.copyEditorId': session.user.id }, // Assigned manuscripts
+        { assignedCopyEditor: session.user.id } // Legacy assignment structure
+      ]
     })
     .populate('authors', 'name email affiliation')
     .populate('copyEditorAssignment.assignedBy', 'name email')

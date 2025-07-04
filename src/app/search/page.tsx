@@ -369,7 +369,7 @@ export default function AdvancedSearchPage() {
                   <div className={styles.metadata}>
                     <span className={styles.category}>{manuscript.category}</span>
                     <span className={styles.status} data-status={manuscript.status}>
-                      {manuscript.status.replace('-', ' ')}
+                      {manuscript.status === 'published' ? 'Published' : manuscript.status.replace('-', ' ')}
                     </span>
                   </div>
                 </div>

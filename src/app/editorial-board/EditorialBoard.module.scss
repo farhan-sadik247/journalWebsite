@@ -420,14 +420,15 @@
 
         .editorAffiliation {
           font-size: 1rem;
-          color: $text-dark;
+          color: #2c3e50; // Make affiliation text darker
           margin-bottom: 0.25rem;
           display: flex;
           align-items: center;
           gap: 0.5rem;
+          font-weight: 500; // Add slight weight for better visibility
 
           svg {
-            color: $text-light;
+            color: #7f8c8d; // Slightly darker icon
             width: 16px;
             height: 16px;
           }
@@ -480,10 +481,24 @@
     .editorBio {
       margin-bottom: 1.5rem;
 
+      h4 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+      }
+
       p {
         font-size: 0.95rem;
         line-height: 1.6;
-        color: $text-light;
+        color: #34495e; // Make bio text darker for better visibility
+        font-weight: 400;
+        margin: 0;
+
+        em {
+          color: #7f8c8d;
+          font-style: italic;
+        }
       }
     }
 
@@ -726,6 +741,53 @@
         margin: 1rem auto 0;
         border-radius: 2px;
       }
+    }
+  }
+
+  // New designation section styles
+  .designationSection {
+    padding: 4rem 0;
+    
+    &:nth-child(even) {
+      background: $background-light;
+    }
+    
+    &:nth-child(odd) {
+      background: white;
+    }
+  }
+
+  .designationTitle {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: $text-dark;
+    text-align: center;
+    margin-bottom: 3rem;
+    position: relative;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60px;
+      height: 3px;
+      background: $primary-color;
+      border-radius: 2px;
+    }
+  }
+
+  .editorsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
     }
   }
 }

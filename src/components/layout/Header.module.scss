@@ -1,12 +1,108 @@
 @import '../../styles/variables';
 
 .header {
-  background: white;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
   box-shadow: $shadow-md;
   position: sticky;
   top: 0;
   z-index: 50;
-  border-bottom: 1px solid #e5e7eb;
+  transition: height 0.3s ease-in-out;
+  animation: gradientShift 8s ease-in-out infinite;
+  
+  @keyframes gradientShift {
+    0%, 100% {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    }
+    25% {
+      background: linear-gradient(135deg, #16213e 0%, #0f3460 50%, #533483 100%);
+    }
+    50% {
+      background: linear-gradient(135deg, #0f3460 0%, #533483 50%, #1a1a2e 100%);
+    }
+    75% {
+      background: linear-gradient(135deg, #533483 0%, #1a1a2e 50%, #16213e 100%);
+    }
+  }
+  
+  &.scrolled {
+    height: 60px; // Only bottom row height
+    
+    .topRow {
+      transform: translateY(-100%);
+      opacity: 0;
+      visibility: hidden;
+    }
+    
+    @media (max-width: 480px) {
+      height: 50px;
+    }
+  }
+  
+  // Default height includes both rows
+  height: 140px; // Approximate total height
+  
+  @media (max-width: 768px) {
+    height: 120px;
+  }
+  
+  @media (max-width: 480px) {
+    height: 100px;
+  }
+  
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+    height: 100%;
+    position: relative;
+    
+    @media (max-width: 768px) {
+      padding: 0 0.75rem;
+    }
+  }
+  
+  // Top Row - Journal Name and Motto
+  .topRow {
+    display: flex;
+    justify-content: flex-start; // Align to left
+    align-items: center;
+    padding: 1rem 0;
+    transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+    transform: translateY(0);
+    opacity: 1;
+    visibility: visible;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1;
+    background: inherit;
+    
+    @media (max-width: 768px) {
+      padding: 0.75rem 0;
+    }
+  }
+  
+  // Bottom Row - Navigation and User Section
+  .bottomRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 60px;
+    padding: 0.75rem 0;
+    gap: var(--spacing-md);
+    flex-wrap: nowrap;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 2;
+    
+    @media (max-width: 480px) {
+      min-height: 50px;
+      padding: 0.5rem 0;
+    }
+  }
   
   .container {
     max-width: 1200px;
@@ -17,38 +113,76 @@
       padding: 0 0.75rem;
     }
   }
-  
-  .headerContent {
+
+  // Bottom Row - Navigation and User Section
+  .bottomRow {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    min-height: 80px;
-    padding: 1rem 0;
+    min-height: 60px;
+    padding: 0.75rem 0;
     gap: var(--spacing-md);
     flex-wrap: nowrap;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     
     @media (max-width: 480px) {
-      min-height: 70px;
-      padding: 0.75rem 0;
+      min-height: 50px;
+      padding: 0.5rem 0;
     }
   }
   
   .logo {
     flex-shrink: 0;
+    text-decoration: none;
+    
+    .logoContent {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start; // Align to left
+      text-align: left; // Left-align text
+    }
     
     h1 {
-      font-size: 1.875rem; // 2xl
+      font-size: 2rem; // Larger for more prominence
       font-weight: 700;
-      color: $primary-color;
+      color: #ffffff;
       margin: 0;
-      white-space: nowrap;
+      line-height: 1.2;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      animation: textGlow 3s ease-in-out infinite alternate;
+      
+      @keyframes textGlow {
+        from {
+          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3), 0 0 10px rgba(255, 255, 255, 0.1);
+        }
+        to {
+          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 255, 255, 0.2);
+        }
+      }
       
       @media (max-width: 768px) {
-        font-size: 1.5rem; // xl
+        font-size: 1.5rem;
       }
       
       @media (max-width: 480px) {
         font-size: 1.25rem;
+      }
+    }
+    
+    .motto {
+      font-size: 0.875rem; // Slightly larger
+      color: rgba(255, 255, 255, 0.8);
+      margin-top: 4px;
+      font-weight: 400;
+      font-style: italic;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      
+      @media (max-width: 768px) {
+        font-size: 0.75rem;
+      }
+      
+      @media (max-width: 480px) {
+        font-size: 0.6875rem;
       }
     }
   }
@@ -60,7 +194,7 @@
     flex-wrap: nowrap;
     white-space: nowrap;
     flex: 1;
-    justify-content: center;
+    justify-content: center; // Center the navigation
     
     @media (min-width: 1024px) {
       display: flex;
@@ -80,18 +214,36 @@
   .navLink {
     padding: 0.5rem 0.75rem;
     font-weight: 500;
-    color: $text-light;
-    transition: color $transition-fast;
+    color: rgba(255, 255, 255, 0.9);
+    transition: all 0.3s ease;
     border-radius: $radius-md;
     white-space: nowrap;
     font-size: 0.875rem;
     text-align: center;
     flex-shrink: 0;
     line-height: 1.4;
+    position: relative;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      width: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #64b5f6, #42a5f5);
+      transition: all 0.3s ease;
+      transform: translateX(-50%);
+    }
     
     &:hover {
-      color: $primary-color;
-      background-color: $background-light;
+      color: #ffffff;
+      background-color: rgba(255, 255, 255, 0.1);
+      transform: translateY(-2px);
+      
+      &::before {
+        width: 80%;
+      }
     }
     
     @media (min-width: 1024px) {
@@ -137,11 +289,38 @@
     .btn {
       white-space: nowrap;
       font-size: var(--font-size-sm);
-      padding: 0.5rem 0.75rem;
+      padding: 0.5rem 1rem;
+      background: linear-gradient(135deg, #64b5f6, #42a5f5);
+      border: none;
+      color: white;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: left 0.5s ease;
+      }
+      
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(100, 181, 246, 0.3);
+        
+        &::before {
+          left: 100%;
+        }
+      }
       
       @media (min-width: 1024px) {
         font-size: var(--font-size-base);
-        padding: 0.75rem 1.25rem;
+        padding: 0.75rem 1.5rem;
       }
     }
   }
@@ -159,10 +338,11 @@
     border: none;
     border-radius: var(--radius-md);
     cursor: pointer;
-    transition: background-color var(--transition-fast);
+    transition: all 0.3s ease;
     
     &:hover {
-      background-color: var(--gray-50);
+      background-color: rgba(255, 255, 255, 0.1);
+      transform: translateY(-1px);
     }
   }
   
@@ -176,12 +356,12 @@
   .avatarIcon {
     width: 24px;
     height: 24px;
-    color: var(--gray-600);
+    color: rgba(255, 255, 255, 0.8);
   }
   
   .userName {
     font-weight: 500;
-    color: var(--gray-900);
+    color: rgba(255, 255, 255, 0.9);
     display: none;
     
     @media (min-width: 640px) {
@@ -215,18 +395,36 @@
     gap: 0.5rem;
     padding: 0.5rem 0.75rem;
     font-weight: 500;
-    color: $text-light;
+    color: rgba(255, 255, 255, 0.9);
     background: none;
     border: none;
     cursor: pointer;
-    transition: all $transition-fast;
+    transition: all 0.3s ease;
     border-radius: $radius-md;
     white-space: nowrap;
     font-size: 0.875rem;
+    position: relative;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      width: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #64b5f6, #42a5f5);
+      transition: all 0.3s ease;
+      transform: translateX(-50%);
+    }
     
     &:hover {
-      color: $primary-color;
-      background-color: $background-light;
+      color: #ffffff;
+      background-color: rgba(255, 255, 255, 0.1);
+      transform: translateY(-2px);
+      
+      &::before {
+        width: 80%;
+      }
     }
     
     @media (min-width: 1024px) {
@@ -239,12 +437,15 @@
     width: 16px;
     height: 16px;
     flex-shrink: 0;
+    color: rgba(255, 255, 255, 0.8);
+    transition: color 0.3s ease;
   }
 
   .chevron {
     width: 14px;
     height: 14px;
     transition: transform var(--transition-fast);
+    color: rgba(255, 255, 255, 0.8);
     
     &.open {
       transform: rotate(180deg);
@@ -346,20 +547,22 @@
     border: none;
     border-radius: var(--radius-md);
     cursor: pointer;
-    transition: background-color var(--transition-fast);
+    transition: all 0.3s ease;
     
     @media (min-width: 768px) {
       display: none;
     }
     
     &:hover {
-      background-color: var(--gray-50);
+      background-color: rgba(255, 255, 255, 0.1);
+      transform: scale(1.05);
     }
     
     svg {
       width: 24px;
       height: 24px;
-      color: var(--gray-700);
+      color: rgba(255, 255, 255, 0.9);
+      transition: color 0.3s ease;
     }
   }
 
@@ -461,7 +664,7 @@
       width: 100%;
       text-align: center;
       font-size: var(--font-size-base);
-      padding: 0.75rem 1rem;
+      padding: 0.875rem 1rem;
     }
   }
 }

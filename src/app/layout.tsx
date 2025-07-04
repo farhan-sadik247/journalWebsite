@@ -9,8 +9,8 @@ import { Toaster } from 'react-hot-toast';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
-  title: 'Research Journal Platform',
-  description: 'A comprehensive platform for academic research publication and peer review',
+  title: 'Global Journal of Advanced Technology - Innovating the Future, One Breakthrough at a Time',
+  description: 'Global Journal of Advanced Technology (GJADT) - A premier platform for publishing cutting-edge research in advanced technology. Innovating the Future, One Breakthrough at a Time.',
 };
 
 export default function RootLayout({

@@ -210,7 +210,7 @@ export default function RevisionPage() {
             <div className={styles.metadata}>
               <span>Category: {manuscript.category}</span>
               <span>Original Submission: {new Date(manuscript.submissionDate).toLocaleDateString()}</span>
-              <span>Status: {manuscript.status}</span>
+              <span>Status: {manuscript.status === 'published' ? 'Published' : manuscript.status.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
             </div>
           </div>
         </div>

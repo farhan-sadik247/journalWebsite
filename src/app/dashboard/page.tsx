@@ -166,8 +166,12 @@ export default function DashboardPage() {
 
   // Role-specific dashboard links
   const roleBasedActions = [];
+  const userRoles = session.user.roles || [];
+  const isAdmin = userRoles.includes('admin');
+  const isEditor = userRoles.includes('editor');
   
-  if (session.user.roles?.includes('admin')) {
+  // Admin Dashboard (only for admins)
+  if (isAdmin) {
     roleBasedActions.push({
       title: 'Admin Dashboard',
       description: 'Manage users and system settings',
@@ -175,23 +179,10 @@ export default function DashboardPage() {
       href: '/dashboard/admin',
       color: 'danger',
     });
-    roleBasedActions.push({
-      title: 'Publication Dashboard',
-      description: 'Manage manuscripts ready for publication',
-      icon: FiBookOpen,
-      href: '/dashboard/publication',
-      color: 'primary',
-    });
-    roleBasedActions.push({
-      title: 'Payment Management',
-      description: 'Manage APC fees and payments',
-      icon: FiDollarSign,
-      href: '/dashboard/payments?view=admin',
-      color: 'success',
-    });
   }
   
-  if (session.user.roles?.includes('editor')) {
+  // Editorial Dashboard (only for editors)
+  if (isEditor) {
     roleBasedActions.push({
       title: 'Editorial Dashboard',
       description: 'Manage manuscripts and reviews',
@@ -199,6 +190,10 @@ export default function DashboardPage() {
       href: '/dashboard/editor',
       color: 'warning',
     });
+  }
+  
+  // Publication Dashboard (for both admin and editor, but only show once)
+  if (isAdmin || isEditor) {
     roleBasedActions.push({
       title: 'Publication Dashboard',
       description: 'Manage manuscripts ready for publication',
@@ -206,16 +201,21 @@ export default function DashboardPage() {
       href: '/dashboard/publication',
       color: 'primary',
     });
+  }
+  
+  // Payment Management (unified for admin and editor, but only show once)
+  if (isAdmin || isEditor) {
     roleBasedActions.push({
-      title: 'Payment Oversight',
-      description: 'Review APC payments and waivers',
+      title: 'Payment Management',
+      description: isAdmin ? 'Manage APC fees and payments' : 'Review APC payments and waivers',
       icon: FiDollarSign,
-      href: '/dashboard/payments?view=editor',
+      href: isAdmin ? '/dashboard/payments?view=admin' : '/dashboard/payments?view=editor',
       color: 'success',
     });
   }
   
-  if (session.user.roles?.includes('reviewer')) {
+  // Reviewer Dashboard (only for reviewers who are not already editors)
+  if (userRoles.includes('reviewer')) {
     roleBasedActions.push({
       title: 'Reviewer Dashboard',
       description: 'View assigned reviews',
@@ -225,7 +225,8 @@ export default function DashboardPage() {
     });
   }
 
-  if (session.user.roles?.includes('copy-editor') || session.user.currentActiveRole === 'copy-editor') {
+  // Copy Editor Dashboard (for copy-editors)
+  if (userRoles.includes('copy-editor') || session.user.currentActiveRole === 'copy-editor') {
     roleBasedActions.push({
       title: 'Copy Editor Dashboard',
       description: 'Manage copy editing assignments',

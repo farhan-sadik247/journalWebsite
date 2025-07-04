@@ -4,7 +4,17 @@ import { authOptions } from '@/pages/api/auth/[...nextauth]';
 import dbConnect from '@/lib/mongodb';
 import Notification from '@/models/Notification';
 import User from '@/models/User';
-import { Types } from 'mongoose';
+import Payment from '@/models/Payment';
+import Manuscript from '@/models/Manuscript';
+import mongoose, { Types } from 'mongoose';
+
+// Ensure models are registered
+const ensureModelsRegistered = () => {
+  // Import models to ensure they're registered with mongoose
+  require('@/models/Payment');
+  require('@/models/Manuscript');
+  require('@/models/User');
+};
 
 // GET /api/notifications - Get notifications for current user
 export async function GET(request: NextRequest) {
@@ -15,6 +25,9 @@ export async function GET(request: NextRequest) {
     }
 
     await dbConnect();
+    
+    // Ensure models are registered
+    ensureModelsRegistered();
 
     // Find the current user to get their ObjectId
     const currentUser = await User.findOne({ email: session.user.email });
@@ -36,9 +49,15 @@ export async function GET(request: NextRequest) {
       .sort({ createdAt: -1 })
       .limit(limit)
       .skip((page - 1) * limit)
-      .populate('relatedManuscript', 'title submissionId')
-      .populate('relatedPayment', 'amount status')
-      .populate('recipient', 'name email');
+      .select('-relatedPayment') // Exclude the relatedPayment field to avoid the error
+      .populate({
+        path: 'relatedManuscript',
+        select: 'title submissionId'
+      })
+      .populate({
+        path: 'recipient',
+        select: 'name email'
+      });
 
     const total = await Notification.countDocuments(filter);
     const unreadCount = await Notification.countDocuments({
@@ -71,6 +90,9 @@ export async function POST(request: NextRequest) {
     }
 
     await dbConnect();
+    
+    // Ensure models are registered
+    ensureModelsRegistered();
 
     const data = await request.json();
     const {

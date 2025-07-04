@@ -230,6 +230,42 @@
       }
     }
   }
+
+  // Alert styles for form submission feedback
+  .alert {
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    font-weight: 500;
+    border: 1px solid transparent;
+
+    &.success {
+      background-color: #f0fdf4;
+      border-color: #bbf7d0;
+      color: #166534;
+    }
+
+    &.error {
+      background-color: #fef2f2;
+      border-color: #fecaca;
+      color: #dc2626;
+    }
+  }
+
+  // Disabled state for form elements
+  .formInput:disabled,
+  .formSelect:disabled,
+  .formTextarea:disabled {
+    background-color: #f9fafb;
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .submitButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
 }
 
 // Container styles

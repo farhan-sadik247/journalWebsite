@@ -54,7 +54,7 @@ export function Header() {
         <div className={styles.headerContent}>
           {/* Logo */}
           <Link href="/" className={styles.logo}>
-            <h1>ResearchJournal</h1>
+            <h1>Global Journal of Advanced Technology</h1>
           </Link>
 
           {/* Desktop Navigation */}

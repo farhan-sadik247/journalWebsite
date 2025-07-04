@@ -1,0 +1,516 @@
+.userManualSettings {
+  min-height: 100vh;
+  background: var(--bg-secondary);
+  padding: var(--spacing-xl) 0;
+  color: var(--text-primary);
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 var(--spacing-md);
+  }
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 50vh;
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+}
+
+.header {
+  margin-bottom: var(--spacing-2xl);
+
+  .headerTop {
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .backButton {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease;
+
+    &:hover {
+      color: var(--primary-dark);
+    }
+
+    svg {
+      width: 1rem;
+      height: 1rem;
+    }
+  }
+
+  .headerContent {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: var(--spacing-lg);
+
+    @media (max-width: 768px) {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--spacing-md);
+    }
+
+    h1 {
+      font-size: var(--font-size-3xl);
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0 0 var(--spacing-xs) 0;
+    }
+
+    p {
+      color: var(--text-secondary);
+      margin: 0;
+    }
+  }
+}
+
+// Form Overlay and Modal
+.formOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--spacing-md);
+}
+
+.formModal {
+  background: var(--bg-primary);
+  border-radius: 12px;
+  max-width: 800px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-xl);
+}
+
+.formHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-xl);
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+
+  h2 {
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+  }
+
+  .closeButton {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: var(--spacing-xs);
+    border-radius: 4px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+    }
+  }
+}
+
+.form {
+  padding: var(--spacing-xl);
+
+  .formRow {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-lg);
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .formGroup {
+    margin-bottom: var(--spacing-lg);
+
+    label {
+      display: block;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: var(--spacing-xs);
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      padding: var(--spacing-sm);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: var(--font-size-base);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+      &:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    small {
+      display: block;
+      margin-top: var(--spacing-xs);
+      color: var(--text-muted);
+      font-size: var(--font-size-sm);
+    }
+  }
+}
+
+// Rich Text Editor
+.richTextEditor {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg-primary);
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-sm);
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    gap: var(--spacing-xs);
+    flex-wrap: wrap;
+
+    .toolbarButton {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-primary);
+      color: var(--text-secondary);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+      }
+
+      svg {
+        width: 16px;
+        height: 16px;
+      }
+    }
+
+    .separator {
+      width: 1px;
+      height: 24px;
+      background: var(--border-color);
+      margin: 0 var(--spacing-xs);
+    }
+
+    .colorSelect {
+      padding: var(--spacing-xs);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: var(--font-size-sm);
+      cursor: pointer;
+    }
+  }
+
+  .textEditor {
+    min-height: 200px;
+    padding: var(--spacing-md);
+    color: var(--text-primary);
+    line-height: 1.6;
+    
+    &:focus {
+      outline: none;
+    }
+
+    &:empty:before {
+      content: attr(data-placeholder);
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    // Rich text styling
+    strong, b {
+      font-weight: bold;
+    }
+
+    em, i {
+      font-style: italic;
+    }
+
+    u {
+      text-decoration: underline;
+    }
+
+    p {
+      margin-bottom: var(--spacing-sm);
+    }
+  }
+}
+
+// Image Preview
+.imagePreview {
+  margin-top: var(--spacing-md);
+  text-align: center;
+
+  .previewImage {
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: 8px;
+    box-shadow: var(--shadow-md);
+  }
+}
+
+// Form Actions
+.formActions {
+  display: flex;
+  gap: var(--spacing-md);
+  justify-content: flex-end;
+  margin-top: var(--spacing-xl);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--border-color);
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
+}
+
+// Items List
+.itemsList {
+  .emptyState {
+    text-align: center;
+    padding: var(--spacing-3xl);
+    background: var(--bg-primary);
+    border-radius: 12px;
+    box-shadow: var(--shadow-md);
+
+    svg {
+      width: 64px;
+      height: 64px;
+      color: var(--text-muted);
+      margin-bottom: var(--spacing-lg);
+    }
+
+    h3 {
+      font-size: var(--font-size-xl);
+      font-weight: 600;
+      margin-bottom: var(--spacing-sm);
+      color: var(--text-primary);
+    }
+
+    p {
+      color: var(--text-secondary);
+      margin-bottom: var(--spacing-xl);
+    }
+  }
+
+  .itemsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: var(--spacing-xl);
+  }
+}
+
+.itemCard {
+  background: var(--bg-primary);
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .itemHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+
+    .itemType {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+      font-weight: 600;
+      color: var(--text-primary);
+
+      svg {
+        width: 18px;
+        height: 18px;
+        color: var(--primary-color);
+      }
+    }
+
+    .itemOrder {
+      font-size: var(--font-size-sm);
+      color: var(--text-muted);
+      background: var(--bg-primary);
+      padding: var(--spacing-xs) var(--spacing-sm);
+      border-radius: 20px;
+    }
+  }
+
+  .itemContent {
+    padding: var(--spacing-lg);
+
+    h3 {
+      font-size: var(--font-size-lg);
+      font-weight: 600;
+      margin-bottom: var(--spacing-md);
+      color: var(--text-primary);
+    }
+
+    .textPreview {
+      color: var(--text-secondary);
+      line-height: 1.6;
+      max-height: 150px;
+      overflow: hidden;
+      position: relative;
+
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 30px;
+        background: linear-gradient(transparent, var(--bg-primary));
+      }
+    }
+
+    .imageContainer {
+      .itemImage {
+        width: 100%;
+        max-height: 200px;
+        object-fit: cover;
+        border-radius: 8px;
+        margin-bottom: var(--spacing-sm);
+      }
+
+      .imageDescription {
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
+        margin: 0;
+      }
+    }
+  }
+
+  .itemActions {
+    display: flex;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+
+    .editButton,
+    .deleteButton {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-primary);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      svg {
+        width: 16px;
+        height: 16px;
+      }
+    }
+
+    .editButton {
+      color: var(--primary-color);
+
+      &:hover {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+      }
+    }
+
+    .deleteButton {
+      color: #ef4444;
+
+      &:hover {
+        background: #ef4444;
+        color: white;
+        border-color: #ef4444;
+      }
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .userManualSettings {
+    padding: var(--spacing-lg) 0;
+
+    .container {
+      padding: 0 var(--spacing-sm);
+    }
+  }
+
+  .formModal {
+    margin: var(--spacing-sm);
+    max-height: calc(100vh - 2rem);
+  }
+
+  .form {
+    padding: var(--spacing-lg);
+  }
+
+  .itemsGrid {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-lg);
+  }
+
+  .richTextEditor .toolbar {
+    .toolbarButton {
+      width: 28px;
+      height: 28px;
+
+      svg {
+        width: 14px;
+        height: 14px;
+      }
+    }
+  }
+}

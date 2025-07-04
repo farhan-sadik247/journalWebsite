@@ -198,6 +198,21 @@
               color: var(--text-primary);
               word-break: break-all;
             }
+
+            .doiNote {
+              margin-top: 1rem;
+              padding: 0.75rem;
+              background: var(--background-info);
+              border-left: 3px solid var(--primary-color);
+              border-radius: 4px;
+              font-size: 0.8rem;
+              color: var(--text-secondary);
+
+              small {
+                font-size: 0.75rem;
+                opacity: 0.8;
+              }
+            }
           }
         }
 

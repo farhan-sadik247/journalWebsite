@@ -8,27 +8,28 @@ export function Footer() {
   const footerLinks = {
     journal: [
       { name: 'About', href: '/about' },
-      { name: 'Aims & Scope', href: '/aims-scope' },
+      { name: 'Aims & Scope', href: '/about' },
       { name: 'Editorial Board', href: '/editorial-board' },
-      { name: 'Publication Ethics', href: '/publication-ethics' },
+      { name: 'Publication Ethics', href: '/about' },
     ],
     authors: [
       { name: 'Submit Manuscript', href: '/submit' },
       { name: 'Author Guidelines', href: '/author-guidelines' },
       { name: 'Review Process', href: '/review-process' },
-      { name: 'Open Access', href: '/open-access' },
+      { name: 'Open Access', href: '/' },
     ],
     resources: [
       { name: 'Browse Articles', href: '/articles' },
-      { name: 'Current Issue', href: '/current-issue' },
+      { name: 'Current Issue', href: '/articles' },
       { name: 'Archives', href: '/archives' },
-      { name: 'Special Issues', href: '/special-issues' },
+      { name: 'Special Issues', href: '/articles' },
     ],
     support: [
       { name: 'Contact Us', href: '/contact' },
-      { name: 'FAQ', href: '/faq' },
-      { name: 'Privacy Policy', href: '/privacy-policy' },
-      { name: 'Terms of Service', href: '/terms' },
+      { name: 'User Manual', href: '/user-manual' },
+      { name: 'FAQ', href: '/contact' },
+      { name: 'Privacy Policy', href: '/about' },
+      { name: 'Terms of Service', href: '/about' },
     ],
   };
 
@@ -39,16 +40,16 @@ export function Footer() {
         <div className={styles.footerContent}>
           {/* Journal Info */}
           <div className={styles.journalInfo}>
-            <h3>ResearchJournal</h3>
+            <h3>Global Journal of Advanced Technology</h3>
             <p>
-              A leading platform for academic research publication and peer review, 
-              dedicated to advancing knowledge across all scientific disciplines.
+              Innovating the Future, One Breakthrough at a Time. A premier platform for publishing 
+              cutting-edge research in advanced technology and engineering.
             </p>
             
             <div className={styles.contactInfo}>
               <div className={styles.contactItem}>
                 <FiMail />
-                <span>editor@researchjournal.com</span>
+                <span>editor@gjadt.org</span>
               </div>
               <div className={styles.contactItem}>
                 <FiPhone />
@@ -56,7 +57,7 @@ export function Footer() {
               </div>
               <div className={styles.contactItem}>
                 <FiMapPin />
-                <span>123 Academic Street, Research City, RC 12345</span>
+                <span>123 Technology Boulevard, Innovation City, IC 12345</span>
               </div>
             </div>
 
@@ -116,12 +117,12 @@ export function Footer() {
         {/* Bottom Footer */}
         <div className={styles.footerBottom}>
           <div className={styles.copyright}>
-            <p>&copy; {currentYear} ResearchJournal. All rights reserved.</p>
+            <p>&copy; {currentYear} Global Journal of Advanced Technology (GJADT). All rights reserved.</p>
           </div>
           <div className={styles.legalLinks}>
-            <Link href="/privacy-policy">Privacy Policy</Link>
-            <Link href="/terms">Terms of Service</Link>
-            <Link href="/cookies">Cookie Policy</Link>
+            <Link href="/about">Privacy Policy</Link>
+            <Link href="/about">Terms of Service</Link>
+            <Link href="/about">Cookie Policy</Link>
           </div>
         </div>
       </div>

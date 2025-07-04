@@ -241,7 +241,7 @@ export default function HomePageManagement() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1>Access Denied</h1>
-          <p>You don't have permission to access this page.</p>
+          <p>You don&apos;t have permission to access this page.</p>
         </div>
       </div>
     );

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useForm, useFieldArray } from 'react-hook-form';
@@ -68,6 +68,8 @@ export default function SubmitManuscriptPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
   const totalSteps = 4;
 
   const {
@@ -104,6 +106,31 @@ export default function SubmitManuscriptPage() {
 
   const abstractWordCount = countWords(abstract);
   const maxAbstractWords = 250;
+
+  // Fetch categories on component mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch('/api/categories?activeOnly=true');
+        const data = await response.json();
+        
+        if (response.ok) {
+          const categoryNames = data.categories.map((cat: any) => cat.name);
+          setCategories(categoryNames);
+        } else {
+          console.error('Failed to fetch categories:', data.error);
+          // Keep default categories if fetch fails
+        }
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        // Keep default categories if fetch fails
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   // Check authentication
   if (status === 'loading') {

@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { FiSearch, FiCalendar, FiEye, FiDownload } from 'react-icons/fi';
+import { FiSearch, FiCalendar, FiEye, FiDownload, FiPlusCircle } from 'react-icons/fi';
 import styles from './ArticlesPage.module.scss';
 
 interface Article {
@@ -34,23 +34,53 @@ interface Pagination {
 
 export default function ArticlesPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [categories, setCategories] = useState<string[]>([]);
 
-  const categories = [
-    'Computer Science',
-    'Engineering',
-    'Mathematics',
-    'Physics',
-    'Biology',
-    'Chemistry',
-    'Medicine',
-    'Social Sciences'
-  ];
+  // Initialize category filter from URL parameters
+  useEffect(() => {
+    if (searchParams) {
+      const categoryFromUrl = searchParams.get('category');
+      if (categoryFromUrl) {
+        setCategoryFilter(categoryFromUrl);
+      }
+    }
+  }, [searchParams]);
+
+  // Fetch available categories
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch('/api/categories?activeOnly=true');
+      if (response.ok) {
+        const data = await response.json();
+        const categoryNames = data.categories.map((cat: any) => cat.name);
+        setCategories(categoryNames);
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      // Fallback to hardcoded categories
+      setCategories([
+        'Computer Science',
+        'Engineering', 
+        'Mathematics',
+        'Physics',
+        'Biology',
+        'Chemistry',
+        'Medicine',
+        'Social Sciences'
+      ]);
+    }
+  };
 
   useEffect(() => {
     fetchArticles();
@@ -117,8 +147,22 @@ export default function ArticlesPage() {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1>Published Articles</h1>
-        <p>Browse our collection of peer-reviewed research articles</p>
+        <h1>
+          {categoryFilter ? `${categoryFilter} Articles` : 'Published Articles'}
+        </h1>
+        <p>
+          {categoryFilter 
+            ? `Browse our collection of peer-reviewed articles in ${categoryFilter}`
+            : 'Browse our collection of peer-reviewed research articles'
+          }
+        </p>
+        {categoryFilter && (
+          <div className={styles.breadcrumb}>
+            <Link href="/articles">All Articles</Link>
+            <span> / </span>
+            <span>{categoryFilter}</span>
+          </div>
+        )}
       </div>
 
       <div className={styles.filters}>
@@ -139,8 +183,21 @@ export default function ArticlesPage() {
           <select
             value={categoryFilter}
             onChange={(e) => {
-              setCategoryFilter(e.target.value);
+              const newCategory = e.target.value;
+              setCategoryFilter(newCategory);
               setCurrentPage(1);
+              
+              // Update URL to reflect category filter
+              const params = new URLSearchParams();
+              if (newCategory) {
+                params.set('category', newCategory);
+              }
+              if (searchQuery) {
+                params.set('query', searchQuery);
+              }
+              
+              const newUrl = params.toString() ? `/articles?${params.toString()}` : '/articles';
+              router.push(newUrl, { scroll: false });
             }}
           >
             <option value="">All Categories</option>
@@ -169,8 +226,44 @@ export default function ArticlesPage() {
           <div className={styles.articlesGrid}>
             {articles.length === 0 ? (
               <div className={styles.noResults}>
-                <h3>No articles found</h3>
-                <p>Try adjusting your search criteria or browse all articles.</p>
+                {categoryFilter ? (
+                  <>
+                    <h3>No articles found in "{categoryFilter}" category</h3>
+                    <p>There are currently no published articles in this category.</p>
+                    <p>If you're interested in contributing to this field, we'd love to see your submission!</p>
+                    <div className={styles.submitActions}>
+                      <Link href="/submit" className={styles.submitButton}>
+                        <FiPlusCircle />
+                        Submit Your Article
+                      </Link>
+                      <Link href="/articles" className={styles.browseAllButton}>
+                        Browse All Articles
+                      </Link>
+                    </div>
+                  </>
+                ) : searchQuery ? (
+                  <>
+                    <h3>No articles found for your search</h3>
+                    <p>Try adjusting your search criteria or browse all articles.</p>
+                    <div className={styles.submitActions}>
+                      <Link href="/submit" className={styles.submitButton}>
+                        <FiPlusCircle />
+                        Submit Your Article
+                      </Link>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <h3>No articles published yet</h3>
+                    <p>Be the first to contribute to our journal!</p>
+                    <div className={styles.submitActions}>
+                      <Link href="/submit" className={styles.submitButton}>
+                        <FiPlusCircle />
+                        Submit Your Article
+                      </Link>
+                    </div>
+                  </>
+                )}
               </div>
             ) : (
               articles.map((article) => (

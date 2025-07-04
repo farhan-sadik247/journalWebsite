@@ -1,7 +1,77 @@
+'use client';
+
+import { useState } from 'react';
 import { FiMail, FiPhone, FiMapPin, FiClock, FiSend } from 'react-icons/fi';
 import styles from './Contact.module.scss';
 
 export default function ContactPage() {
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    subject: '',
+    message: ''
+  });
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<{
+    type: 'success' | 'error' | null;
+    message: string;
+  }>({ type: null, message: '' });
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitStatus({ type: null, message: '' });
+
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSubmitStatus({
+          type: 'success',
+          message: 'Thank you for your message! We will get back to you soon.'
+        });
+        setFormData({
+          firstName: '',
+          lastName: '',
+          email: '',
+          phone: '',
+          subject: '',
+          message: ''
+        });
+      } else {
+        setSubmitStatus({
+          type: 'error',
+          message: data.error || 'Something went wrong. Please try again.'
+        });
+      }
+    } catch (error) {
+      setSubmitStatus({
+        type: 'error',
+        message: 'Network error. Please check your connection and try again.'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   return (
     <div className={styles.contactPage}>
         {/* Hero Section */}
@@ -30,8 +100,8 @@ export default function ContactPage() {
               <div className={styles.contactCard}>
                 <FiMail className={styles.contactIcon} />
                 <h3>Email</h3>
-                <p>info@researchjournal.com</p>
-                <p>editorial@researchjournal.com</p>
+                <p>info@gjadt.org</p>
+                <p>editorial@gjadt.org</p>
               </div>
               
               <div className={styles.contactCard}>
@@ -67,15 +137,25 @@ export default function ContactPage() {
                 <p>Fill out the form below and we&apos;ll get back to you as soon as possible.</p>
               </div>
               
-              <form className={styles.form}>
+              <form className={styles.form} onSubmit={handleSubmit}>
+                {submitStatus.type && (
+                  <div className={`${styles.alert} ${styles[submitStatus.type]}`}>
+                    {submitStatus.message}
+                  </div>
+                )}
+                
                 <div className={styles.formRow}>
                   <div className={styles.formGroup}>
                     <label className={styles.formLabel}>First Name *</label>
                     <input
                       type="text"
+                      name="firstName"
+                      value={formData.firstName}
+                      onChange={handleInputChange}
                       className={styles.formInput}
                       placeholder="Enter your first name"
                       required
+                      disabled={isSubmitting}
                     />
                   </div>
                   
@@ -83,9 +163,13 @@ export default function ContactPage() {
                     <label className={styles.formLabel}>Last Name *</label>
                     <input
                       type="text"
+                      name="lastName"
+                      value={formData.lastName}
+                      onChange={handleInputChange}
                       className={styles.formInput}
                       placeholder="Enter your last name"
                       required
+                      disabled={isSubmitting}
                     />
                   </div>
                 </div>
@@ -95,9 +179,13 @@ export default function ContactPage() {
                     <label className={styles.formLabel}>Email *</label>
                     <input
                       type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
                       className={styles.formInput}
                       placeholder="Enter your email"
                       required
+                      disabled={isSubmitting}
                     />
                   </div>
                   
@@ -105,15 +193,26 @@ export default function ContactPage() {
                     <label className={styles.formLabel}>Phone</label>
                     <input
                       type="tel"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleInputChange}
                       className={styles.formInput}
                       placeholder="Enter your phone number"
+                      disabled={isSubmitting}
                     />
                   </div>
                 </div>
 
                 <div className={styles.formGroup}>
                   <label className={styles.formLabel}>Subject *</label>
-                  <select className={styles.formSelect} required>
+                  <select 
+                    name="subject"
+                    value={formData.subject}
+                    onChange={handleInputChange}
+                    className={styles.formSelect} 
+                    required
+                    disabled={isSubmitting}
+                  >
                     <option value="">Select a subject</option>
                     <option value="submission">Manuscript Submission</option>
                     <option value="review">Peer Review Process</option>
@@ -127,16 +226,24 @@ export default function ContactPage() {
                 <div className={styles.formGroup}>
                   <label className={styles.formLabel}>Message *</label>
                   <textarea
+                    name="message"
+                    value={formData.message}
+                    onChange={handleInputChange}
                     className={styles.formTextarea}
                     placeholder="Enter your message"
                     rows={6}
                     required
+                    disabled={isSubmitting}
                   ></textarea>
                 </div>
 
-                <button type="submit" className={`${styles.submitButton} btn btn-primary btn-lg`}>
+                <button 
+                  type="submit" 
+                  className={`${styles.submitButton} btn btn-primary btn-lg`}
+                  disabled={isSubmitting}
+                >
                   <FiSend />
-                  Send Message
+                  {isSubmitting ? 'Sending...' : 'Send Message'}
                 </button>
               </form>
             </div>
