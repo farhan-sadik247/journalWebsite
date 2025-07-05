@@ -48,7 +48,6 @@ const categorySchema = new mongoose.Schema({
 });
 
 // Index for search and sorting
-categorySchema.index({ name: 1 });
 categorySchema.index({ order: 1 });
 categorySchema.index({ isActive: 1 });
 

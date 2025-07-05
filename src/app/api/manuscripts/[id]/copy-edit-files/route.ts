@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/pages/api/auth/[...nextauth]';
 import dbConnect from '@/lib/mongodb';
 import Manuscript from '@/models/Manuscript';
+import { uploadToStorage } from '@/lib/storage';
 
 // POST /api/manuscripts/[id]/copy-edit-files - Upload copy editing working files
 export async function POST(
@@ -50,9 +51,8 @@ export async function POST(
       }
     }
 
-    // Upload files to Cloudinary
+    // Upload files to local storage
     const uploadedFiles = [];
-    const { v2: cloudinary } = await import('cloudinary');
 
     for (const file of workingFiles) {
       if (file.size > 0) {
@@ -61,32 +61,18 @@ export async function POST(
           const bytes = await file.arrayBuffer();
           const buffer = Buffer.from(bytes);
 
-          // Upload to Cloudinary
-          const uploadResult: any = await new Promise((resolve, reject) => {
-            cloudinary.uploader.upload_stream(
-              {
-                resource_type: 'raw',
-                folder: 'copy-edit-working-files',
-                public_id: `${params.id}-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`,
-              },
-              (error, result) => {
-                if (error) reject(error);
-                else resolve(result);
-              }
-            ).end(buffer);
-          });
+          // Upload to local storage
+          const uploadResult = await uploadToStorage(buffer, file.name, `copy-edit-working-files/${params.id}`);
 
-          if (uploadResult && uploadResult.public_id) {
-            uploadedFiles.push({
-              originalName: file.name,
-              filename: uploadResult.public_id,
-              url: uploadResult.secure_url || uploadResult.url,
-              size: file.size,
-              type: file.type,
-              uploadedBy: session.user.name || session.user.email,
-              uploadedAt: new Date(),
-            });
-          }
+          uploadedFiles.push({
+            originalName: file.name,
+            filename: uploadResult.public_id,
+            url: uploadResult.secure_url,
+            size: file.size,
+            type: file.type,
+            uploadedBy: session.user.name || session.user.email,
+            uploadedAt: new Date(),
+          });
         } catch (uploadError) {
           console.error('Error uploading file:', uploadError);
           // Continue with other files even if one fails
@@ -185,7 +171,7 @@ export async function GET(
       return NextResponse.json({ error: 'File not found' }, { status: 404 });
     }
 
-    // Redirect to Cloudinary URL
+    // Redirect to local file URL
     return NextResponse.redirect(file.url);
 
   } catch (error) {

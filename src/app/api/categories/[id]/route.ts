@@ -4,14 +4,7 @@ import { authOptions } from '@/pages/api/auth/[...nextauth]';
 import dbConnect from '@/lib/mongodb';
 import Category from '@/models/Category';
 import User from '@/models/User';
-import { v2 as cloudinary } from 'cloudinary';
-
-// Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+import { uploadToStorage, deleteFromStorage } from '@/lib/storage';
 
 // GET /api/categories/[id] - Get specific category
 export async function GET(
@@ -92,34 +85,19 @@ export async function PUT(
     // If new image is provided, upload it and delete old one
     if (imageFile && imageFile.size > 0) {
       try {
-        // Delete old image from Cloudinary
+        // Delete old image locally
         if (category.image.publicId) {
-          await cloudinary.uploader.destroy(category.image.publicId);
+          await deleteFromStorage(category.image.publicId);
         }
 
-        // Upload new image
+        // Upload new image locally
         const bytes = await imageFile.arrayBuffer();
         const buffer = Buffer.from(bytes);
-
-        const uploadResponse = await new Promise((resolve, reject) => {
-          cloudinary.uploader.upload_stream(
-            {
-              resource_type: 'image',
-              folder: 'journal/categories',
-              transformation: [
-                { width: 400, height: 300, crop: 'fill', quality: 'auto' }
-              ]
-            },
-            (error, result) => {
-              if (error) reject(error);
-              else resolve(result);
-            }
-          ).end(buffer);
-        }) as any;
+        const uploadResult = await uploadToStorage(buffer, imageFile.name, 'categories');
 
         updateData.image = {
-          url: uploadResponse.secure_url,
-          publicId: uploadResponse.public_id,
+          url: uploadResult.secure_url,
+          publicId: uploadResult.public_id,
           altText: `${name} category image`,
         };
       } catch (imageError) {
@@ -166,12 +144,12 @@ export async function DELETE(
       return NextResponse.json({ error: 'Category not found' }, { status: 404 });
     }
 
-    // Delete image from Cloudinary
+    // Delete image locally
     if (category.image.publicId) {
       try {
-        await cloudinary.uploader.destroy(category.image.publicId);
+        await deleteFromStorage(category.image.publicId);
       } catch (imageError) {
-        console.error('Error deleting image from Cloudinary:', imageError);
+        console.error('Error deleting image locally:', imageError);
         // Continue with category deletion even if image deletion fails
       }
     }

@@ -6,7 +6,7 @@ import User from '@/models/User';
 
 // Ensure environment variables are loaded correctly
 const isProduction = process.env.NODE_ENV === 'production';
-const baseUrl = process.env.NEXTAUTH_URL || (isProduction ? 'https://gjadt.org' : 'http://localhost:3000');
+const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
 
 console.log('NextAuth Configuration:', {
   environment: process.env.NODE_ENV,

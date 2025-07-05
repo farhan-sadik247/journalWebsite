@@ -3,14 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/pages/api/auth/[...nextauth]';
 import connectDB from '@/lib/mongodb';
 import UserManual from '@/models/UserManual';
-import { v2 as cloudinary } from 'cloudinary';
-
-// Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+import { uploadToStorage, deleteFromStorage } from '@/lib/storage';
 
 export async function GET(request: NextRequest) {
   try {
@@ -81,30 +74,14 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Upload image to Cloudinary
+      // Upload image locally
       const bytes = await imageFile.arrayBuffer();
       const buffer = Buffer.from(bytes);
       
-      const uploadResponse = await new Promise((resolve, reject) => {
-        cloudinary.uploader.upload_stream(
-          {
-            resource_type: 'image',
-            folder: 'user-manual',
-            transformation: [
-              { width: 800, height: 600, crop: 'limit' },
-              { quality: 'auto', fetch_format: 'auto' }
-            ]
-          },
-          (error, result) => {
-            if (error) reject(error);
-            else resolve(result);
-          }
-        ).end(buffer);
-      });
+      const uploadResult = await uploadToStorage(buffer, imageFile.name, 'user-manual');
 
-      const cloudinaryResult = uploadResponse as any;
       userManualData.content = content || 'Image content'; // Provide default content for images
-      userManualData.imageUrl = cloudinaryResult.secure_url;
+      userManualData.imageUrl = uploadResult.secure_url;
     }
 
     const userManualItem = new UserManual(userManualData);
@@ -179,41 +156,24 @@ export async function PUT(request: NextRequest) {
       updateData.content = content || 'Image content'; // Provide default content for images
       
       if (imageFile && imageFile.size > 0) {
-        // Delete old image from Cloudinary if exists
+        // Delete old image locally if exists
         if (existingItem.imageUrl) {
           try {
-            const publicId = existingItem.imageUrl.split('/').pop()?.split('.')[0];
-            if (publicId) {
-              await cloudinary.uploader.destroy(`user-manual/${publicId}`);
-            }
+            // Extract the public_id from the URL path
+            const urlPath = existingItem.imageUrl.replace(/^https?:\/\/[^\/]+/, '');
+            const publicId = urlPath.replace(/^\//, ''); // Remove leading slash
+            await deleteFromStorage(publicId);
           } catch (error) {
             console.error('Error deleting old image:', error);
           }
         }
 
-        // Upload new image to Cloudinary
+        // Upload new image locally
         const bytes = await imageFile.arrayBuffer();
         const buffer = Buffer.from(bytes);
         
-        const uploadResponse = await new Promise((resolve, reject) => {
-          cloudinary.uploader.upload_stream(
-            {
-              resource_type: 'image',
-              folder: 'user-manual',
-              transformation: [
-                { width: 800, height: 600, crop: 'limit' },
-                { quality: 'auto', fetch_format: 'auto' }
-              ]
-            },
-            (error, result) => {
-              if (error) reject(error);
-              else resolve(result);
-            }
-          ).end(buffer);
-        });
-
-        const cloudinaryResult = uploadResponse as any;
-        updateData.imageUrl = cloudinaryResult.secure_url;
+        const uploadResult = await uploadToStorage(buffer, imageFile.name, 'user-manual');
+        updateData.imageUrl = uploadResult.secure_url;
       }
     }
 
@@ -268,13 +228,13 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Delete image from Cloudinary if exists
+    // Delete image locally if exists
     if (existingItem.imageUrl) {
       try {
-        const publicId = existingItem.imageUrl.split('/').pop()?.split('.')[0];
-        if (publicId) {
-          await cloudinary.uploader.destroy(`user-manual/${publicId}`);
-        }
+        // Extract the public_id from the URL path
+        const urlPath = existingItem.imageUrl.replace(/^https?:\/\/[^\/]+/, '');
+        const publicId = urlPath.replace(/^\//, ''); // Remove leading slash
+        await deleteFromStorage(publicId);
       } catch (error) {
         console.error('Error deleting image:', error);
       }

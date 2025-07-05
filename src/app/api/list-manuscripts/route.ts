@@ -1,78 +1,79 @@
 import { NextResponse } from 'next/server';
-import { v2 as cloudinary } from 'cloudinary';
-
-// Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+import { cpanelStorage } from '@/lib/storage';
+import path from 'path';
+import fs from 'fs/promises';
 
 export async function GET() {
   try {
-    console.log('=== LISTING ALL MANUSCRIPT FILES ===');
+    console.log('=== LISTING ALL LOCAL MANUSCRIPT FILES ===');
     
     // Get all files in the manuscripts folder
-    const result = await cloudinary.search
-      .expression('folder:manuscripts')
-      .sort_by('uploaded_at', 'desc')
-      .max_results(50)
-      .execute();
+    const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'manuscripts');
+    
+    try {
+      const files = await cpanelStorage.listFiles('manuscripts');
+      console.log(`Found ${files.length} files in manuscripts folder`);
 
-    console.log(`Found ${result.total_count} files in manuscripts folder`);
+      const fileDetails = await Promise.all(
+        files.map(async (fileName: string) => {
+          try {
+            const filePath = path.join(uploadsDir, fileName);
+            const stats = await fs.stat(filePath);
+            
+            return {
+              public_id: `manuscripts/${fileName}`,
+              secure_url: `${process.env.DOMAIN_BASE_URL || 'http://localhost:3000'}/uploads/manuscripts/${fileName}`,
+              created_at: stats.birthtime,
+              modified_at: stats.mtime,
+              bytes: stats.size,
+              original_filename: fileName,
+              display_name: fileName,
+              folder: 'manuscripts',
+            };
+          } catch (error) {
+            console.error(`Error getting stats for file ${fileName}:`, error);
+            return null;
+          }
+        })
+      );
 
-    const files = result.resources.map((resource: any) => ({
-      public_id: resource.public_id,
-      secure_url: resource.secure_url,
-      url: resource.url,
-      created_at: resource.created_at,
-      resource_type: resource.resource_type,
-      format: resource.format,
-      bytes: resource.bytes,
-      original_filename: resource.original_filename,
-      display_name: resource.display_name,
-      folder: resource.folder,
-      access_mode: resource.access_mode,
-    }));
+      const validFiles = fileDetails.filter(file => file !== null);
 
-    // Log each file for debugging
-    files.forEach((file: any, index: number) => {
-      console.log(`File ${index + 1}:`, {
-        public_id: file.public_id,
-        url: file.secure_url,
-        resource_type: file.resource_type,
-        format: file.format,
+      // Log each file for debugging
+      validFiles.forEach((file: any, index: number) => {
+        console.log(`File ${index + 1}:`, {
+          public_id: file.public_id,
+          url: file.secure_url,
+          bytes: file.bytes,
+        });
       });
-    });
 
-    return NextResponse.json({
-      success: true,
-      total_count: result.total_count,
-      files: files,
-      cloudinary_dashboard_urls: {
-        main_dashboard: `https://console.cloudinary.com/console/${process.env.CLOUDINARY_CLOUD_NAME}/media_library`,
-        manuscripts_folder: `https://console.cloudinary.com/console/${process.env.CLOUDINARY_CLOUD_NAME}/media_library/folders/manuscripts`,
-        raw_files: `https://console.cloudinary.com/console/${process.env.CLOUDINARY_CLOUD_NAME}/media_library/search?resource_type=raw`,
-      },
-      instructions: {
-        how_to_view_in_dashboard: [
-          "1. Go to your Cloudinary console",
-          "2. Click on 'Media Library' in the left sidebar",
-          "3. Look for the 'manuscripts' folder and click on it",
-          "4. If you don't see it, try clicking on 'Raw' tab at the top (PDFs are stored as raw files)",
-          "5. You can also search for 'manuscripts' in the search box",
-        ],
-        direct_links: "Use the cloudinary_dashboard_urls above to go directly to the right section",
-      }
-    });
-  } catch (error: any) {
-    console.error('Error listing manuscripts:', error);
-    return NextResponse.json(
-      { 
-        error: 'Failed to list manuscripts', 
-        details: error.message 
-      },
-      { status: 500 }
-    );
+      return NextResponse.json({
+        success: true,
+        total_count: validFiles.length,
+        files: validFiles,
+        message: 'Files listed successfully from local storage',
+        local_storage_info: {
+          uploads_directory: uploadsDir,
+          base_url: process.env.DOMAIN_BASE_URL || 'http://localhost:3000',
+          note: 'Files are now stored locally instead of Cloudinary'
+        }
+      });
+    } catch (error) {
+      console.error('Error listing files:', error);
+      return NextResponse.json({
+        success: false,
+        total_count: 0,
+        files: [],
+        error: 'No manuscripts folder found or error reading files'
+      });
+    }
+  } catch (error) {
+    console.error('Error in list-manuscripts API:', error);
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }

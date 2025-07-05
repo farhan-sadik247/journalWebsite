@@ -5,6 +5,7 @@ import dbConnect from '@/lib/mongodb';
 import Manuscript from '@/models/Manuscript';
 import User from '@/models/User';
 import { notifyAuthorCopyEditComplete } from '@/lib/notificationUtils';
+import { uploadToStorage } from '@/lib/storage';
 
 // POST /api/manuscripts/[id]/copy-edit-review - Submit copy editing review
 export async function POST(
@@ -63,31 +64,15 @@ export async function POST(
     // Handle galley proof file upload if provided
     if (galleyProofFile && galleyProofFile.size > 0) {
       try {
-        const { v2: cloudinary } = await import('cloudinary');
-        
         // Convert file to buffer
         const bytes = await galleyProofFile.arrayBuffer();
         const buffer = Buffer.from(bytes);
 
-        // Upload to Cloudinary
-        const uploadResponse = await new Promise((resolve, reject) => {
-          cloudinary.uploader.upload_stream(
-            {
-              resource_type: 'auto',
-              folder: 'galley-proofs',
-              public_id: `${params.id}-galley-proof-${Date.now()}`,
-              use_filename: true
-            },
-            (error: any, result: any) => {
-              if (error) reject(error);
-              else resolve(result);
-            }
-          ).end(buffer);
-        });
+        // Upload to local storage
+        const uploadResult = await uploadToStorage(buffer, galleyProofFile.name, 'galley-proofs');
 
-        const result = uploadResponse as any;
-        galleyProofUrl = result.secure_url;
-        galleyProofPublicId = result.public_id;
+        galleyProofUrl = uploadResult.secure_url;
+        galleyProofPublicId = uploadResult.public_id;
       } catch (uploadError) {
         console.error('Error uploading galley proof:', uploadError);
         return NextResponse.json({ error: 'Failed to upload galley proof file' }, { status: 500 });

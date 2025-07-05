@@ -3,14 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/pages/api/auth/[...nextauth]';
 import connectToDatabase from '@/lib/mongodb';
 import IndexingPartner from '@/models/IndexingPartner';
-import { v2 as cloudinary } from 'cloudinary';
-
-// Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+import { deleteFromStorage } from '@/lib/storage';
 
 export async function PUT(
   request: NextRequest,
@@ -115,13 +108,13 @@ export async function DELETE(
       );
     }
 
-    // Delete logo from Cloudinary if it exists
+    // Delete logo from local storage if it exists
     if (partner.logo?.publicId) {
       try {
-        await cloudinary.uploader.destroy(partner.logo.publicId);
-      } catch (cloudinaryError) {
-        console.error('Error deleting image from Cloudinary:', cloudinaryError);
-        // Continue with database deletion even if Cloudinary deletion fails
+        await deleteFromStorage(partner.logo.publicId);
+      } catch (deleteError) {
+        console.error('Error deleting image from local storage:', deleteError);
+        // Continue with database deletion even if file deletion fails
       }
     }
 

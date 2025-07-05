@@ -5,14 +5,7 @@ import dbConnect from '@/lib/mongodb';
 import Category from '@/models/Category';
 import Manuscript from '@/models/Manuscript';
 import User from '@/models/User';
-import { v2 as cloudinary } from 'cloudinary';
-
-// Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+import { uploadToStorage } from '@/lib/storage';
 
 // GET /api/categories - Get all categories
 export async function GET(request: NextRequest) {
@@ -127,33 +120,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Category with this name already exists' }, { status: 400 });
     }
 
-    // Upload image to Cloudinary
+    // Upload image locally
     const bytes = await imageFile.arrayBuffer();
     const buffer = Buffer.from(bytes);
-
-    const uploadResponse = await new Promise((resolve, reject) => {
-      cloudinary.uploader.upload_stream(
-        {
-          resource_type: 'image',
-          folder: 'journal/categories',
-          transformation: [
-            { width: 400, height: 300, crop: 'fill', quality: 'auto' }
-          ]
-        },
-        (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
-        }
-      ).end(buffer);
-    }) as any;
+    const uploadResult = await uploadToStorage(buffer, imageFile.name, 'categories');
 
     // Create category
     const category = new Category({
       name: name.trim(),
       details: details.trim(),
       image: {
-        url: uploadResponse.secure_url,
-        publicId: uploadResponse.public_id,
+        url: uploadResult.secure_url,
+        publicId: uploadResult.public_id,
         altText: `${name} category image`,
       },
       order: order ? parseInt(order) : 0,

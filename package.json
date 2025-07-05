@@ -21,7 +21,6 @@
     "basic-ftp": "^5.0.5",
     "bcryptjs": "^2.4.3",
     "citation-js": "^0.6.0",
-    "cloudinary": "^1.41.0",
     "dotenv": "^17.0.0",
     "framer-motion": "^10.16.0",
     "jsonwebtoken": "^9.0.2",
