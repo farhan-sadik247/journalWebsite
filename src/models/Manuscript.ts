@@ -125,6 +125,7 @@ const manuscriptSchema = new mongoose.Schema({
       'ready-for-publication',
       'rejected', 
       'payment-required', 
+      'payment-submitted',
       'in-production', 
       'published'
     ],

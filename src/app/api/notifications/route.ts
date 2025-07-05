@@ -11,9 +11,9 @@ import mongoose, { Types } from 'mongoose';
 // Ensure models are registered
 const ensureModelsRegistered = () => {
   // Import models to ensure they're registered with mongoose
-  require('@/models/Payment');
-  require('@/models/Manuscript');
-  require('@/models/User');
+  void Payment;
+  void Manuscript;
+  void User;
 };
 
 // GET /api/notifications - Get notifications for current user

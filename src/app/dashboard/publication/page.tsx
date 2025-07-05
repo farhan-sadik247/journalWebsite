@@ -123,7 +123,8 @@ export default function PublicationDashboard() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          manuscriptIds: [manuscriptId]
+          manuscriptIds: [manuscriptId],
+          replaceAll: false // Add to existing assignments
         }),
       });
 

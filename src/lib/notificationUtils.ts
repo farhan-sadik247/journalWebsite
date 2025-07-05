@@ -589,3 +589,44 @@ export async function notifyPaymentRejected(
     createdBy: 'payment_system'
   });
 }
+
+export async function notifyEditorsPaymentAccepted(
+  manuscriptId: string,
+  manuscriptTitle: string
+) {
+  try {
+    await dbConnect();
+    
+    // Find all editors
+    const editors = await User.find({ 
+      $or: [
+        { role: 'editor' },
+        { roles: { $in: ['editor'] } },
+        { currentActiveRole: 'editor' }
+      ]
+    });
+    
+    if (editors.length === 0) {
+      console.warn('No editors found to notify about payment acceptance');
+      return [];
+    }
+
+    const notifications = editors.map(editor =>
+      createNotification({
+        recipientEmail: editor.email,
+        type: 'copy_edit_assigned',
+        title: 'Manuscript Ready for Copy Editing',
+        message: `The manuscript "${manuscriptTitle}" is ready for copy editing. Payment has been confirmed and the manuscript is now in production phase.`,
+        manuscriptId,
+        priority: 'high',
+        actionUrl: `/dashboard/manuscripts/${manuscriptId}`,
+        createdBy: 'payment_system'
+      })
+    );
+
+    return Promise.all(notifications);
+  } catch (error) {
+    console.error('Error notifying editors about payment acceptance:', error);
+    return [];
+  }
+}

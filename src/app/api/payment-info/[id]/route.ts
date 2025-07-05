@@ -7,7 +7,7 @@ import PaymentInfo from '@/models/PaymentInfo';
 import Payment from '@/models/Payment';
 import Manuscript from '@/models/Manuscript';
 import User from '@/models/User';
-import { notifyPaymentConfirmed, notifyPaymentRejected } from '@/lib/notificationUtils';
+import { notifyPaymentConfirmed, notifyPaymentRejected, notifyEditorsPaymentAccepted } from '@/lib/notificationUtils';
 
 // GET /api/payment-info/[id] - Get specific payment info
 export async function GET(
@@ -76,11 +76,17 @@ export async function PUT(
       return NextResponse.json({ error: 'Admin or editor access required' }, { status: 403 });
     }
 
-    const {
-      action,
-      rejectionReason,
-      notes
-    } = await request.json();
+    // Parse request body
+    let parsedBody;
+    
+    try {
+      parsedBody = await request.json();
+    } catch (error) {
+      console.error('JSON parse error:', error);
+      return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
+    }
+    
+    const { action, rejectionReason, notes } = parsedBody;
 
     if (!action || !['accept', 'reject'].includes(action)) {
       return NextResponse.json({
@@ -88,17 +94,13 @@ export async function PUT(
       }, { status: 400 });
     }
 
-    if (action === 'reject' && !rejectionReason) {
-      return NextResponse.json({
-        error: 'Rejection reason is required when rejecting payment'
-      }, { status: 400 });
-    }
+    // For reject actions, use provided reason or default to "Wrong TrxID!!"
+    const finalRejectionReason = action === 'reject' ? (rejectionReason || 'Wrong TrxID!!') : undefined;
 
-    const conn = await dbConnect();
-    console.log(`MongoDB connection state: ${mongoose.connection.readyState}`); // 1 = connected
+    await dbConnect();
     
     if (mongoose.connection.readyState !== 1) {
-      console.error('MongoDB connection not established before query');
+      console.error('MongoDB connection not established');
       return NextResponse.json({ error: 'Database connection error' }, { status: 500 });
     }
 
@@ -134,7 +136,7 @@ export async function PUT(
         
         // Update the related Payment record to completed
         if (paymentInfo.relatedPayment) {
-          const paymentUpdate = await Payment.findByIdAndUpdate(
+          await Payment.findByIdAndUpdate(
             paymentInfo.relatedPayment._id, 
             {
               status: 'completed',
@@ -142,12 +144,11 @@ export async function PUT(
             },
             { session: session_db, new: true }
           );
-          console.log('Updated related payment:', paymentUpdate ? paymentUpdate._id : 'Failed');
         }
         
         // Update manuscript status (only if manuscript exists)
         if (paymentInfo.manuscriptId && paymentInfo.manuscriptId._id) {
-          const manuscriptUpdate = await Manuscript.findByIdAndUpdate(
+          await Manuscript.findByIdAndUpdate(
             paymentInfo.manuscriptId._id, 
             {
               paymentStatus: 'completed',
@@ -155,7 +156,6 @@ export async function PUT(
             },
             { session: session_db, new: true }
           );
-          console.log('Updated manuscript:', manuscriptUpdate ? manuscriptUpdate._id : 'Failed');
         }
 
         // Send notification to author that payment is confirmed
@@ -168,13 +168,22 @@ export async function PUT(
             paymentInfo.relatedPayment ? paymentInfo.relatedPayment._id.toString() : paymentInfo._id.toString()
           );
         }
+
+        // Notify editors that manuscript is ready for copy editing
+        if (paymentInfo.manuscriptId) {
+          await notifyEditorsPaymentAccepted(
+            paymentInfo.manuscriptId._id.toString(),
+            paymentInfo.manuscriptId.title
+          );
+        }
       } else if (action === 'reject') {
         updateData.status = 'rejected';
-        if (rejectionReason) updateData.rejectionReason = rejectionReason;
+        updateData.rejectionReason = finalRejectionReason;
         
-        // Update the related Payment record back to pending
+        // Only update the related Payment record if it exists
+        // For simple payment submissions, we might not have a related Payment record
         if (paymentInfo.relatedPayment) {
-          const paymentUpdate = await Payment.findByIdAndUpdate(
+          await Payment.findByIdAndUpdate(
             paymentInfo.relatedPayment._id, 
             {
               status: 'pending',
@@ -182,19 +191,18 @@ export async function PUT(
             },
             { session: session_db, new: true }
           );
-          console.log('Updated related payment (rejection):', paymentUpdate ? paymentUpdate._id : 'Failed');
         }
         
         // Update manuscript status (only if manuscript exists)
         if (paymentInfo.manuscriptId && paymentInfo.manuscriptId._id) {
-          const manuscriptUpdate = await Manuscript.findByIdAndUpdate(
+          await Manuscript.findByIdAndUpdate(
             paymentInfo.manuscriptId._id, 
             {
-              paymentStatus: 'pending'
+              paymentStatus: 'pending',
+              status: 'payment-required' // Reset to payment-required so author can resubmit
             },
             { session: session_db, new: true }
           );
-          console.log('Updated manuscript (rejection):', manuscriptUpdate ? manuscriptUpdate._id : 'Failed');
         }
 
         // Send notification to author that payment is rejected
@@ -204,7 +212,7 @@ export async function PUT(
             author.email,
             paymentInfo.manuscriptId._id.toString(),
             paymentInfo.manuscriptId.title,
-            rejectionReason || 'No reason provided',
+            finalRejectionReason,
             paymentInfo.amount
           );
         }
@@ -212,23 +220,19 @@ export async function PUT(
 
       if (notes) updateData.notes = notes;
       
-      // Update the payment info as the final step in the transaction
-      // Instead of findByIdAndUpdate, use a more explicit find-modify-save approach
+      // Update the payment info
       const paymentInfoToUpdate = await PaymentInfo.findById(params.id).session(session_db);
       if (!paymentInfoToUpdate) {
         throw new Error(`PaymentInfo ${params.id} not found when trying to update`);
       }
-      
-      console.log('Before update - Payment info status:', paymentInfoToUpdate.status);
       
       // Apply all updates
       Object.keys(updateData).forEach(key => {
         paymentInfoToUpdate[key] = updateData[key];
       });
       
-      // Save the changes explicitly
+      // Save the changes
       await paymentInfoToUpdate.save({ session: session_db });
-      console.log('After direct save - Payment info status:', paymentInfoToUpdate.status);
       
       // Get the fully populated document to return
       const updatedPaymentInfo = await PaymentInfo.findById(params.id)
@@ -245,9 +249,6 @@ export async function PUT(
       await session_db.commitTransaction();
       session_db.endSession();
       
-      console.log(`Payment Info ${params.id} ${action}ed successfully. New status: ${updatedPaymentInfo.status}`);
-      console.log(`Updated document:`, JSON.stringify(updatedPaymentInfo, null, 2));
-      
       return NextResponse.json({
         success: true,
         message: `Payment ${action}ed successfully`,
@@ -260,42 +261,6 @@ export async function PUT(
       session_db.endSession();
       
       console.error('Error in transaction when updating payment info:', error);
-      
-      // Try a direct update without transaction as a fallback
-      try {
-        console.log('Transaction failed, trying direct update without transaction');
-        
-        // Direct update without transaction
-        const directUpdate = await PaymentInfo.findById(params.id);
-        if (directUpdate) {
-          // Apply the status update directly
-          directUpdate.status = updateData.status;
-          directUpdate.verifiedBy = updateData.verifiedBy;
-          directUpdate.verifiedAt = updateData.verifiedAt;
-          
-          if (updateData.rejectionReason) {
-            directUpdate.rejectionReason = updateData.rejectionReason;
-          }
-          
-          await directUpdate.save();
-          console.log('Direct update successful, status:', directUpdate.status);
-          
-          // Get fully populated version to return
-          const fallbackResponse = await PaymentInfo.findById(params.id)
-            .populate('manuscriptId')
-            .populate('userId')
-            .populate('verifiedBy');
-          
-          return NextResponse.json({
-            success: true,
-            message: `Payment ${action}ed successfully (fallback method)`,
-            paymentInfo: fallbackResponse
-          });
-        }
-      } catch (fallbackError) {
-        console.error('Fallback update also failed:', fallbackError);
-      }
-      
       return NextResponse.json({ error: 'Failed to update payment info' }, { status: 500 });
     }
 

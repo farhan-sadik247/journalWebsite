@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import PaymentInfoDisplay from '@/components/PaymentInfoDisplay';
 import PaymentSubmissionCard from '@/components/PaymentSubmissionCard';
 import styles from './PaymentDashboard.module.scss';
 import {
@@ -11,57 +10,49 @@ import {
   FiClock,
   FiCheck,
   FiX,
-  FiAlertCircle,
-  FiDownload,
-  FiEye,
   FiFilter,
   FiSearch,
   FiCalendar,
-  FiCreditCard,
   FiFileText
 } from 'react-icons/fi';
 
-interface Payment {
+interface PaymentSubmission {
   _id: string;
-  manuscriptId?: {
+  manuscriptId: {
     _id: string;
     title: string;
     status: string;
-  } | null;
+  };
   userId: {
     _id: string;
     name: string;
     email: string;
   };
-  amount?: number;
-  currency?: string;
-  status: string;
-  paymentMethod?: string;
-  baseFee?: number;
-  discountAmount?: number;
-  discountReason?: string;
-  dueDate?: string;
-  paymentDate?: string;
-  invoiceNumber?: string;
-  waiverReason?: string;
-  transactionId?: string;
+  accountHolderName: string;
+  amount: number;
+  transactionId: string;
+  status: 'pending' | 'completed' | 'rejected';
+  rejectionReason?: string;
   createdAt: string;
+  verifiedBy?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  verifiedAt?: string;
 }
 
 export default function PaymentDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const viewMode = searchParams?.get('view') || 'default'; // admin, editor, or default
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [paymentSubmissions, setPaymentSubmissions] = useState<any[]>([]);
+  const [paymentSubmissions, setPaymentSubmissions] = useState<PaymentSubmission[]>([]);
   const [loading, setLoading] = useState(true);
-  const [submissionsLoading, setSubmissionsLoading] = useState(false);
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [activeTab, setActiveTab] = useState('payments'); // 'payments' or 'submissions'
+
+  const isAdmin = session?.user?.role === 'admin' || session?.user?.role === 'editor';
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -70,37 +61,9 @@ export default function PaymentDashboard() {
     }
 
     if (session) {
-      fetchPayments();
       fetchPaymentSubmissions();
     }
   }, [session, status, filter, currentPage]);
-
-  const fetchPayments = async () => {
-    try {
-      setLoading(true);
-      const params = new URLSearchParams({
-        page: currentPage.toString(),
-        limit: '10',
-      });
-
-      if (filter !== 'all') {
-        params.append('status', filter);
-      }
-
-      const response = await fetch(`/api/payments?${params}`);
-      if (response.ok) {
-        const data = await response.json();
-        setPayments(data.payments);
-        setTotalPages(data.pagination.pages);
-      } else {
-        console.error('Failed to fetch payments');
-      }
-    } catch (error) {
-      console.error('Error fetching payments:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const fetchPaymentSubmissions = async () => {
     if (!session?.user) {
@@ -108,27 +71,36 @@ export default function PaymentDashboard() {
       return;
     }
     
-    // Only fetch if user is admin or editor
-    if (session.user.role !== 'admin' && session.user.role !== 'editor') {
-      console.log('User is not admin or editor, skipping payment submissions fetch');
-      return;
-    }
-
     console.log('Fetching payment submissions...');
     try {
-      setSubmissionsLoading(true);
-      const response = await fetch('/api/payment-info?status=pending');
+      setLoading(true);
+      
+      let url = '/api/payment-info';
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: '10',
+      });
+      
+      // For admins/editors, optionally filter by status
+      if (isAdmin && filter !== 'all') {
+        params.append('status', filter);
+      }
+      
+      url += '?' + params.toString();
+      
+      const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
         console.log('Payment submissions fetched successfully:', data.paymentInfos?.length);
         setPaymentSubmissions(data.paymentInfos || []);
+        setTotalPages(data.pagination?.pages || 1);
       } else {
         console.error('Failed to fetch payment submissions');
       }
     } catch (error) {
       console.error('Error fetching payment submissions:', error);
     } finally {
-      setSubmissionsLoading(false);
+      setLoading(false);
     }
   };
 
@@ -138,14 +110,10 @@ export default function PaymentDashboard() {
         return <FiCheck className={styles.iconSuccess} />;
       case 'pending':
         return <FiClock className={styles.iconWarning} />;
-      case 'failed':
+      case 'rejected':
         return <FiX className={styles.iconDanger} />;
-      case 'waived':
-        return <FiCheck className={styles.iconInfo} />;
-      case 'processing':
-        return <FiClock className={styles.iconInfo} />;
       default:
-        return <FiAlertCircle className={styles.iconSecondary} />;
+        return <FiDollarSign className={styles.iconSecondary} />;
     }
   };
 
@@ -155,22 +123,11 @@ export default function PaymentDashboard() {
         return styles.statusSuccess;
       case 'pending':
         return styles.statusWarning;
-      case 'failed':
+      case 'rejected':
         return styles.statusDanger;
-      case 'waived':
-        return styles.statusInfo;
-      case 'processing':
-        return styles.statusInfo;
       default:
         return styles.statusSecondary;
     }
-  };
-
-  const formatCurrency = (amount: number, currency: string = 'USD') => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency,
-    }).format(amount);
   };
 
   const formatDate = (dateString: string) => {
@@ -181,20 +138,23 @@ export default function PaymentDashboard() {
     });
   };
 
-  const filteredPayments = payments.filter(payment => {
-    const manuscriptTitle = payment.manuscriptId?.title || '';
-    const invoiceNumber = payment.invoiceNumber || '';
+  const filteredSubmissions = paymentSubmissions.filter(submission => {
+    const manuscriptTitle = submission.manuscriptId?.title || '';
+    const accountHolder = submission.accountHolderName || '';
+    const transactionId = submission.transactionId || '';
     
-    return manuscriptTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-           invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase());
+    const searchLower = searchTerm.toLowerCase();
+    return manuscriptTitle.toLowerCase().includes(searchLower) ||
+           accountHolder.toLowerCase().includes(searchLower) ||
+           transactionId.toLowerCase().includes(searchLower);
   });
 
   const stats = {
-    total: payments.length,
-    pending: payments.filter(p => p.status === 'pending').length,
-    completed: payments.filter(p => p.status === 'completed').length,
-    waived: payments.filter(p => p.status === 'waived').length,
-    totalAmount: payments
+    total: paymentSubmissions.length,
+    pending: paymentSubmissions.filter(p => p.status === 'pending').length,
+    completed: paymentSubmissions.filter(p => p.status === 'completed').length,
+    rejected: paymentSubmissions.filter(p => p.status === 'rejected').length,
+    totalAmount: paymentSubmissions
       .filter(p => p.status === 'completed')
       .reduce((sum, p) => sum + (p.amount || 0), 0),
   };
@@ -205,97 +165,61 @@ export default function PaymentDashboard() {
     }
 
     try {
-      setLoading(true);
-      console.log('Sending payment acceptance request for ID:', paymentId);
-      const response = await fetch(`/api/payments/${paymentId}`, {
+      const response = await fetch(`/api/payment-info/${paymentId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          status: 'completed',
           action: 'accept'
         }),
       });
 
-      const responseText = await response.text();
-      console.log('Raw API response:', responseText);
-      
-      let result;
-      try {
-        // Parse the response text as JSON
-        result = JSON.parse(responseText);
-      } catch (e) {
-        console.error('Failed to parse response as JSON:', e);
-        alert('Server returned an invalid response format');
-        return;
-      }
-
       if (response.ok) {
-        console.log('Payment acceptance successful, refreshing payment list');
-        console.log('Updated payment data:', result.payment);
-        await fetchPayments();
-        alert('Payment accepted successfully');
+        alert('Payment accepted successfully!');
+        await fetchPaymentSubmissions();
       } else {
-        console.error('Payment acceptance failed with server error:', result);
-        alert(`Error: ${result.error || 'Failed to accept payment'}`);
+        const errorData = await response.json();
+        alert('Failed to accept payment: ' + (errorData.error || 'Unknown error'));
       }
     } catch (error) {
       console.error('Error accepting payment:', error);
-      alert('An error occurred while accepting the payment');
-    } finally {
-      setLoading(false);
+      alert('Error accepting payment');
     }
   };
 
   const handleRejectPayment = async (paymentId: string) => {
-    const reason = prompt('Please provide a reason for rejecting this payment:');
-    if (!reason || !reason.trim()) {
+    const rejectionReason = prompt('Please provide a reason for rejection:', 'Wrong TrxID!!');
+    if (!rejectionReason) {
+      return;
+    }
+
+    if (!confirm('Are you sure you want to reject this payment?')) {
       return;
     }
 
     try {
-      setLoading(true);
-      console.log('Sending payment rejection request for ID:', paymentId);
-      const response = await fetch(`/api/payments/${paymentId}`, {
+      const response = await fetch(`/api/payment-info/${paymentId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          status: 'pending',
           action: 'reject',
-          rejectionReason: reason.trim()
+          rejectionReason
         }),
       });
 
-      const responseText = await response.text();
-      console.log('Raw API response:', responseText);
-      
-      let result;
-      try {
-        // Parse the response text as JSON
-        result = JSON.parse(responseText);
-      } catch (e) {
-        console.error('Failed to parse response as JSON:', e);
-        alert('Server returned an invalid response format');
-        return;
-      }
-
       if (response.ok) {
-        console.log('Payment rejection successful, refreshing payment list');
-        console.log('Updated payment data:', result.payment);
-        await fetchPayments();
-        alert('Payment rejected successfully');
+        alert('Payment rejected successfully!');
+        await fetchPaymentSubmissions();
       } else {
-        console.error('Payment rejection failed with server error:', result);
-        alert(`Error: ${result.error || 'Failed to reject payment'}`);
+        const errorData = await response.json();
+        alert('Failed to reject payment: ' + (errorData.error || 'Unknown error'));
       }
     } catch (error) {
       console.error('Error rejecting payment:', error);
-      alert('An error occurred while rejecting the payment');
-    } finally {
-      setLoading(false);
+      alert('Error rejecting payment');
     }
   };
 
@@ -318,14 +242,10 @@ export default function PaymentDashboard() {
         <div className={styles.header}>
           <div className={styles.headerContent}>
             <h1>
-              {viewMode === 'admin' ? 'Payment Management' :
-               viewMode === 'editor' ? 'Payment Oversight' :
-               'Payment Dashboard'}
+              {isAdmin ? 'Payment Management' : 'My Payment History'}
             </h1>
             <p>
-              {viewMode === 'admin' ? 'Manage APC fees, payments, and system configuration' :
-               viewMode === 'editor' ? 'Review payments, approve waivers, and monitor APC status' :
-               'View your payment status and invoice history'}
+              {isAdmin ? 'Review and manage payment submissions from authors' : 'View your payment submissions and status'}
             </p>
           </div>
         </div>
@@ -338,7 +258,7 @@ export default function PaymentDashboard() {
             </div>
             <div className={styles.statInfo}>
               <h3>{stats.total}</h3>
-              <p>Total Payments</p>
+              <p>Total Submissions</p>
             </div>
           </div>
 
@@ -364,11 +284,11 @@ export default function PaymentDashboard() {
 
           <div className={styles.statCard}>
             <div className={styles.statIcon}>
-              <FiDollarSign />
+              <FiX />
             </div>
             <div className={styles.statInfo}>
-              <h3>{formatCurrency(stats.totalAmount)}</h3>
-              <p>Total Revenue</p>
+              <h3>{stats.rejected}</h3>
+              <p>Rejected</p>
             </div>
           </div>
         </div>
@@ -382,12 +302,10 @@ export default function PaymentDashboard() {
               onChange={(e) => setFilter(e.target.value)}
               className={styles.filterSelect}
             >
-              <option value="all">All Payments</option>
+              <option value="all">All Submissions</option>
               <option value="pending">Pending</option>
-              <option value="processing">Processing</option>
               <option value="completed">Completed</option>
-              <option value="failed">Failed</option>
-              <option value="waived">Waived</option>
+              <option value="rejected">Rejected</option>
             </select>
           </div>
 
@@ -395,7 +313,7 @@ export default function PaymentDashboard() {
             <FiSearch />
             <input
               type="text"
-              placeholder="Search by manuscript title or invoice number..."
+              placeholder="Search by manuscript title, account holder, or transaction ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className={styles.searchInput}
@@ -403,163 +321,43 @@ export default function PaymentDashboard() {
           </div>
         </div>
 
-        {/* Tab Navigation - Only show for editors/admins */}
-        {(session?.user?.role === 'admin' || session?.user?.role === 'editor') && (
-          <div className={styles.tabNavigation}>
-            <button
-              className={`${styles.tab} ${activeTab === 'payments' ? styles.active : ''}`}
-              onClick={() => setActiveTab('payments')}
-            >
-              <FiCreditCard />
-              Payment Records
-            </button>
-            <button
-              className={`${styles.tab} ${activeTab === 'submissions' ? styles.active : ''}`}
-              onClick={() => setActiveTab('submissions')}
-            >
-              <FiFileText />
-              Payment Submissions ({paymentSubmissions.length})
-            </button>
+        {/* Payment Submissions */}
+        <div className={styles.submissionsContainer}>
+          <div className={styles.submissionsHeader}>
+            <h3>Payment Submissions</h3>
+            <p>{isAdmin ? 'Review and approve payment information submitted by authors' : 'Your payment submission history'}</p>
           </div>
-        )}
 
-        {/* Payment Submissions Tab Content */}
-        {activeTab === 'submissions' && (
-          <div className={styles.submissionsContainer}>
-            <div className={styles.submissionsHeader}>
-              <h3>Payment Submissions for Review</h3>
-              <p>Review and approve payment information submitted by authors</p>
+          {loading ? (
+            <div className={styles.loadingSpinner}>
+              <div className="spinner" />
+              <p>Loading payment submissions...</p>
             </div>
-
-            {submissionsLoading ? (
-              <div className={styles.loadingSpinner}>
-                <div className="spinner" />
-                <p>Loading payment submissions...</p>
-              </div>
-            ) : paymentSubmissions.length === 0 ? (
-              <div className={styles.emptyState}>
-                <FiFileText />
-                <h3>No payment submissions</h3>
-                <p>All payment submissions have been reviewed.</p>
-              </div>
-            ) : (
-              <div className={styles.submissionsGrid}>
-                {paymentSubmissions.map((submission) => (
-                  <div key={submission._id} className={styles.submissionCard}>
-                    <PaymentSubmissionCard
-                      submission={submission}
-                      onUpdate={fetchPaymentSubmissions}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Payments Table */}
-        {activeTab === 'payments' && (
-          <>
-            <div className={styles.tableContainer}>
-              <table className={styles.paymentsTable}>
-            <thead>
-              <tr>
-                <th>Invoice</th>
-                <th>Manuscript</th>
-                <th>Amount</th>
-                <th>TrXID</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredPayments.map((payment) => (
-                <tr key={payment._id}>
-                  <td>
-                    <div className={styles.invoiceCell}>
-                      <FiFileText />
-                      <span>{payment.invoiceNumber || 'N/A'}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <div className={styles.manuscriptCell}>
-                      <h4>{payment.manuscriptId?.title || 'Unknown Manuscript'}</h4>
-                      <span>ID: {payment.manuscriptId?._id?.slice(-8) || 'N/A'}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <div className={styles.amountCell}>
-                      <strong>{formatCurrency(payment.amount || 0, payment.currency || 'USD')}</strong>
-                      {payment.discountAmount && payment.discountAmount > 0 && (
-                        <div className={styles.discountInfo}>
-                          <small>
-                            Original: {formatCurrency(payment.baseFee || 0, payment.currency || 'USD')}
-                          </small>
-                          <small className={styles.discountText}>
-                            -{formatCurrency(payment.discountAmount, payment.currency || 'USD')}
-                          </small>
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td>
-                    <div className={styles.transactionCell}>
-                      {payment.transactionId ? (
-                        <code className={styles.transactionId}>{payment.transactionId}</code>
-                      ) : (
-                        <span className={styles.noTransaction}>-</span>
-                      )}
-                    </div>
-                  </td>
-                  <td>
-                    <div className={`${styles.statusBadge} ${getStatusBadgeClass(payment.status)}`}>
-                      {getStatusIcon(payment.status)}
-                      <span>{payment.status?.replace('-', ' ').toUpperCase() || 'UNKNOWN'}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <div className={styles.actionsCell}>
-                      <button
-                        onClick={() => router.push(`/dashboard/payments/${payment._id}`)}
-                        className={`${styles.actionButton} ${styles.viewButton}`}
-                        title="View Details"
-                      >
-                        <FiEye />
-                      </button>
-                      {(session?.user?.role === 'admin' || session?.user?.role === 'editor') && payment.status === 'pending' && (
-                        <>
-                          <button
-                            onClick={() => handleAcceptPayment(payment._id)}
-                            className={`${styles.actionButton} ${styles.acceptButton}`}
-                            title="Accept Payment"
-                          >
-                            <FiCheck />
-                          </button>
-                          <button
-                            onClick={() => handleRejectPayment(payment._id)}
-                            className={`${styles.actionButton} ${styles.rejectButton}`}
-                            title="Reject Payment"
-                          >
-                            <FiX />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {filteredPayments.length === 0 && (
+          ) : filteredSubmissions.length === 0 ? (
             <div className={styles.emptyState}>
-              <FiDollarSign />
-              <h3>No payments found</h3>
+              <FiFileText />
+              <h3>No payment submissions found</h3>
               <p>
                 {searchTerm
-                  ? 'No payments match your search criteria.'
-                  : 'No payments have been created yet.'}
+                  ? 'No submissions match your search criteria.'
+                  : paymentSubmissions.length === 0
+                  ? 'No payment submissions have been created yet.'
+                  : 'All submissions are filtered out by your current filter.'}
               </p>
+            </div>
+          ) : (
+            <div className={styles.submissionsGrid}>
+              {filteredSubmissions.map((submission) => (
+                <div key={submission._id} className={styles.submissionCard}>
+                  <PaymentSubmissionCard
+                    submission={submission}
+                    onUpdate={fetchPaymentSubmissions}
+                    onApprove={isAdmin ? handleAcceptPayment : undefined}
+                    onReject={isAdmin ? handleRejectPayment : undefined}
+                    showActions={isAdmin}
+                  />
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -580,13 +378,13 @@ export default function PaymentDashboard() {
                 <button
                   key={page}
                   onClick={() => setCurrentPage(page)}
-                  className={`${styles.pageButton} ${currentPage === page ? styles.active : ''}`}
+                  className={`${styles.pageNumber} ${currentPage === page ? styles.active : ''}`}
                 >
                   {page}
                 </button>
               ))}
             </div>
-
+            
             <button
               onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages}
@@ -596,9 +394,6 @@ export default function PaymentDashboard() {
             </button>
           </div>
         )}
-          </>
-        )}
-
       </div>
     </div>
   );

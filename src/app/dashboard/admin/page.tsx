@@ -248,6 +248,12 @@ export default function AdminDashboard() {
             </button>
             <button
               className={styles.actionButton}
+              onClick={() => router.push('/dashboard/admin/payments')}
+            >
+              Payment Management
+            </button>
+            <button
+              className={styles.actionButton}
               onClick={() => router.push('/dashboard/admin/copy-editing')}
             >
               Copy Editor Assignment

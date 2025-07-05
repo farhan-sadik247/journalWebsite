@@ -102,6 +102,7 @@ export default function ManuscriptsPage() {
       'copy-editing-complete': 'status-in-production',
       'rejected': 'status-rejected',
       'payment-required': 'status-payment-required',
+      'payment-submitted': 'status-payment-required',
       'in-production': 'status-in-production',
       'published': 'status-published',
     };
@@ -124,6 +125,7 @@ export default function ManuscriptsPage() {
       'copy-editing-complete': 'Copy Editing Complete',
       'rejected': 'Rejected',
       'payment-required': 'Payment Required',
+      'payment-submitted': 'Payment Submitted',
       'in-production': 'In Production',
       'published': 'Published',
     };

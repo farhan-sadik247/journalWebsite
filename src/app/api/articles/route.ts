@@ -75,6 +75,55 @@ export async function GET(request: NextRequest) {
       sortOrder = { 'metrics.downloads': -1, publishedDate: -1 };
     } else if (sortBy === 'most-cited') {
       sortOrder = { 'metrics.citations': -1, publishedDate: -1 };
+    } else if (sortBy === 'most-popular') {
+      // For most popular, we need to use aggregation to sort by sum of views + downloads
+      const [articlesRaw, total] = await Promise.all([
+        Manuscript.aggregate([
+          { $match: filter },
+          {
+            $addFields: {
+              popularityScore: {
+                $add: [
+                  { $ifNull: ['$metrics.views', 0] },
+                  { $ifNull: ['$metrics.downloads', 0] }
+                ]
+              }
+            }
+          },
+          { $sort: { popularityScore: -1, publishedDate: -1 } },
+          { $skip: actualSkip },
+          { $limit: actualLimit },
+          {
+            $project: {
+              title: 1,
+              abstract: 1,
+              authors: 1,
+              category: 1,
+              keywords: 1,
+              doi: 1,
+              volume: 1,
+              issue: 1,
+              pages: 1,
+              publishedDate: 1,
+              metrics: 1,
+              popularityScore: 1
+            }
+          }
+        ]),
+        recent === 'true' ? Promise.resolve(6) : Manuscript.countDocuments(filter),
+      ]);
+
+      const articles = articlesRaw;
+
+      return NextResponse.json({
+        articles,
+        pagination: recent === 'true' ? null : {
+          page,
+          limit,
+          total,
+          pages: Math.ceil(total / limit),
+        },
+      });
     }
 
     const [articlesRaw, total] = await Promise.all([

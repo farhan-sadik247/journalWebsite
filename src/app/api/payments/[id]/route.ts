@@ -118,16 +118,15 @@ export async function PUT(
         updateData.paymentDate = null;
         updateData.rejectionReason = rejectionReason;
         
-        // Reset manuscript payment status to pending
+        // Reset manuscript payment status to pending and allow resubmission
         const manuscriptUpdate = await Manuscript.findByIdAndUpdate(
           payment.manuscriptId._id, 
           {
+            status: 'payment-required',
             paymentStatus: 'pending'
           },
           { session: session_db, new: true }
         );
-        
-        console.log('Updated manuscript payment status:', manuscriptUpdate.paymentStatus);
 
         // Import and notify author that payment is rejected
         const { notifyPaymentRejected } = await import('@/lib/notificationUtils');

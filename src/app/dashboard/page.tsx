@@ -148,8 +148,8 @@ export default function DashboardPage() {
       color: 'secondary',
     },
     {
-      title: 'Payment Status',
-      description: 'View APC payments and invoices',
+      title: session.user.role === 'admin' || session.user.role === 'editor' ? 'Payment Management' : 'My Payment History',
+      description: session.user.role === 'admin' || session.user.role === 'editor' ? 'Review and manage payment submissions' : 'View your payment submissions and status',
       icon: FiCreditCard,
       href: '/dashboard/payments',
       color: 'info',

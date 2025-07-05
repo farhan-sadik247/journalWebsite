@@ -50,9 +50,17 @@ export default function ArticleAssignmentPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Check if user has permission to assign articles
+  const userRoles = session?.user?.roles || [];
+  const hasPermission = userRoles.includes('admin') || userRoles.includes('editor');
+
   useEffect(() => {
+    if (!hasPermission && !isLoading) {
+      router.push('/dashboard');
+      return;
+    }
     fetchInitialData();
-  }, []);
+  }, [hasPermission, router]);
 
   useEffect(() => {
     if (selectedVolume) {
@@ -70,7 +78,7 @@ export default function ArticleAssignmentPage() {
     try {
       const [volumesResponse, manuscriptsResponse] = await Promise.all([
         fetch('/api/volumes'),
-        fetch('/api/manuscripts?copyEditingStage=author-approved&unassigned=true')
+        fetch('/api/manuscripts?copyEditingStage=author-approved&editor=true')
       ]);
 
       if (volumesResponse.ok) {
@@ -107,7 +115,7 @@ export default function ArticleAssignmentPage() {
     try {
       const [issueResponse, allManuscriptsResponse] = await Promise.all([
         fetch(`/api/issues/${issueId}`),
-        fetch('/api/manuscripts?copyEditingStage=author-approved')
+        fetch('/api/manuscripts?copyEditingStage=author-approved&editor=true')
       ]);
 
       if (issueResponse.ok && allManuscriptsResponse.ok) {
@@ -122,9 +130,10 @@ export default function ArticleAssignmentPage() {
           currentIssueManuscriptIds.includes(ms._id)
         );
         
-        // Get available manuscripts (not assigned to any issue)
+        // Get available manuscripts (not assigned to any issue, including this one temporarily)
         const available = allAcceptedManuscripts.filter((ms: Manuscript) => 
-          !ms.issue && !currentIssueManuscriptIds.includes(ms._id)
+          !currentIssueManuscriptIds.includes(ms._id) && 
+          (!ms.issue || ms.issue === null)
         );
 
         setAssignedManuscripts(currentlyAssigned);
@@ -160,7 +169,8 @@ export default function ArticleAssignmentPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          manuscriptIds: assignedManuscripts.map(ms => ms._id)
+          manuscriptIds: assignedManuscripts.map(ms => ms._id),
+          replaceAll: true // Complete replacement of assignments
         }),
       });
 
@@ -183,6 +193,20 @@ export default function ArticleAssignmentPage() {
     return (
       <div className={styles.container}>
         <div className={styles.loading}>Loading...</div>
+      </div>
+    );
+  }
+
+  if (!hasPermission) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.error}>
+          <h2>Access Denied</h2>
+          <p>You need admin or editor permissions to assign articles to issues.</p>
+          <button onClick={() => router.push('/dashboard')} className="btn btn-primary">
+            Back to Dashboard
+          </button>
+        </div>
       </div>
     );
   }

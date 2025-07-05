@@ -32,6 +32,7 @@ interface Category {
     altText: string;
   };
   order: number;
+  articleCount?: number; // Optional field for when sorting by article count
 }
 
 interface IndexingPartner {
@@ -48,7 +49,7 @@ interface IndexingPartner {
 }
 
 export function HeroSection() {
-  const [recentArticles, setRecentArticles] = useState<Article[]>([]);
+  const [popularArticles, setPopularArticles] = useState<Article[]>([]);
   const [mostViewedArticles, setMostViewedArticles] = useState<Article[]>([]);
   const [indexingPartners, setIndexingPartners] = useState<IndexingPartner[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -62,15 +63,15 @@ export function HeroSection() {
   const fetchData = async () => {
     try {
       const [recentRes, viewedRes, partnersRes, categoriesRes] = await Promise.all([
-        fetch('/api/articles?sortBy=recent&limit=20'),
+        fetch('/api/articles?sortBy=most-popular&limit=20'), // Changed from 'recent' to 'most-popular'
         fetch('/api/articles?sortBy=most-viewed&limit=4'),
         fetch('/api/indexing-partners'),
-        fetch('/api/categories?activeOnly=true&limit=50')
+        fetch('/api/categories?activeOnly=true&sortByArticleCount=true&limit=50') // Added sortByArticleCount parameter
       ]);
 
       if (recentRes.ok) {
         const recentData = await recentRes.json();
-        setRecentArticles(recentData.articles || []);
+        setPopularArticles(recentData.articles || []);
       }
 
       if (viewedRes.ok) {
@@ -183,7 +184,14 @@ export function HeroSection() {
                             }}
                           />
                         </div>
-                        <span className={styles.categoryName}>{category.name}</span>
+                        <div className={styles.categoryInfo}>
+                          <span className={styles.categoryName}>{category.name}</span>
+                          {category.articleCount !== undefined && (
+                            <span className={styles.categoryCount}>
+                              {category.articleCount} article{category.articleCount !== 1 ? 's' : ''}
+                            </span>
+                          )}
+                        </div>
                       </Link>
                     ))}
                   </div>
@@ -232,14 +240,14 @@ export function HeroSection() {
             </div>
           </div>
 
-          {/* Column 2: Recent Articles */}
+          {/* Column 2: Most Popular Articles */}
           <div className={styles.column2}>
-            <h2>Recent Articles</h2>
+            <h2>Most Popular Articles</h2>
             {loading ? (
-              <div className={styles.loading}>Loading recent articles...</div>
+              <div className={styles.loading}>Loading popular articles...</div>
             ) : (
               <div className={styles.recentArticlesList}>
-                {recentArticles.map((article) => {
+                {popularArticles.map((article) => {
                   const isExpanded = expandedAbstracts.has(article._id);
                   const abstractText = isExpanded 
                     ? article.abstract 
@@ -272,7 +280,7 @@ export function HeroSection() {
                       </Link>
                       
                       <div className={styles.authors}>
-                        by {article.authors.map(author => author.name).join(', ')}
+                        by {article.authors.map((author: any) => author.name).join(', ')}
                       </div>
                       
                       <div className={styles.publicationInfo}>

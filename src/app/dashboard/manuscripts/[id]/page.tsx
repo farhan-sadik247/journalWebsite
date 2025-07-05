@@ -106,7 +106,6 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedArticleType, setSelectedArticleType] = useState<string>('');
-  const [bankConfig, setBankConfig] = useState<any>(null);
   const [showPaymentInfoModal, setShowPaymentInfoModal] = useState(false);
 
   // Get user role and permissions
@@ -178,21 +177,6 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
       setPaymentInfo(null);
     } finally {
       setPaymentLoading(false);
-    }
-  };
-
-  // Fetch bank configuration
-  const fetchBankConfig = async () => {
-    try {
-      const response = await fetch('/api/bank-config');
-      if (response.ok) {
-        const data = await response.json();
-        setBankConfig(data.config);
-      } else {
-        console.error('Failed to fetch bank config');
-      }
-    } catch (error) {
-      console.error('Error fetching bank config:', error);
     }
   };
 
@@ -313,7 +297,6 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
         setSelectedArticleType(initialType);
       }
       fetchPaymentInfo();
-      fetchBankConfig();
     }
   }, [manuscript?.status, manuscript?.category, selectedArticleType]);
 
@@ -1325,7 +1308,8 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
       </section>
 
       {/* Payment Section for Accepted Manuscripts - Author Only */}
-      {manuscript.status === 'accepted' && (
+      {((manuscript.status === 'accepted' || manuscript.status === 'payment-required' || manuscript.status === 'payment-submitted') || 
+        (manuscript.status === 'in-production' && manuscript.paymentStatus === 'completed')) && (
         <section className={styles.section}>
           <h2>
             <FiDollarSign />
@@ -1341,6 +1325,23 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
                   <h3>Payment Completed</h3>
                   <p className={styles.paidText}>Paid</p>
                   <p>Your payment has been verified and approved. Your manuscript is now being processed for publication.</p>
+                  
+                  {/* Show current manuscript status for transparency */}
+                  <div className={styles.statusInfo}>
+                    <p><strong>Current Status:</strong> {
+                      (() => {
+                        const status = manuscript.status as string;
+                        switch (status) {
+                          case 'in-production': return 'In Production';
+                          case 'ready-for-publication': return 'Ready for Publication';
+                          case 'published': return 'Published';
+                          case 'copy-editing-complete': return 'Copy Editing Complete';
+                          case 'in-copy-editing': return 'In Copy Editing';
+                          default: return status.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                        }
+                      })()
+                    }</p>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -1350,53 +1351,12 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
                     <p style={{ color: '#28a745' }}>To proceed with publication, please complete the payment process using bank transfer.</p>
                 </div>
 
-                {/* Bank Details and Payment Information */}
-                {bankConfig ? (
-                  <div className={styles.bankDetails}>
-                    <div className={styles.bankCard}>
-                      <h4>Bank Transfer Details</h4>
-                      
-                      <div className={styles.detailsGrid}>
-                        <div className={styles.detailItem}>
-                          <label>Payable Amount:</label>
-                          <span className={styles.amount}>{bankConfig.currency} ${bankConfig.payableAmount.toFixed(2)}</span>
-                        </div>
-                        
-                        <div className={styles.detailItem}>
-                          <label>Bank Name:</label>
-                          <span>{bankConfig.bankName}</span>
-                        </div>
-                        
-                        <div className={styles.detailItem}>
-                          <label>Account Number:</label>
-                          <span>{bankConfig.accountNumber}</span>
-                        </div>
-                        
-                        <div className={styles.detailItem + ' ' + styles.fullWidth}>
-                          <label>Bank Account Details:</label>
-                          <span>{bankConfig.accountDetails}</span>
-                        </div>
-                      </div>
-                      
-                      <div className={styles.noteSection}>
-                        <h5>Note for Author:</h5>
-                        <p>After completing the payment, please send your payment information using the button below.</p>
-                      </div>
-                      
-                      {/* Use PaymentInfoDisplay component for showing payment status and actions */}
-                      <PaymentInfoDisplay 
-                        manuscriptId={manuscript._id} 
-                        userRole={userRole}
-                        isAuthor={isAuthor}
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <div className={styles.loadingPayment}>
-                    <div className="spinner" />
-                    <p>Loading bank details...</p>
-                  </div>
-                )}
+                {/* Use PaymentInfoDisplay component for showing payment status and actions */}
+                <PaymentInfoDisplay 
+                  manuscriptId={manuscript._id} 
+                  userRole={userRole}
+                  isAuthor={isAuthor}
+                />
               </div>
             )}
           </div>
@@ -2094,13 +2054,15 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
         </div>
       )}
 
-      {/* Payment Info Modal */}
+      {/* Payment Info Modal - Deprecated, kept for compatibility */}
       <PaymentInfoModal
         isOpen={showPaymentInfoModal}
         onClose={() => setShowPaymentInfoModal(false)}
-        onSubmit={handlePaymentInfoSubmit}
-        amount={bankConfig?.payableAmount || 0}
         manuscriptId={manuscript?._id || ''}
+        onPaymentSubmitted={() => {
+          setShowPaymentInfoModal(false);
+          fetchManuscript();
+        }}
       />
     </div>
   );

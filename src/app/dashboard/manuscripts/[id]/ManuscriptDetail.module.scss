@@ -878,6 +878,22 @@
           line-height: 1.6;
           margin: 0;
         }
+
+        .statusInfo {
+          margin-top: 1.5rem;
+          padding-top: 1.5rem;
+          border-top: 1px solid #86efac;
+
+          p {
+            color: #166534;
+            font-size: 0.95rem;
+            margin: 0;
+
+            strong {
+              font-weight: 600;
+            }
+          }
+        }
       }
     }
   }

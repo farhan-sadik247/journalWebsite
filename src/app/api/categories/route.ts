@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/pages/api/auth/[...nextauth]';
 import dbConnect from '@/lib/mongodb';
 import Category from '@/models/Category';
+import Manuscript from '@/models/Manuscript';
 import User from '@/models/User';
 import { v2 as cloudinary } from 'cloudinary';
 
@@ -20,15 +21,74 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const activeOnly = searchParams.get('activeOnly') === 'true';
+    const sortByArticleCount = searchParams.get('sortByArticleCount') === 'true';
 
     const filter = activeOnly ? { isActive: true } : {};
 
-    const categories = await Category.find(filter)
-      .sort({ order: 1, name: 1 })
-      .populate('createdBy', 'name email')
-      .populate('updatedBy', 'name email');
+    if (sortByArticleCount) {
+      // Use aggregation to get categories with article counts and sort by article count
+      const categories = await Category.aggregate([
+        { $match: filter },
+        {
+          $lookup: {
+            from: 'manuscripts', // collection name in MongoDB (mongoose pluralizes models)
+            localField: 'name',
+            foreignField: 'category',
+            as: 'articles',
+            pipeline: [
+              { $match: { status: 'published' } } // Only count published articles
+            ]
+          }
+        },
+        {
+          $addFields: {
+            articleCount: { $size: '$articles' }
+          }
+        },
+        {
+          $sort: { articleCount: -1, order: 1, name: 1 } // Sort by article count first, then order, then name
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'createdBy',
+            foreignField: '_id',
+            as: 'createdBy',
+            pipeline: [{ $project: { name: 1, email: 1 } }]
+          }
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'updatedBy',
+            foreignField: '_id',
+            as: 'updatedBy',
+            pipeline: [{ $project: { name: 1, email: 1 } }]
+          }
+        },
+        {
+          $addFields: {
+            createdBy: { $arrayElemAt: ['$createdBy', 0] },
+            updatedBy: { $arrayElemAt: ['$updatedBy', 0] }
+          }
+        },
+        {
+          $project: {
+            articles: 0 // Remove the articles array from the response, keep only the count
+          }
+        }
+      ]);
 
-    return NextResponse.json({ categories });
+      return NextResponse.json({ categories });
+    } else {
+      // Original behavior for backward compatibility
+      const categories = await Category.find(filter)
+        .sort({ order: 1, name: 1 })
+        .populate('createdBy', 'name email')
+        .populate('updatedBy', 'name email');
+
+      return NextResponse.json({ categories });
+    }
   } catch (error) {
     console.error('Error fetching categories:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

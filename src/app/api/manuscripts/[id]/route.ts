@@ -44,14 +44,14 @@ export async function GET(
     const isEditor = userRole === 'editor' || userRoles.includes('editor');
     const isAdmin = userRole === 'admin' || userRoles.includes('admin');
     
-    // Authors can only see their own manuscripts (unless they have other roles)
-    if (userRole === 'author' && !isEditor && !isAdmin && !isCopyEditor && !isReviewer) {
-      filter.submittedBy = new mongoose.Types.ObjectId(session.user.id);
+    // If user is admin or editor, they have full access
+    if (isAdmin || isEditor) {
+      // No additional filters needed - they can see all manuscripts
     }
-    // Copy editors can see manuscripts assigned to them OR published manuscripts (unless they have editor/admin roles)
-    else if (userRole === 'copy-editor' && !isEditor && !isAdmin) {
-      // First check if manuscript is published (everyone can see published manuscripts)
-      const manuscript = await Manuscript.findById(params.id).select('status assignedCopyEditor copyEditorAssignment').lean();
+    // For users with multiple roles, we need to check access permissions more inclusively
+    else {
+      // Get manuscript details once to avoid multiple queries
+      const manuscript = await Manuscript.findById(params.id).select('status assignedCopyEditor copyEditorAssignment submittedBy').lean();
       
       if (!manuscript) {
         return NextResponse.json(
@@ -60,52 +60,79 @@ export async function GET(
         );
       }
       
-      // Type assertion for better TypeScript handling
       const manuscriptData = manuscript as any;
+      const isAuthorOfManuscript = manuscriptData.submittedBy?.toString() === session.user.id;
       
-      // Allow access if published or assigned to this copy editor
-      const isAssigned = manuscriptData.assignedCopyEditor?.toString() === session.user.id ||
-                        manuscriptData.copyEditorAssignment?.copyEditorId?.toString() === session.user.id;
-      
-      if (manuscriptData.status !== 'published' && !isAssigned) {
-        return NextResponse.json(
-          { error: 'You are not assigned to edit this manuscript and it is not published' },
-          { status: 403 }
-        );
+      // If user is the author of the manuscript, they can always access it
+      if (isAuthorOfManuscript) {
+        // No additional filters needed
       }
-    }
-    // Reviewers can only see manuscripts they are assigned to review OR published manuscripts (unless they have editor/admin roles)
-    else if (userRole === 'reviewer' && !isEditor && !isAdmin) {
-      // First check if manuscript is published (everyone can see published manuscripts)
-      const manuscript = await Manuscript.findById(params.id).select('status').lean();
-      
-      if (!manuscript) {
-        return NextResponse.json(
-          { error: 'Manuscript not found' },
-          { status: 404 }
-        );
+      // If manuscript is published, everyone can access it
+      else if (manuscriptData.status === 'published') {
+        // No additional filters needed
       }
-      
-      // Type assertion for better TypeScript handling
-      const manuscriptData = manuscript as any;
-      
-      if (manuscriptData.status !== 'published') {
-        // Check if this reviewer has been assigned to review this manuscript
-        const hasReviewAssignment = await Review.findOne({
-          manuscriptId: new mongoose.Types.ObjectId(params.id),
-          reviewerId: new mongoose.Types.ObjectId(session.user.id)
-        });
+      // If manuscript is in production, allow access to authors and assigned users
+      else if (manuscriptData.status === 'in-production') {
+        let hasAccess = false;
         
-        if (!hasReviewAssignment) {
+        // Check copy-editor access
+        if (isCopyEditor) {
+          const isAssigned = manuscriptData.assignedCopyEditor?.toString() === session.user.id ||
+                            manuscriptData.copyEditorAssignment?.copyEditorId?.toString() === session.user.id;
+          if (isAssigned) {
+            hasAccess = true;
+          }
+        }
+        
+        // For manuscripts in production, also allow access to users with author role
+        // as they might need to see the final version
+        if (!hasAccess && isAuthor) {
+          hasAccess = true;
+        }
+        
+        if (!hasAccess) {
           return NextResponse.json(
-            { error: 'You are not assigned to review this manuscript and it is not published' },
+            { error: 'You do not have permission to access this manuscript' },
+            { status: 403 }
+          );
+        }
+      }
+      // For non-published manuscripts where user is not the author, check specific role permissions
+      else {
+        let hasAccess = false;
+        
+        // Check copy-editor access
+        if (isCopyEditor) {
+          const isAssigned = manuscriptData.assignedCopyEditor?.toString() === session.user.id ||
+                            manuscriptData.copyEditorAssignment?.copyEditorId?.toString() === session.user.id;
+          if (isAssigned) {
+            hasAccess = true;
+          }
+        }
+        
+        // Check reviewer access
+        if (!hasAccess && isReviewer) {
+          const hasReviewAssignment = await Review.findOne({
+            manuscriptId: new mongoose.Types.ObjectId(params.id),
+            reviewerId: new mongoose.Types.ObjectId(session.user.id)
+          });
+          if (hasReviewAssignment) {
+            hasAccess = true;
+          }
+        }
+        
+        // If no access through any role, deny access
+        if (!hasAccess) {
+          return NextResponse.json(
+            { error: 'You do not have permission to access this manuscript' },
             { status: 403 }
           );
         }
       }
     }
-    // Editors and admins can see all manuscripts
-
+    
+    // Legacy authorization logic removed - replaced with inclusive multi-role logic above
+    
     // Use aggregation pipeline to get manuscript with dynamic status
     const manuscriptPipeline = [
       { $match: filter },
@@ -300,6 +327,15 @@ export async function GET(
     const manuscript = manuscripts[0];
 
     if (!manuscript) {
+      // Check if manuscript exists at all (for debugging)
+      const manuscriptExists = await Manuscript.findById(params.id).select('_id submittedBy status').lean();
+      if (manuscriptExists) {
+        return NextResponse.json(
+          { error: 'You do not have permission to access this manuscript' },
+          { status: 403 }
+        );
+      }
+      
       return NextResponse.json(
         { error: 'Manuscript not found' },
         { status: 404 }
@@ -311,12 +347,6 @@ export async function GET(
       manuscriptId: params.id, 
       status: 'completed' 
     }).lean();
-    
-    console.log('Manuscript detail API - Before fallback:', {
-      manuscriptId: params.id,
-      aggregatedStatus: manuscript.status,
-      completedReviewsCount: reviewsForManuscript.length
-    });
     
     if (reviewsForManuscript.length >= 2) {
       const recommendations = reviewsForManuscript.map(r => r.recommendation);
@@ -340,27 +370,16 @@ export async function GET(
 
       // Override status if calculation differs
       if (calculatedStatus !== manuscript.status) {
-        console.log(`Manuscript ${params.id} status corrected: ${manuscript.status} → ${calculatedStatus}`);
         manuscript.status = calculatedStatus;
         
         // Also update the database
         try {
           await Manuscript.findByIdAndUpdate(params.id, { status: calculatedStatus });
-          console.log(`Database updated with status: ${calculatedStatus}`);
         } catch (updateError) {
           console.error('Failed to update manuscript status in database:', updateError);
         }
       }
     }
-
-    console.log('Manuscript detail API - Final status:', {
-      manuscriptId: params.id,
-      finalStatus: manuscript.status,
-      title: manuscript.title?.substring(0, 50) + '...',
-      completedReviews: reviewsForManuscript.length,
-      aggregationWorked: manuscripts.length > 0 ? 'yes' : 'no',
-      fallbackTriggered: reviewsForManuscript.length >= 2 ? 'yes' : 'no'
-    });
 
     // Transform authors to include firstName and lastName for frontend compatibility
     const manuscriptData = transformManuscriptForFrontend(manuscript);

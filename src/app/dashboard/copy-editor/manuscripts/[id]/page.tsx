@@ -524,15 +524,15 @@ export default function CopyEditorManuscriptDetailPage({ params }: { params: { i
             {/* Copy Edit Review (if submitted) */}
             {manuscript.copyEditReview && manuscript.copyEditReview.submittedAt && (
               <section className={styles.section}>
-                <h2 style={{ color: '#1f2937' }}>
+                <h2 style={{ color: 'white' }}>
                   <FiCheck />
                   Copy Editing Review
                 </h2>
                 <div className={styles.reviewCard}>
                   <div className={styles.reviewHeader}>
                     <div className={styles.reviewInfo}>
-                      <h4 style={{ color: '#1f2937' }}>Review by {manuscript.copyEditReview.copyEditorName}</h4>
-                      <p className={styles.reviewDate} style={{ color: '#6b7280' }}>
+                      <h4 style={{ color: 'white' }}>Review by {manuscript.copyEditReview.copyEditorName}</h4>
+                      <p className={styles.reviewDate} style={{ color: 'white' }}>
                         Submitted on {new Date(manuscript.copyEditReview.submittedAt).toLocaleDateString()}
                       </p>
                     </div>
@@ -542,12 +542,12 @@ export default function CopyEditorManuscriptDetailPage({ params }: { params: { i
                   </div>
                   
                   <div className={styles.reviewContent}>
-                    <h5 style={{ color: '#1f2937' }}>Comments:</h5>
-                    <p className={styles.reviewComments} style={{ color: '#1f2937' }}>{manuscript.copyEditReview.comments}</p>
+                    <h5 style={{ color: 'white' }}>Comments:</h5>
+                    <p className={styles.reviewComments} style={{ color: 'white' }}>{manuscript.copyEditReview.comments}</p>
                     
                     {manuscript.copyEditReview.galleyProofUrl && (
                       <div className={styles.galleyProof}>
-                        <h5 style={{ color: '#1f2937' }}>Galley Proof:</h5>
+                        <h5 style={{ color: 'white' }}>Galley Proof:</h5>
                         <a 
                           href={manuscript.copyEditReview.galleyProofUrl}
                           target="_blank"

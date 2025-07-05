@@ -100,18 +100,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    // Check if manuscript is accepted
-    if (manuscript.status !== 'accepted') {
+    // Check if manuscript is in a state that allows payment submission
+    const allowedStatuses = [
+      'accepted', 
+      'payment-required',
+      'accepted-awaiting-copy-edit',
+      'payment-submitted' // Allow if previous payment was rejected
+    ];
+    
+    const statusAllowed = allowedStatuses.includes(manuscript.status);
+    
+    // Also check if manuscript requires payment
+    const requiresPaymentSubmission = manuscript.requiresPayment || 
+      manuscript.status === 'payment-required' || 
+      manuscript.status === 'accepted';
+
+    if (!statusAllowed || !requiresPaymentSubmission) {
       return NextResponse.json({
-        error: 'Payment information can only be submitted for accepted manuscripts'
+        error: `Payment information can only be submitted for manuscripts that require payment. Current status: ${manuscript.status}, requires payment: ${requiresPaymentSubmission}`
       }, { status: 400 });
     }
 
     // Check if payment info already exists for this manuscript
-    const existingPaymentInfo = await PaymentInfo.findOne({ manuscriptId });
+    const existingPaymentInfo = await PaymentInfo.findOne({ 
+      manuscriptId 
+    }).sort({ createdAt: -1 }); // Get the latest payment info
+    
     if (existingPaymentInfo && existingPaymentInfo.status !== 'rejected') {
       return NextResponse.json({
-        error: 'Payment information already submitted for this manuscript'
+        error: `Payment information already submitted for this manuscript. Current status: ${existingPaymentInfo.status}. Please wait for verification or contact support.`
       }, { status: 400 });
     }
 
