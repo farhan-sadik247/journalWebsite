@@ -395,3 +395,77 @@ export async function GET(
     );
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Only admins can delete manuscripts
+    const userRole = session.user.currentActiveRole || session.user.role || 'author';
+    const userRoles = session.user.roles || [userRole];
+    const isAdmin = userRole === 'admin' || userRoles.includes('admin');
+
+    if (!isAdmin) {
+      return NextResponse.json(
+        { error: 'Insufficient permissions. Only administrators can delete manuscripts.' },
+        { status: 403 }
+      );
+    }
+
+    if (!params.id || !mongoose.Types.ObjectId.isValid(params.id)) {
+      return NextResponse.json(
+        { error: 'Invalid manuscript ID' },
+        { status: 400 }
+      );
+    }
+
+    await dbConnect();
+
+    // Check if manuscript exists
+    const manuscript = await Manuscript.findById(params.id);
+    if (!manuscript) {
+      return NextResponse.json(
+        { error: 'Manuscript not found' },
+        { status: 404 }
+      );
+    }
+
+    // Get manuscript title for logging/response
+    const manuscriptTitle = manuscript.title;
+    const manuscriptId = manuscript._id;
+
+    // Delete associated reviews first
+    await Review.deleteMany({ manuscriptId: params.id });
+
+    // Delete the manuscript
+    await Manuscript.findByIdAndDelete(params.id);
+
+    // Log the deletion for audit purposes
+    console.log(`ADMIN DELETION: Manuscript "${manuscriptTitle}" (ID: ${manuscriptId}) deleted by admin ${session.user.email} at ${new Date().toISOString()}`);
+
+    return NextResponse.json({
+      message: 'Manuscript and associated data deleted successfully',
+      deletedManuscript: {
+        id: manuscriptId,
+        title: manuscriptTitle
+      }
+    });
+
+  } catch (error) {
+    console.error('Delete manuscript error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}

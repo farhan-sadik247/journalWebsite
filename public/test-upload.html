@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>File Upload Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+        .upload-area { border: 2px dashed #ccc; padding: 40px; text-align: center; margin: 20px 0; }
+        .upload-area:hover { border-color: #007bff; }
+        input[type="file"] { margin: 10px 0; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .result { margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>📁 File Upload Test for Journal Website</h1>
+    <p>Test your file upload system to see if files are saved correctly.</p>
+    
+    <div class="upload-area">
+        <h3>📄 Test Manuscript Upload</h3>
+        <input type="file" id="manuscriptFile" accept=".pdf,.doc,.docx" />
+        <br>
+        <button onclick="uploadManuscript()">Upload Manuscript</button>
+    </div>
+    
+    <div class="upload-area">
+        <h3>🖼️ Test Image Upload</h3>
+        <input type="file" id="imageFile" accept="image/*" />
+        <br>
+        <button onclick="uploadImage()">Upload Image</button>
+    </div>
+    
+    <div id="result"></div>
+
+    <script>
+        async function uploadManuscript() {
+            const file = document.getElementById('manuscriptFile').files[0];
+            if (!file) {
+                showResult('Please select a file first.', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('folder', 'manuscripts');
+
+            try {
+                showResult('Uploading manuscript...', '');
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showResult(`
+                        ✅ Manuscript uploaded successfully!<br>
+                        📁 File: ${result.original_filename}<br>
+                        🔗 URL: <a href="${result.secure_url}" target="_blank">${result.secure_url}</a><br>
+                        📊 Size: ${(result.bytes / 1024).toFixed(2)} KB<br>
+                        🆔 ID: ${result.public_id}
+                    `, 'success');
+                } else {
+                    showResult(`❌ Upload failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showResult(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function uploadImage() {
+            const file = document.getElementById('imageFile').files[0];
+            if (!file) {
+                showResult('Please select an image first.', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('folder', 'images');
+
+            try {
+                showResult('Uploading image...', '');
+                const response = await fetch('/api/upload/image', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showResult(`
+                        ✅ Image uploaded successfully!<br>
+                        📁 File: ${result.data.originalName}<br>
+                        🔗 URL: <a href="${result.data.url}" target="_blank">${result.data.url}</a><br>
+                        📊 Size: ${(result.data.bytes / 1024).toFixed(2)} KB<br>
+                        🆔 ID: ${result.data.publicId}<br>
+                        🖼️ <img src="${result.data.url}" alt="Uploaded" style="max-width: 200px; margin-top: 10px;">
+                    `, 'success');
+                } else {
+                    showResult(`❌ Upload failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showResult(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        function showResult(message, type) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = message;
+            resultDiv.className = `result ${type}`;
+        }
+    </script>
+</body>
+</html>

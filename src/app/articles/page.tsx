@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { FiSearch, FiCalendar, FiEye, FiDownload, FiPlusCircle } from 'react-icons/fi';
@@ -32,7 +32,7 @@ interface Pagination {
   pages: number;
 }
 
-export default function ArticlesPage() {
+function ArticlesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [articles, setArticles] = useState<Article[]>([]);
@@ -382,5 +382,30 @@ export default function ArticlesPage() {
         </>
       )}
     </div>
+  );
+}
+
+// Loading component for Suspense fallback
+function ArticlesLoading() {
+  return (
+    <div style={{ 
+      display: 'flex', 
+      justifyContent: 'center', 
+      alignItems: 'center', 
+      minHeight: '400px',
+      fontSize: '18px',
+      color: '#666'
+    }}>
+      Loading articles...
+    </div>
+  );
+}
+
+// Main component with Suspense boundary
+export default function ArticlesPage() {
+  return (
+    <Suspense fallback={<ArticlesLoading />}>
+      <ArticlesContent />
+    </Suspense>
   );
 }

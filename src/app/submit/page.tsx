@@ -174,11 +174,20 @@ export default function SubmitManuscriptPage() {
 
   const handleFiles = (newFiles: File[]) => {
     const validFiles = newFiles.filter(file => {
-      const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      const validTypes = [
+        'application/pdf', 
+        'application/msword', 
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/zip',
+        'application/x-zip-compressed',
+        'application/x-compressed',
+        'application/x-zip',
+        'multipart/x-zip'
+      ];
       const maxSize = 50 * 1024 * 1024; // 50MB
       
       if (!validTypes.includes(file.type)) {
-        toast.error(`${file.name} is not a valid file type. Please upload PDF or Word documents.`);
+        toast.error(`${file.name} is not a valid file type. Please upload PDF, Word documents, or ZIP files.`);
         return false;
       }
       
@@ -803,11 +812,11 @@ export default function SubmitManuscriptPage() {
                   >
                     <FiUpload />
                     <h3>Drop files here or click to browse</h3>
-                    <p>Supported formats: PDF, DOC, DOCX (Max 50MB each)</p>
+                    <p>Supported formats: PDF, DOC, DOCX, ZIP (Max 50MB each)</p>
                     <input
                       type="file"
                       multiple
-                      accept=".pdf,.doc,.docx"
+                      accept=".pdf,.doc,.docx,.zip"
                       onChange={handleFileInput}
                       className={styles.fileInput}
                     />

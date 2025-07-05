@@ -4,7 +4,7 @@ import { authOptions } from '@/pages/api/auth/[...nextauth]';
 import dbConnect from '@/lib/mongodb';
 import Manuscript from '@/models/Manuscript';
 import Review from '@/models/Review';
-import { uploadToCloudinary } from '@/lib/cloudinary';
+import { uploadToStorage } from '@/lib/storage';
 import { sendEmail, emailTemplates } from '@/lib/email';
 import { transformAuthorForDatabase } from '@/lib/manuscriptUtils';
 import mongoose from 'mongoose';
@@ -57,14 +57,15 @@ export async function POST(request: NextRequest) {
         console.log('Uploading file:', file.name, 'size:', file.size);
         try {
           const buffer = Buffer.from(await file.arrayBuffer());
-          const uploadResult = await uploadToCloudinary(buffer, file.name, 'manuscripts');
+          const uploadResult = await uploadToStorage(buffer, file.name, 'manuscripts');
           
           console.log('Upload successful:', uploadResult.public_id, 'URL:', uploadResult.secure_url);
           
           uploadedFiles.push({
             filename: uploadResult.public_id,
             originalName: file.name,
-            cloudinaryId: uploadResult.public_id,
+            storageId: uploadResult.public_id, // Use storageId for new system
+            cloudinaryId: uploadResult.public_id, // Keep for backward compatibility
             url: uploadResult.secure_url,
             type: 'manuscript',
             size: uploadResult.bytes,
@@ -171,6 +172,7 @@ export async function GET(request: NextRequest) {
     const query = searchParams.get('query');
     const editor = searchParams.get('editor'); // For editor dashboard
     const copyEditing = searchParams.get('copyEditing'); // For copy-editor dashboard
+    const admin = searchParams.get('admin'); // For admin manuscript management
 
     await dbConnect();
 
@@ -183,10 +185,10 @@ export async function GET(request: NextRequest) {
     const isEditor = userRole === 'editor' || userRoles.includes('editor');
     const isAdmin = userRole === 'admin' || userRoles.includes('admin');
     
-    if (userRole === 'author' && !editor && !copyEditing) {
+    if (userRole === 'author' && !editor && !copyEditing && !admin) {
       filter.submittedBy = new mongoose.Types.ObjectId(session.user.id);
       console.log('Author filter applied - submittedBy:', session.user.id, 'as ObjectId:', filter.submittedBy);
-    } else if (isReviewer && !editor && !copyEditing && !isEditor && !isAdmin) {
+    } else if (isReviewer && !editor && !copyEditing && !isEditor && !isAdmin && !admin) {
       // Reviewers can only see:
       // 1. Manuscripts assigned to them for review
       // 2. Published manuscripts
@@ -218,8 +220,15 @@ export async function GET(request: NextRequest) {
         { status: 'published' } // Published manuscripts
       ];
       console.log('Copy-editor filter applied - showing only assigned manuscripts + published for user:', session.user.id);
-    } else if ((isEditor || isAdmin) || editor) {
+    } else if ((isEditor || isAdmin) || editor || admin) {
       // Editors and admins see all manuscripts
+      // Admin parameter specifically allows admin access to all manuscripts for management
+      if (admin && !isAdmin) {
+        return NextResponse.json(
+          { error: 'Insufficient permissions. Admin access required.' },
+          { status: 403 }
+        );
+      }
       console.log('Editor/Admin filter applied - showing all manuscripts');
     }
 

@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/pages/api/auth/[...nextauth]';
 import dbConnect from '@/lib/mongodb';
 import Manuscript from '@/models/Manuscript';
-import { uploadToCloudinary } from '@/lib/cloudinary';
+import { uploadToStorage } from '@/lib/storage';
 import { sendEmail } from '@/lib/email';
 import mongoose from 'mongoose';
 
@@ -70,14 +70,15 @@ export async function POST(
         console.log('Uploading revision file:', file.name, 'size:', file.size);
         try {
           const buffer = Buffer.from(await file.arrayBuffer());
-          const uploadResult = await uploadToCloudinary(buffer, file.name, `manuscripts/${params.id}/revisions`);
+          const uploadResult = await uploadToStorage(buffer, file.name, `manuscripts/${params.id}/revisions`);
           
           console.log('Upload successful:', uploadResult.public_id, 'URL:', uploadResult.secure_url);
           
           uploadedFiles.push({
             filename: uploadResult.public_id,
             originalName: file.name,
-            cloudinaryId: uploadResult.public_id,
+            storageId: uploadResult.public_id, // Use storageId for new system
+            cloudinaryId: uploadResult.public_id, // Keep for backward compatibility
             url: uploadResult.secure_url,
             type: 'revision',
             size: uploadResult.bytes,

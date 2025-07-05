@@ -33,37 +33,62 @@ export async function POST() {
       }, { status: 200 });
     }
 
-    // Check if Md. Farhan Sadique exists - support both email addresses
-    const founderEmails = ['md.farhan.sadik.578@gmail.com', 'md.farhan.sadik@g.bracu.ac.bd'];
+    // Check if admin user exists - support multiple founder emails
+    const founderEmails = ['seed.swim@gmail.com', 'fsadik2319@gmail.com'];
     let founder = await User.findOne({ 
-      $or: [
-        { email: founderEmails[0] },
-        { email: founderEmails[1] }
-      ]
+      email: { $in: founderEmails }
     });
 
     if (!founder) {
-      // Create the founder account with the BRACU email
-      founder = await User.create({
-        name: 'Farhan Sadik',
-        email: 'md.farhan.sadik@g.bracu.ac.bd',
-        role: 'admin',
-        roles: ['admin', 'editor', 'reviewer', 'author'],
-        currentActiveRole: 'admin',
-        isFounder: true,
-        affiliation: 'BRAC University',
-        bio: 'Founder and Editor-in-Chief of the journal. Leading expert in academic publishing and research excellence.',
-        isEmailVerified: true,
-      });
+      // Create founder accounts for both emails if neither exists
+      const foundersCreated = [];
+      
+      for (const email of founderEmails) {
+        const existingUser = await User.findOne({ email });
+        
+        if (!existingUser) {
+          const founderName = email === 'seed.swim@gmail.com' ? 'Admin User' : 'Farhan Sadik';
+          const newFounder = await User.create({
+            name: founderName,
+            email: email,
+            googleId: `admin-oauth-${email.replace('@', '-').replace('.', '-')}`, // This allows password to be optional
+            role: 'admin',
+            roles: ['admin', 'editor', 'reviewer', 'author'],
+            currentActiveRole: 'admin',
+            isFounder: true,
+            affiliation: 'Journal Administrator',
+            bio: 'System Administrator and Editor-in-Chief of the journal.',
+            isEmailVerified: true,
+          });
+          foundersCreated.push(newFounder);
+        }
+      }
+      
+      founder = foundersCreated[0] || await User.findOne({ email: { $in: founderEmails } });
     } else {
       // Update existing user to be founder with all roles
       founder.role = 'admin';
       founder.roles = ['admin', 'editor', 'reviewer', 'author'];
       founder.currentActiveRole = 'admin';
       founder.isFounder = true;
-      if (!founder.affiliation) founder.affiliation = 'BRAC University';
-      if (!founder.bio) founder.bio = 'Founder and Editor-in-Chief of the journal. Leading expert in academic publishing and research excellence.';
+      if (!founder.affiliation) founder.affiliation = 'Journal Administrator';
+      if (!founder.bio) founder.bio = 'System Administrator and Editor-in-Chief of the journal.';
       await founder.save();
+      
+      // Also ensure the other email is set up as founder if it exists
+      const otherEmail = founderEmails.find(email => email !== founder.email);
+      if (otherEmail) {
+        const otherUser = await User.findOne({ email: otherEmail });
+        if (otherUser && !otherUser.isFounder) {
+          otherUser.role = 'admin';
+          otherUser.roles = ['admin', 'editor', 'reviewer', 'author'];
+          otherUser.currentActiveRole = 'admin';
+          otherUser.isFounder = true;
+          if (!otherUser.affiliation) otherUser.affiliation = 'Journal Administrator';
+          if (!otherUser.bio) otherUser.bio = 'System Administrator and Editor-in-Chief of the journal.';
+          await otherUser.save();
+        }
+      }
     }
 
     return NextResponse.json({

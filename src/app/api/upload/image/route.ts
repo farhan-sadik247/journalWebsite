@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/pages/api/auth/[...nextauth]';
-import { uploadToCloudinary } from '@/lib/cloudinary';
+import { uploadToStorage } from '@/lib/storage';
 
 export async function POST(request: NextRequest) {
   try {
@@ -56,8 +56,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Upload to Cloudinary
-    const result = await uploadToCloudinary(
+    // Upload to storage
+    const result = await uploadToStorage(
       buffer, 
       `${fileName}.${file.name.split('.').pop()}`,
       uploadFolder

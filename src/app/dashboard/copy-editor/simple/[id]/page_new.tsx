@@ -191,22 +191,18 @@ export default function CopyEditorWorkPage({ params }: { params: { id: string } 
     ));
   };
 
-  const uploadToCloudinary = async (file: File) => {
+  const uploadToStorage = async (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', 'journal_manuscripts');
     formData.append('folder', 'galley-proofs');
 
-    const response = await fetch(
-      `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/upload`,
-      {
-        method: 'POST',
-        body: formData,
-      }
-    );
+    const response = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData,
+    });
 
     if (!response.ok) {
-      throw new Error('Failed to upload file to Cloudinary');
+      throw new Error('Failed to upload file to storage');
     }
 
     return await response.json();
@@ -217,13 +213,14 @@ export default function CopyEditorWorkPage({ params }: { params: { id: string } 
 
     setIsSubmittingGalley(true);
     try {
-      // Upload files to Cloudinary
+      // Upload files to storage
       const uploadPromises = galleyFiles.map(async ({ file, type, description }) => {
-        const uploadResult = await uploadToCloudinary(file);
+        const uploadResult = await uploadToStorage(file);
         return {
-          filename: uploadResult.original_filename || file.name,
+          filename: uploadResult.public_id,
           originalName: file.name,
-          cloudinaryId: uploadResult.public_id,
+          storageId: uploadResult.public_id, // Use storageId for new system
+          cloudinaryId: uploadResult.public_id, // Keep for backward compatibility
           url: uploadResult.secure_url,
           type: type,
           description: description,

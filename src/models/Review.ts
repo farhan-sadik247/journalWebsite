@@ -7,7 +7,12 @@ const reviewFileSchema = new mongoose.Schema({
   },
   cloudinaryId: {
     type: String,
-    required: true,
+    required: false, // Made optional for backward compatibility
+  },
+  // New field for local storage
+  storageId: {
+    type: String,
+    required: false,
   },
   url: {
     type: String,

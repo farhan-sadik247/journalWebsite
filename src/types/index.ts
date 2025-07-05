@@ -95,7 +95,8 @@ export interface ManuscriptFile {
   _id: string;
   filename: string;
   originalName: string;
-  cloudinaryId: string;
+  cloudinaryId?: string; // Made optional for backward compatibility
+  storageId?: string; // New field for local storage
   url: string;
   type: 'manuscript' | 'supplement' | 'figure' | 'table';
   size: number;
@@ -131,7 +132,8 @@ export interface Review {
 
 export interface ReviewFile {
   filename: string;
-  cloudinaryId: string;
+  cloudinaryId?: string; // Made optional for backward compatibility
+  storageId?: string; // New field for local storage
   url: string;
   uploadDate: Date;
 }

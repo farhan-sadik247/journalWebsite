@@ -242,9 +242,9 @@ export function HeroSection() {
 
           {/* Column 2: Most Popular Articles */}
           <div className={styles.column2}>
-            <h2>Most Popular Articles</h2>
+            <h2>Recent Articles</h2>
             {loading ? (
-              <div className={styles.loading}>Loading popular articles...</div>
+              <div className={styles.loading}>Loading recent articles...</div>
             ) : (
               <div className={styles.recentArticlesList}>
                 {popularArticles.map((article) => {
