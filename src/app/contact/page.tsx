@@ -93,41 +93,6 @@ export default function ContactPage() {
           </div>
         </section>
 
-        {/* Contact Information */}
-        <section className={styles.contactInfo}>
-          <div className="container">
-            <div className={styles.contactGrid}>
-              <div className={styles.contactCard}>
-                <FiMail className={styles.contactIcon} />
-                <h3>Email</h3>
-                <p>info@gjadt.org</p>
-                <p>editorial@gjadt.org</p>
-              </div>
-              
-              <div className={styles.contactCard}>
-                <FiPhone className={styles.contactIcon} />
-                <h3>Phone</h3>
-                <p>+1 (555) 123-4567</p>
-                <p>+1 (555) 123-4568</p>
-              </div>
-              
-              <div className={styles.contactCard}>
-                <FiMapPin className={styles.contactIcon} />
-                <h3>Address</h3>
-                <p>123 Research Avenue</p>
-                <p>Academic City, AC 12345</p>
-              </div>
-              
-              <div className={styles.contactCard}>
-                <FiClock className={styles.contactIcon} />
-                <h3>Office Hours</h3>
-                <p>Monday - Friday</p>
-                <p>9:00 AM - 5:00 PM EST</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* Contact Form */}
         <section className={styles.contactForm}>
           <div className="container">

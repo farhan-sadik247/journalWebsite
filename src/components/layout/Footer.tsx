@@ -44,34 +44,7 @@ export function Footer() {
             <p>
               Innovating the Future, One Breakthrough at a Time. A premier platform for publishing 
               cutting-edge research in advanced technology and engineering.
-            </p>
-            
-            <div className={styles.contactInfo}>
-              <div className={styles.contactItem}>
-                <FiMail />
-                <span>editor@gjadt.org</span>
-              </div>
-              <div className={styles.contactItem}>
-                <FiPhone />
-                <span>+1 (555) 123-4567</span>
-              </div>
-              <div className={styles.contactItem}>
-                <FiMapPin />
-                <span>123 Technology Boulevard, Innovation City, IC 12345</span>
-              </div>
-            </div>
-
-            <div className={styles.socialLinks}>
-              <a href="#" aria-label="Twitter">
-                <FiTwitter />
-              </a>
-              <a href="#" aria-label="Facebook">
-                <FiFacebook />
-              </a>
-              <a href="#" aria-label="LinkedIn">
-                <FiLinkedin />
-              </a>
-            </div>
+            </p>           
           </div>
 
           {/* Footer Links */}
