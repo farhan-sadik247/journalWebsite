@@ -118,12 +118,6 @@ export default function SignInPage() {
             </div>
           </div>
 
-          <div className={styles.formActions}>
-            <Link href="/auth/forgot-password" className={styles.forgotPassword}>
-              Forgot your password?
-            </Link>
-          </div>
-
           <button
             type="submit"
             disabled={isLoading}
@@ -145,15 +139,6 @@ export default function SignInPage() {
             <FcGoogle />
             Continue with Google
           </button>
-
-          <div className={styles.authFooter}>
-            <p>
-              Don&apos;t have an account?{' '}
-              <Link href="/auth/signup" className={styles.authLink}>
-                Sign up here
-              </Link>
-            </p>
-          </div>
         </form>
       </div>
     </div>
