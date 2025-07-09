@@ -185,6 +185,9 @@ export async function PATCH(req: NextRequest) {
     if (action === 'add') {
       if (!targetUser.roles.includes(role)) {
         targetUser.roles.push(role);
+        // Set the new role as the current active role
+        targetUser.currentActiveRole = role;
+        targetUser.role = role;
       }
     } else if (action === 'remove') {
       // Ensure user always has at least the 'author' role

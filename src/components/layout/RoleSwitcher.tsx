@@ -46,7 +46,7 @@ export function RoleSwitcher({ className }: RoleSwitcherProps) {
         const data = await response.json();
         console.log('Role switch response data:', data);
 
-        // Update the session
+        // Update the session with all necessary fields
         await update({
           ...session,
           user: {
@@ -74,9 +74,12 @@ export function RoleSwitcher({ className }: RoleSwitcherProps) {
         
         const redirectPath = roleRoutes[targetRole as keyof typeof roleRoutes] || '/dashboard';
         console.log('Redirecting to:', redirectPath);
-        router.push(redirectPath);
         
-        setIsOpen(false);
+        // Add a small delay to ensure session is updated before redirect
+        setTimeout(() => {
+          router.push(redirectPath);
+          setIsOpen(false);
+        }, 100);
       } else {
         const data = await response.json();
         console.error('Role switch failed:', data);
