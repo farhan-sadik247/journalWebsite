@@ -116,7 +116,11 @@ export async function GET(request: NextRequest) {
     const articleCounts = await Manuscript.aggregate([
       {
         $match: {
-          status: 'published'  // Only count published manuscripts
+          $or: [
+            { status: 'published' },
+            { status: 'ready-for-publication' },
+            { status: 'in-production' }
+          ]
         }
       },
       {
