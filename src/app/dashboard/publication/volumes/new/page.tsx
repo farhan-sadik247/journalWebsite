@@ -55,7 +55,13 @@ export default function NewVolumePage() {
     }));
   };
 
-  if (!session || (session.user.role !== 'editor' && session.user.role !== 'admin')) {
+  // Check if user has editor or admin role in either role or roles array
+  const userRole = session?.user?.role;
+  const userRoles = session?.user?.roles || [];
+  const isEditor = userRole === 'editor' || userRoles.includes('editor');
+  const isAdmin = userRole === 'admin' || userRoles.includes('admin');
+
+  if (!session || (!isEditor && !isAdmin)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
