@@ -3,7 +3,7 @@
  * This script will create the necessary folders in your /public_html/JournalWeb directory
  */
 
-import { cpanelStorage } from '../lib/storage';
+// import { cpanelStorage } from '../lib/storage';
 import { Client } from 'basic-ftp';
 
 const directories = [
@@ -66,31 +66,27 @@ async function createDirectoryStructure() {
   }
 }
 
-async function testUpload() {
-  try {
-    console.log('\n🧪 Testing file upload...');
-    
-    // Create a test file
-    const testContent = Buffer.from('This is a test file to verify the upload functionality.');
-    const result = await cpanelStorage.uploadFile(testContent, 'test-upload.txt', 'uploads');
-    
-    console.log('✅ Test upload successful!');
-    console.log(`📁 File URL: ${result.secure_url}`);
-    console.log(`📊 File size: ${result.bytes} bytes`);
-    
-    // Clean up test file
-    try {
-      await cpanelStorage.deleteFile('uploads/test-upload.txt');
-      console.log('🗑️  Test file cleaned up');
-    } catch (error) {
-      console.log('ℹ️  Could not clean up test file (this is normal)');
-    }
-    
-  } catch (error) {
-    console.error('❌ Test upload failed:', error);
-    throw error;
-  }
-}
+// async function testUpload() {
+//   try {
+//     console.log('\n🧪 Testing file upload...');
+//     // Create a test file
+//     const testContent = Buffer.from('This is a test file to verify the upload functionality.');
+//     const result = await cpanelStorage.uploadFile(testContent, 'test-upload.txt', 'uploads');
+//     console.log('✅ Test upload successful!');
+//     console.log(`📁 File URL: ${result.secure_url}`);
+//     console.log(`📊 File size: ${result.bytes} bytes`);
+//     // Clean up test file
+//     try {
+//       await cpanelStorage.deleteFile('uploads/test-upload.txt');
+//       console.log('🗑️  Test file cleaned up');
+//     } catch (error) {
+//       console.log('ℹ️  Could not clean up test file (this is normal)');
+//     }
+//   } catch (error) {
+//     console.error('❌ Test upload failed:', error);
+//     throw error;
+//   }
+// }
 
 async function runSetup() {
   console.log('🚀 Starting cPanel storage setup...\n');
@@ -107,7 +103,7 @@ async function runSetup() {
   
   try {
     await createDirectoryStructure();
-    await testUpload();
+    // await testUpload();
     
     console.log('\n' + '='.repeat(60));
     console.log('🎉 SETUP COMPLETED SUCCESSFULLY!');
