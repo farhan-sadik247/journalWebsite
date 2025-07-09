@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import { FiArrowLeft, FiSave, FiTrash2 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import styles from './EditIssue.module.scss';
@@ -13,6 +13,7 @@ interface Volume {
   number: number;
   year: number;
   title: string;
+  issues: any[];
 }
 
 interface Issue {
@@ -31,23 +32,36 @@ interface Issue {
   };
 }
 
-export default function EditIssuePage() {
-  const params = useParams();
+interface FormData {
+  volumeId: string;
+  number: number;
+  title: string;
+  description: string;
+  editorialNote: string;
+  status: string;
+  publishDate: Date | null;
+}
+
+export default function EditIssuePage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { data: session } = useSession();
-  const [isLoading, setIsLoading] = useState(false);
+  const [volumes, setVolumes] = useState<Volume[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [issue, setIssue] = useState<Issue | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
+    volumeId: '',
+    number: 1,
     title: '',
     description: '',
     editorialNote: '',
     status: 'draft',
-    publishDate: ''
+    publishDate: null
   });
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [coverImagePreview, setCoverImagePreview] = useState<string>('');
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const issueId = params?.id as string;
 
@@ -68,12 +82,14 @@ export default function EditIssuePage() {
         
         // Populate form data
         setFormData({
+          volumeId: issueData.volume._id,
+          number: issueData.number,
           title: issueData.title || '',
           description: issueData.description || '',
           editorialNote: issueData.editorialNote || '',
           status: issueData.isPublished ? 'published' : 'draft',
           publishDate: issueData.publishedDate ? 
-            new Date(issueData.publishedDate).toISOString().split('T')[0] : ''
+            new Date(issueData.publishedDate) : null
         });
 
         // Set cover image preview if exists
@@ -95,51 +111,58 @@ export default function EditIssuePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    
+    if (!formData.volumeId) {
+      toast.error('Please select a volume');
+      return;
+    }
+
+    if (!formData.number) {
+      toast.error('Issue number is required');
+      return;
+    }
+
+    if (!formData.title.trim()) {
+      toast.error('Issue title is required');
+      return;
+    }
+
+    setIsSubmitting(true);
 
     try {
-      let submissionData: any = { ...formData };
+      const submitFormData = new FormData();
+      submitFormData.append('volumeId', formData.volumeId);
+      submitFormData.append('number', formData.number.toString());
+      submitFormData.append('title', formData.title);
+      submitFormData.append('description', formData.description);
+      submitFormData.append('editorialNote', formData.editorialNote);
+      submitFormData.append('status', formData.status);
+      
+      if (formData.publishDate instanceof Date) {
+        submitFormData.append('publishDate', formData.publishDate.toISOString());
+      }
 
-      // Upload cover image if a new one is selected
       if (coverImageFile) {
-        setIsUploadingImage(true);
-        try {
-          const coverImageData = await uploadCoverImage(coverImageFile);
-          submissionData.coverImage = JSON.stringify({
-            url: coverImageData.url,
-            publicId: coverImageData.publicId,
-            originalName: coverImageData.originalName
-          });
-        } catch (uploadError) {
-          console.error('Cover image upload failed:', uploadError);
-          toast.error('Failed to upload cover image. Please try again.');
-          return;
-        } finally {
-          setIsUploadingImage(false);
-        }
+        submitFormData.append('coverImage', coverImageFile);
       }
 
       const response = await fetch(`/api/issues/${issueId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(submissionData),
+        body: submitFormData
       });
 
       if (response.ok) {
-        const result = await response.json();
-        toast.success('Issue updated successfully!');
-        router.push(`/dashboard/publication/issues/${issueId}`);
+        toast.success('Issue updated successfully');
+        router.push('/dashboard/publication');
       } else {
         const error = await response.json();
-        toast.error(`Error updating issue: ${error.error}`);
+        toast.error(error.error || 'Failed to update issue');
       }
     } catch (error) {
       console.error('Error updating issue:', error);
       toast.error('Failed to update issue');
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -340,7 +363,7 @@ export default function EditIssuePage() {
                   type="date"
                   id="publishDate"
                   name="publishDate"
-                  value={formData.publishDate}
+                  value={formData.publishDate ? formData.publishDate.toISOString().split('T')[0] : ''}
                   onChange={handleChange}
                 />
               </div>
@@ -382,9 +405,9 @@ export default function EditIssuePage() {
                 <button
                   type="submit"
                   className="btn btn-primary"
-                  disabled={isLoading}
+                  disabled={isSubmitting}
                 >
-                  {isLoading ? (
+                  {isSubmitting ? (
                     <>Saving...</>
                   ) : (
                     <>

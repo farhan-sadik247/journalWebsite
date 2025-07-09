@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/pages/api/auth/[...nextauth]';
-import connectToDatabase from '@/lib/mongodb';
+import dbConnect from '@/lib/mongodb';
 import IndexingPartner from '@/models/IndexingPartner';
+import { uploadToStorage, deleteFromStorage } from '@/lib/storage';
 
 export async function PUT(
   request: NextRequest,
@@ -11,14 +12,19 @@ export async function PUT(
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.role !== 'admin') {
+    if (!session?.user || session.user.role !== 'admin') {
       return NextResponse.json(
         { error: 'Access denied. Admin role required.' },
         { status: 403 }
       );
     }
 
-    const { name, description, website, logo, order, isActive } = await request.json();
+    const formData = await request.formData();
+    const name = formData.get('name') as string;
+    const description = formData.get('description') as string;
+    const website = formData.get('website') as string;
+    const order = parseInt(formData.get('order') as string) || 0;
+    const logoFile = formData.get('logo') as File;
 
     if (!name?.trim()) {
       return NextResponse.json(
@@ -44,10 +50,9 @@ export async function PUT(
       );
     }
 
-    await connectToDatabase();
+    await dbConnect();
 
     const partner = await IndexingPartner.findById(params.id);
-    
     if (!partner) {
       return NextResponse.json(
         { error: 'Partner not found' },
@@ -55,24 +60,44 @@ export async function PUT(
       );
     }
 
-    // Update partner data
-    partner.name = name.trim();
-    partner.description = description?.trim() || '';
-    partner.website = website.trim();
-    partner.order = order || 0;
-    partner.isActive = isActive !== undefined ? isActive : true;
-    partner.updatedBy = session.user.id;
+    let logoData = partner.logo;
+    if (logoFile) {
+      // Delete old logo if it exists
+      if (partner.logo?.publicId) {
+        await deleteFromStorage(partner.logo.publicId);
+      }
 
-    // Update logo if provided
-    if (logo?.url && logo?.publicId) {
-      partner.logo = logo;
+      // Upload new logo
+      const buffer = Buffer.from(await logoFile.arrayBuffer());
+      const uploadResult = await uploadToStorage(
+        buffer,
+        logoFile.name,
+        'partners'
+      );
+
+      logoData = {
+        url: uploadResult.secure_url,
+        publicId: uploadResult.public_id,
+        originalName: logoFile.name
+      };
     }
 
-    await partner.save();
+    const updatedPartner = await IndexingPartner.findByIdAndUpdate(
+      params.id,
+      {
+        name: name.trim(),
+        description: description?.trim() || '',
+        website: website.trim(),
+        logo: logoData,
+        order: order || 0,
+        lastModifiedBy: session.user.id
+      },
+      { new: true }
+    );
 
     return NextResponse.json({
       message: 'Partner updated successfully',
-      partner
+      partner: updatedPartner
     });
 
   } catch (error) {
@@ -91,22 +116,26 @@ export async function DELETE(
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.role !== 'admin') {
+    if (!session?.user || session.user.role !== 'admin') {
       return NextResponse.json(
         { error: 'Access denied. Admin role required.' },
         { status: 403 }
       );
     }
 
-    await connectToDatabase();
+    await dbConnect();
 
     const partner = await IndexingPartner.findById(params.id);
-    
     if (!partner) {
       return NextResponse.json(
         { error: 'Partner not found' },
         { status: 404 }
       );
+    }
+
+    // Delete logo from Cloudinary if it exists
+    if (partner.logo?.publicId) {
+      await deleteFromStorage(partner.logo.publicId);
     }
 
     await IndexingPartner.findByIdAndDelete(params.id);

@@ -14,6 +14,7 @@ import {
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import styles from './HomePageManagement.module.scss';
+import { PLACEHOLDER_URLS } from '@/lib/placeholders';
 
 interface IndexingPartner {
   _id: string;
@@ -164,28 +165,25 @@ export default function HomePageManagement() {
     setIsSubmitting(true);
 
     try {
-      let logoData = editingPartner?.logo;
-
-      // Upload logo if a new file is selected
-      if (logoFile) {
-        logoData = await uploadLogo(logoFile);
-      }
-
       const url = editingPartner 
-        ? `/api/admin/indexing-partners/${editingPartner._id}`
+        ? `/api/indexing-partners/${editingPartner._id}`
         : '/api/indexing-partners';
       
       const method = editingPartner ? 'PUT' : 'POST';
 
+      const submitFormData = new FormData();
+      submitFormData.append('name', formData.name);
+      submitFormData.append('description', formData.description);
+      submitFormData.append('website', formData.website);
+      submitFormData.append('order', formData.order.toString());
+      
+      if (logoFile) {
+        submitFormData.append('logo', logoFile);
+      }
+
       const response = await fetch(url, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...formData,
-          logo: logoData
-        }),
+        body: submitFormData,
       });
 
       if (response.ok) {
@@ -411,7 +409,7 @@ export default function HomePageManagement() {
                     src={partner.logo.url} 
                     alt={partner.name}
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = '/images/placeholder-logo.png';
+                      (e.target as HTMLImageElement).src = PLACEHOLDER_URLS.png;
                     }}
                   />
                 </div>

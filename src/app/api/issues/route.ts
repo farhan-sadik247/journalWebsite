@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/pages/api/auth/[...nextauth]';
-import connectToDatabase from '@/lib/mongodb';
+import dbConnect from '@/lib/mongodb';
 import Volume from '@/models/Volume';
+import { uploadToStorage } from '@/lib/storage';
 
 export async function GET() {
   try {
@@ -15,7 +16,7 @@ export async function GET() {
       );
     }
 
-    await connectToDatabase();
+    await dbConnect();
 
     // Get all volumes with their issues and populate manuscripts
     const volumes = await Volume.find({})
@@ -53,17 +54,24 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session || (session.user.role !== 'editor' && session.user.role !== 'admin')) {
+    if (!session?.user || (session.user.role !== 'editor' && session.user.role !== 'admin')) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    await connectToDatabase();
+    await dbConnect();
 
-    const body = await request.json();
-    const { volumeId, number, title, description, editorialNote, coverImage, status, publishDate } = body;
+    const formData = await request.formData();
+    const volumeId = formData.get('volumeId') as string;
+    const number = parseInt(formData.get('number') as string);
+    const title = formData.get('title') as string;
+    const description = formData.get('description') as string;
+    const editorialNote = formData.get('editorialNote') as string;
+    const status = formData.get('status') as string;
+    const publishDate = formData.get('publishDate') as string;
+    const coverImageFile = formData.get('coverImage') as File;
 
     // Validate required fields
     if (!volumeId || !number || !title) {
@@ -91,7 +99,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if issue number already exists for this volume
-    const existingIssue = volume.issues.find((issue: any) => issue.number === parseInt(number));
+    const existingIssue = volume.issues.find((issue: any) => issue.number === number);
     if (existingIssue) {
       return NextResponse.json(
         { error: `Issue ${number} already exists for this volume` },
@@ -101,20 +109,27 @@ export async function POST(request: NextRequest) {
 
     // Prepare issue data
     const issueData: any = {
-      number: parseInt(number),
+      number,
       title,
       description: description || '',
       editorialNote: editorialNote || '',
       isPublished: status === 'published',
     };
 
-    // Handle cover image
-    if (coverImage) {
-      try {
-        issueData.coverImage = JSON.parse(coverImage);
-      } catch (e) {
-        issueData.coverImage = { url: '', publicId: '', originalName: '' };
-      }
+    // Handle cover image upload
+    if (coverImageFile) {
+      const buffer = Buffer.from(await coverImageFile.arrayBuffer());
+      const uploadResult = await uploadToStorage(
+        buffer,
+        coverImageFile.name,
+        'journal/covers'
+      );
+
+      issueData.coverImage = {
+        url: uploadResult.secure_url,
+        publicId: uploadResult.public_id,
+        originalName: coverImageFile.name
+      };
     }
 
     // Handle publish date

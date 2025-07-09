@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import styles from './IndexingPartners.module.scss';
+import { PLACEHOLDER_URLS } from '@/lib/placeholders';
 
 interface IndexingPartner {
   _id: string;
@@ -85,7 +86,7 @@ export default function IndexingPartners() {
                     src={partner.logo.url} 
                     alt={partner.name}
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = '/images/placeholder-logo.svg';
+                      (e.target as HTMLImageElement).src = PLACEHOLDER_URLS.svg;
                     }}
                   />
                 </div>

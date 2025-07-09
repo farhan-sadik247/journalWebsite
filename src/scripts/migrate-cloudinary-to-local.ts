@@ -13,7 +13,7 @@ import dbConnect from '../lib/mongodb';
 import Manuscript from '../models/Manuscript';
 import Review from '../models/Review';
 import UserManual from '../models/UserManual';
-import { cpanelStorage } from '../lib/storage';
+import { uploadToStorage } from '../lib/storage';
 import { promises as fs } from 'fs';
 import path from 'path';
 
@@ -154,8 +154,8 @@ async function migrateFile(fileToMigrate: FileToMigrate): Promise<string> {
       folder = 'user-manuals';
     }
 
-    // Upload to local storage
-    const uploadResult = await cpanelStorage.uploadFile(buffer, filename, folder);
+    // Upload using standard storage function
+    const uploadResult = await uploadToStorage(buffer, filename, folder);
     
     console.log(`Successfully migrated: ${fileToMigrate.cloudinaryId} -> ${uploadResult.secure_url}`);
     return uploadResult.secure_url;

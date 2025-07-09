@@ -41,22 +41,31 @@ export default function CategoriesPage() {
   const hasPermission = session?.user?.role === 'admin' || session?.user?.role === 'editor';
 
   useEffect(() => {
-    fetchCategories();
-  }, []);
+    if (session) {  // Only fetch if session exists
+      fetchCategories();
+    }
+  }, [session]);  // Add session as dependency
 
   const fetchCategories = async () => {
     try {
+      setLoading(true);  // Set loading at start of fetch
+      console.log('Fetching categories...');
       const response = await fetch('/api/categories');
       const data = await response.json();
+      console.log('Categories response:', data);
       
       if (response.ok) {
-        setCategories(data.categories);
+        console.log('Setting categories:', data.categories);
+        setCategories(data.categories || []);  // Ensure we always set an array
       } else {
+        console.error('Failed to fetch categories:', data.error);
         toast.error('Failed to fetch categories');
+        setCategories([]);  // Set empty array on error
       }
     } catch (error) {
       console.error('Error fetching categories:', error);
       toast.error('Error fetching categories');
+      setCategories([]);  // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -82,6 +91,17 @@ export default function CategoriesPage() {
     }
   };
 
+  // Show loading state while session is loading or categories are loading
+  if (!session || loading) {
+    return (
+      <div className={styles.loadingPage}>
+        <div className={styles.spinner}></div>
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  // Check if user has permission after session is loaded
   if (!hasPermission) {
     return (
       <div className={styles.unauthorizedPage}>
@@ -89,15 +109,6 @@ export default function CategoriesPage() {
           <h1>Access Denied</h1>
           <p>You don&apos;t have permission to manage categories. Only admins and editors can access this page.</p>
         </div>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className={styles.loadingPage}>
-        <div className={styles.spinner}></div>
-        <p>Loading categories...</p>
       </div>
     );
   }
@@ -119,7 +130,7 @@ export default function CategoriesPage() {
           </button>
         </div>
 
-        {categories.length > 0 ? (
+        {categories && categories.length > 0 ? (
           <div className={styles.categoriesTable}>
             <table>
               <thead>

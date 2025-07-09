@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { FiEye, FiDownload, FiChevronDown, FiChevronUp } from 'react-icons/fi';
 import styles from './HeroSection.module.scss';
+import { PLACEHOLDER_URLS } from '@/lib/placeholders';
 
 interface Article {
   _id: string;
@@ -180,7 +181,7 @@ export function HeroSection() {
                             src={category.image.url}
                             alt={category.image.altText || category.name}
                             onError={(e) => {
-                              (e.target as HTMLImageElement).src = '/images/placeholder-logo.svg';
+                              (e.target as HTMLImageElement).src = PLACEHOLDER_URLS.svg;
                             }}
                           />
                         </div>
@@ -188,7 +189,7 @@ export function HeroSection() {
                           <span className={styles.categoryName}>{category.name}</span>
                           {category.articleCount !== undefined && (
                             <span className={styles.categoryCount}>
-                              {category.articleCount} article{category.articleCount !== 1 ? 's' : ''}
+                              {category.articleCount}
                             </span>
                           )}
                         </div>
@@ -342,7 +343,7 @@ export function HeroSection() {
                           src={partner.logo.url}
                           alt={partner.name}
                           onError={(e) => {
-                            (e.target as HTMLImageElement).src = '/images/placeholder-logo.svg';
+                            (e.target as HTMLImageElement).src = PLACEHOLDER_URLS.svg;
                           }}
                         />
                       </div>

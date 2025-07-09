@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/pages/api/auth/[...nextauth]';
-import connectToDatabase from '@/lib/mongodb';
+import dbConnect from '@/lib/mongodb';
 import Volume from '@/models/Volume';
+import { uploadToStorage, deleteFromStorage } from '@/lib/storage';
 
 export async function GET(
   request: NextRequest,
@@ -18,7 +19,7 @@ export async function GET(
       );
     }
 
-    await connectToDatabase();
+    await dbConnect();
 
     const issueId = params.id;
 
@@ -74,86 +75,104 @@ export async function PUT(
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || (session.user.role !== 'admin' && session.user.role !== 'editor')) {
+    if (!session?.user || (session.user.role !== 'editor' && session.user.role !== 'admin')) {
       return NextResponse.json(
-        { error: 'Access denied. Admin or editor role required.' },
-        { status: 403 }
+        { error: 'Unauthorized' },
+        { status: 401 }
       );
     }
 
-    const { 
-      title, 
-      description, 
-      editorialNote, 
-      status, 
-      publishDate,
-      coverImage 
-    } = await request.json();
+    await dbConnect();
 
-    if (!title?.trim()) {
+    const formData = await request.formData();
+    const volumeId = formData.get('volumeId') as string;
+    const number = parseInt(formData.get('number') as string);
+    const title = formData.get('title') as string;
+    const description = formData.get('description') as string;
+    const editorialNote = formData.get('editorialNote') as string;
+    const status = formData.get('status') as string;
+    const publishDate = formData.get('publishDate') as string;
+    const coverImageFile = formData.get('coverImage') as File;
+
+    // Validate required fields
+    if (!volumeId || !number || !title) {
       return NextResponse.json(
-        { error: 'Title is required' },
+        { error: 'Volume ID, number, and title are required' },
         { status: 400 }
       );
     }
 
-    await connectToDatabase();
-
-    const issueId = params.id;
-
-    // Find the volume that contains the issue
-    const volume = await Volume.findOne({ 'issues._id': issueId });
-    
+    // Find the volume and issue
+    const volume = await Volume.findById(volumeId);
     if (!volume) {
       return NextResponse.json(
-        { error: 'Issue not found' },
+        { error: 'Volume not found' },
         { status: 404 }
       );
     }
 
-    const issue = volume.issues.id(issueId);
-    
-    if (!issue) {
+    const issueIndex = volume.issues.findIndex((issue: any) => issue._id.toString() === params.id);
+    if (issueIndex === -1) {
       return NextResponse.json(
         { error: 'Issue not found' },
         { status: 404 }
       );
     }
 
-    // Update issue properties
-    issue.title = title.trim();
-    issue.description = description || '';
-    issue.editorialNote = editorialNote || '';
-    issue.isPublished = status === 'published';
+    // Check if new issue number conflicts with another issue in the same volume
+    const existingIssue = volume.issues.find((issue: any) => 
+      issue.number === number && issue._id.toString() !== params.id
+    );
+    if (existingIssue) {
+      return NextResponse.json(
+        { error: `Issue ${number} already exists for this volume` },
+        { status: 400 }
+      );
+    }
 
     // Handle cover image
-    if (coverImage) {
-      try {
-        issue.coverImage = JSON.parse(coverImage);
-      } catch (e) {
-        console.error('Invalid cover image format:', e);
-        issue.coverImage = { url: '', publicId: '', originalName: '' };
+    let coverImageData = volume.issues[issueIndex].coverImage;
+    if (coverImageFile) {
+      // Delete old cover image if it exists
+      if (volume.issues[issueIndex].coverImage?.publicId) {
+        await deleteFromStorage(volume.issues[issueIndex].coverImage.publicId);
       }
+
+      // Upload new cover image
+      const buffer = Buffer.from(await coverImageFile.arrayBuffer());
+      const uploadResult = await uploadToStorage(
+        buffer,
+        coverImageFile.name,
+        'journal/covers'
+      );
+
+      coverImageData = {
+        url: uploadResult.secure_url,
+        publicId: uploadResult.public_id,
+        originalName: coverImageFile.name
+      };
     }
 
-    // Handle publish date
-    if (publishDate) {
-      issue.publishedDate = new Date(publishDate);
-    } else if (status === 'published' && !issue.publishedDate) {
-      // Set publish date to now if publishing for the first time
-      issue.publishedDate = new Date();
-    }
+    // Update issue data
+    volume.issues[issueIndex] = {
+      ...volume.issues[issueIndex].toObject(),
+      number,
+      title,
+      description: description || '',
+      editorialNote: editorialNote || '',
+      isPublished: status === 'published',
+      publishedDate: publishDate ? new Date(publishDate) : volume.issues[issueIndex].publishedDate,
+      coverImage: coverImageData,
+      lastModifiedBy: session.user.id,
+      lastModifiedAt: new Date()
+    };
 
-    // Update modification info
-    volume.lastModifiedBy = session.user.id;
-    volume.updatedAt = new Date();
-    
     await volume.save();
 
     return NextResponse.json({
       message: 'Issue updated successfully',
       issue: {
-        ...issue.toObject(),
+        ...volume.issues[issueIndex].toObject(),
         volume: {
           _id: volume._id,
           number: volume.number,
@@ -178,23 +197,18 @@ export async function DELETE(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    
-    if (!session || (session.user.role !== 'admin' && session.user.role !== 'editor')) {
+
+    if (!session?.user || (session.user.role !== 'editor' && session.user.role !== 'admin')) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    await connectToDatabase();
+    await dbConnect();
 
-    const issueId = params.id;
-
-    // Find the volume that contains this issue
-    const volume = await Volume.findOne({
-      'issues._id': issueId
-    });
-
+    // Find the volume containing the issue
+    const volume = await Volume.findOne({ 'issues._id': params.id });
     if (!volume) {
       return NextResponse.json(
         { error: 'Issue not found' },
@@ -202,25 +216,21 @@ export async function DELETE(
       );
     }
 
-    // Find the specific issue
-    const issue = volume.issues.id(issueId);
-    if (!issue) {
+    const issueIndex = volume.issues.findIndex((issue: any) => issue._id.toString() === params.id);
+    if (issueIndex === -1) {
       return NextResponse.json(
         { error: 'Issue not found' },
         { status: 404 }
       );
     }
 
-    // Check if issue is published (optional protection)
-    if (issue.isPublished) {
-      return NextResponse.json(
-        { error: 'Cannot delete published issue' },
-        { status: 400 }
-      );
+    // Delete cover image from Cloudinary if it exists
+    if (volume.issues[issueIndex].coverImage?.publicId) {
+      await deleteFromStorage(volume.issues[issueIndex].coverImage.publicId);
     }
 
     // Remove the issue from the volume
-    volume.issues.pull(issueId);
+    volume.issues.splice(issueIndex, 1);
     await volume.save();
 
     return NextResponse.json({

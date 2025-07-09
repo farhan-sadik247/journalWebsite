@@ -1,43 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/pages/api/auth/[...nextauth]';
-import connectDB from '@/lib/mongodb';
+import dbConnect from '@/lib/mongodb';
 import UserManual from '@/models/UserManual';
 import { uploadToStorage, deleteFromStorage } from '@/lib/storage';
-
-export async function GET(request: NextRequest) {
-  try {
-    await connectDB();
-    
-    const userManualItems = await UserManual.find({ isActive: true })
-      .sort({ order: 1, createdAt: 1 });
-    
-    return NextResponse.json({
-      success: true,
-      userManualItems,
-    });
-  } catch (error) {
-    console.error('Error fetching user manual items:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch user manual items' },
-      { status: 500 }
-    );
-  }
-}
 
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session || !session.user.roles?.includes('admin')) {
+    if (!session?.user || session.user.role !== 'admin') {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { error: 'Unauthorized. Admin access required.' },
         { status: 401 }
       );
     }
 
-    await connectDB();
-    
     const formData = await request.formData();
     const type = formData.get('type') as string;
     const heading = formData.get('heading') as string;
@@ -45,57 +23,43 @@ export async function POST(request: NextRequest) {
     const order = parseInt(formData.get('order') as string) || 0;
     const imageFile = formData.get('image') as File;
 
-    if (!type || !heading) {
+    if (!type || !heading || !content) {
       return NextResponse.json(
-        { success: false, error: 'Type and heading are required' },
+        { error: 'Type, heading, and content are required' },
         { status: 400 }
       );
     }
 
-    let userManualData: any = {
-      type,
-      heading,
-      order,
-    };
+    await dbConnect();
 
-    if (type === 'text') {
-      if (!content) {
-        return NextResponse.json(
-          { success: false, error: 'Content is required for text type' },
-          { status: 400 }
-        );
-      }
-      userManualData.content = content;
-    } else if (type === 'image') {
-      if (!imageFile) {
-        return NextResponse.json(
-          { success: false, error: 'Image file is required for image type' },
-          { status: 400 }
-        );
-      }
-
-      // Upload image locally
-      const bytes = await imageFile.arrayBuffer();
-      const buffer = Buffer.from(bytes);
+    let imageData = null;
+    if (imageFile) {
+      // Convert file to buffer
+      const buffer = Buffer.from(await imageFile.arrayBuffer());
       
+      // Upload to storage
       const uploadResult = await uploadToStorage(buffer, imageFile.name, 'user-manual');
-
-      userManualData.content = content || 'Image content'; // Provide default content for images
-      userManualData.imageUrl = uploadResult.secure_url;
+      
+      imageData = {
+        url: uploadResult.secure_url,
+        publicId: uploadResult.public_id
+      };
     }
 
-    const userManualItem = new UserManual(userManualData);
-    await userManualItem.save();
-
-    return NextResponse.json({
-      success: true,
-      userManualItem,
-      message: 'User manual item created successfully',
+    const userManual = await UserManual.create({
+      type,
+      heading,
+      content,
+      order,
+      image: imageData
     });
+
+    return NextResponse.json(userManual, { status: 201 });
+
   } catch (error) {
-    console.error('Error creating user manual item:', error);
+    console.error('Error creating user manual:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to create user manual item' },
+      { error: 'Failed to create user manual' },
       { status: 500 }
     );
   }
@@ -105,15 +69,13 @@ export async function PUT(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session || !session.user.roles?.includes('admin')) {
+    if (!session?.user || session.user.role !== 'admin') {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { error: 'Unauthorized. Admin access required.' },
         { status: 401 }
       );
     }
 
-    await connectDB();
-    
     const formData = await request.formData();
     const id = formData.get('id') as string;
     const type = formData.get('type') as string;
@@ -122,76 +84,80 @@ export async function PUT(request: NextRequest) {
     const order = parseInt(formData.get('order') as string) || 0;
     const imageFile = formData.get('image') as File;
 
-    if (!id || !type || !heading) {
+    if (!id || !type || !heading || !content) {
       return NextResponse.json(
-        { success: false, error: 'ID, type, and heading are required' },
+        { error: 'ID, type, heading, and content are required' },
         { status: 400 }
       );
     }
 
-    const existingItem = await UserManual.findById(id);
-    if (!existingItem) {
+    await dbConnect();
+
+    const existingManual = await UserManual.findById(id);
+    if (!existingManual) {
       return NextResponse.json(
-        { success: false, error: 'User manual item not found' },
+        { error: 'User manual not found' },
         { status: 404 }
       );
     }
 
-    let updateData: any = {
-      type,
-      heading,
-      order,
-    };
-
-    if (type === 'text') {
-      if (!content) {
-        return NextResponse.json(
-          { success: false, error: 'Content is required for text type' },
-          { status: 400 }
-        );
+    let imageData = existingManual.image;
+    if (imageFile) {
+      // Delete old image if it exists
+      if (existingManual.image?.publicId) {
+        await deleteFromStorage(existingManual.image.publicId);
       }
-      updateData.content = content;
-      updateData.imageUrl = null; // Clear image URL if changing to text
-    } else if (type === 'image') {
-      updateData.content = content || 'Image content'; // Provide default content for images
+
+      // Convert file to buffer
+      const buffer = Buffer.from(await imageFile.arrayBuffer());
       
-      if (imageFile && imageFile.size > 0) {
-        // Delete old image locally if exists
-        if (existingItem.imageUrl) {
-          try {
-            // Extract the public_id from the URL path
-            const urlPath = existingItem.imageUrl.replace(/^https?:\/\/[^\/]+/, '');
-            const publicId = urlPath.replace(/^\//, ''); // Remove leading slash
-            await deleteFromStorage(publicId);
-          } catch (error) {
-            console.error('Error deleting old image:', error);
-          }
-        }
-
-        // Upload new image locally
-        const bytes = await imageFile.arrayBuffer();
-        const buffer = Buffer.from(bytes);
-        
-        const uploadResult = await uploadToStorage(buffer, imageFile.name, 'user-manual');
-        updateData.imageUrl = uploadResult.secure_url;
-      }
+      // Upload to storage
+      const uploadResult = await uploadToStorage(buffer, imageFile.name, 'user-manual');
+      
+      imageData = {
+        url: uploadResult.secure_url,
+        publicId: uploadResult.public_id
+      };
     }
 
-    const updatedItem = await UserManual.findByIdAndUpdate(
+    const updatedManual = await UserManual.findByIdAndUpdate(
       id,
-      updateData,
+      {
+        type,
+        heading,
+        content,
+        order,
+        image: imageData
+      },
       { new: true }
     );
 
-    return NextResponse.json({
-      success: true,
-      userManualItem: updatedItem,
-      message: 'User manual item updated successfully',
-    });
+    return NextResponse.json(updatedManual);
+
   } catch (error) {
-    console.error('Error updating user manual item:', error);
+    console.error('Error updating user manual:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to update user manual item' },
+      { error: 'Failed to update user manual' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    await dbConnect();
+    
+    const manuals = await UserManual.find()
+      .sort('order')
+      .select('-__v')
+      .lean();
+    
+    return NextResponse.json(manuals);
+    
+  } catch (error) {
+    console.error('Error fetching user manuals:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch user manuals' },
       { status: 500 }
     );
   }
@@ -201,55 +167,46 @@ export async function DELETE(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session || !session.user.roles?.includes('admin')) {
+    if (!session?.user || session.user.role !== 'admin') {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { error: 'Unauthorized. Admin access required.' },
         { status: 401 }
       );
     }
 
-    await connectDB();
-    
-    const url = new URL(request.url);
-    const id = url.searchParams.get('id');
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
 
     if (!id) {
       return NextResponse.json(
-        { success: false, error: 'ID is required' },
+        { error: 'ID is required' },
         { status: 400 }
       );
     }
 
-    const existingItem = await UserManual.findById(id);
-    if (!existingItem) {
+    await dbConnect();
+
+    const manual = await UserManual.findById(id);
+    if (!manual) {
       return NextResponse.json(
-        { success: false, error: 'User manual item not found' },
+        { error: 'User manual not found' },
         { status: 404 }
       );
     }
 
-    // Delete image locally if exists
-    if (existingItem.imageUrl) {
-      try {
-        // Extract the public_id from the URL path
-        const urlPath = existingItem.imageUrl.replace(/^https?:\/\/[^\/]+/, '');
-        const publicId = urlPath.replace(/^\//, ''); // Remove leading slash
-        await deleteFromStorage(publicId);
-      } catch (error) {
-        console.error('Error deleting image:', error);
-      }
+    // Delete associated image if it exists
+    if (manual.image?.publicId) {
+      await deleteFromStorage(manual.image.publicId);
     }
 
     await UserManual.findByIdAndDelete(id);
 
-    return NextResponse.json({
-      success: true,
-      message: 'User manual item deleted successfully',
-    });
+    return NextResponse.json({ message: 'User manual deleted successfully' });
+
   } catch (error) {
-    console.error('Error deleting user manual item:', error);
+    console.error('Error deleting user manual:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to delete user manual item' },
+      { error: 'Failed to delete user manual' },
       { status: 500 }
     );
   }

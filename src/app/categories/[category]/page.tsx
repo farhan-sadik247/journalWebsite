@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { FiArrowLeft, FiPlusCircle, FiCalendar, FiEye, FiDownload } from 'react-icons/fi';
 import styles from './CategoryPage.module.scss';
+import { PLACEHOLDER_URLS } from '@/lib/placeholders';
 
 interface Article {
   _id: string;
@@ -107,7 +108,7 @@ export default function CategoryPage() {
                 src={category.image.url}
                 alt={category.image.altText || categoryName}
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = '/images/placeholder-logo.svg';
+                  (e.target as HTMLImageElement).src = PLACEHOLDER_URLS.svg;
                 }}
               />
             </div>

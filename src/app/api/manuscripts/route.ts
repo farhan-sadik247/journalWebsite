@@ -57,15 +57,19 @@ export async function POST(request: NextRequest) {
         console.log('Uploading file:', file.name, 'size:', file.size);
         try {
           const buffer = Buffer.from(await file.arrayBuffer());
-          const uploadResult = await uploadToStorage(buffer, file.name, 'manuscripts');
+          const uploadResult = await uploadToStorage(
+            buffer, 
+            file.name,
+            `manuscripts/${Date.now()}`
+          );
           
           console.log('Upload successful:', uploadResult.public_id, 'URL:', uploadResult.secure_url);
           
           uploadedFiles.push({
             filename: uploadResult.public_id,
             originalName: file.name,
-            storageId: uploadResult.public_id, // Use storageId for new system
-            cloudinaryId: uploadResult.public_id, // Keep for backward compatibility
+            storageId: uploadResult.public_id,
+            cloudinaryId: uploadResult.public_id,
             url: uploadResult.secure_url,
             type: 'manuscript',
             size: uploadResult.bytes,
@@ -250,288 +254,47 @@ export async function GET(request: NextRequest) {
         { $or: [{ volume: { $exists: false } }, { volume: null }] }
       ];
     }
-    
+
+    // Add search query filter
     if (query) {
-      filter.$text = { $search: query };
+      filter.$or = [
+        { title: { $regex: query, $options: 'i' } },
+        { abstract: { $regex: query, $options: 'i' } },
+        { keywords: { $regex: query, $options: 'i' } },
+        { 'authors.name': { $regex: query, $options: 'i' } }
+      ];
     }
 
+    // Calculate skip value for pagination
     const skip = (page - 1) * limit;
 
-    // Aggregate pipeline to include review counts and dynamic status for editor dashboard
-    const pipeline: any[] = [
-      { $match: filter },
-      {
-        $lookup: {
-          from: 'reviews',
-          localField: '_id',
-          foreignField: 'manuscriptId',
-          as: 'reviews'
-        }
-      },
-      {
-        $addFields: {
-          reviewsCount: { $size: '$reviews' },
-          completedReviews: {
-            $size: {
-              $filter: {
-                input: '$reviews',
-                cond: { $eq: ['$$this.status', 'completed'] }
-              }
-            }
-          },
-          completedReviewsArray: {
-            $filter: {
-              input: '$reviews',
-              cond: { $eq: ['$$this.status', 'completed'] }
-            }
-          }
-        }
-      },
-      {
-        $addFields: {
-          // Dynamically determine status based on completed reviews - updated for single reviews
-          dynamicStatus: {
-            $cond: {
-              if: { $gte: ['$completedReviews', 1] }, // Check for 1+ reviews instead of 2+
-              then: {
-                $cond: {
-                  if: { $gte: ['$completedReviews', 2] }, // 2+ reviews - use majority rule
-                  then: {
-                    $let: {
-                      vars: {
-                        recommendations: {
-                          $map: {
-                            input: '$completedReviewsArray',
-                            as: 'review',
-                            in: '$$review.recommendation'
-                          }
-                        }
-                      },
-                      in: {
-                        $let: {
-                          vars: {
-                            acceptCount: {
-                              $size: {
-                                $filter: {
-                                  input: '$$recommendations',
-                                  cond: { $eq: ['$$this', 'accept'] }
-                                }
-                              }
-                            },
-                            rejectCount: {
-                              $size: {
-                                $filter: {
-                                  input: '$$recommendations',
-                                  cond: { $eq: ['$$this', 'reject'] }
-                                }
-                              }
-                            },
-                            majorRevisionCount: {
-                              $size: {
-                                $filter: {
-                                  input: '$$recommendations',
-                                  cond: { $eq: ['$$this', 'major-revision'] }
-                                }
-                              }
-                            },
-                            minorRevisionCount: {
-                              $size: {
-                                $filter: {
-                                  input: '$$recommendations',
-                                  cond: { $eq: ['$$this', 'minor-revision'] }
-                                }
-                              }
-                            },
-                            totalReviews: { $size: '$$recommendations' }
-                          },
-                          in: {
-                            $cond: {
-                              if: { $gte: ['$$acceptCount', { $ceil: { $divide: ['$$totalReviews', 2] } }] },
-                              then: 'accepted',
-                              else: {
-                                $cond: {
-                                  if: { $gte: ['$$rejectCount', { $ceil: { $divide: ['$$totalReviews', 2] } }] },
-                                  then: 'rejected',
-                                  else: {
-                                    $cond: {
-                                      if: { $gt: ['$$majorRevisionCount', 0] },
-                                      then: 'major-revision-requested',
-                                      else: {
-                                        $cond: {
-                                          if: { $gt: ['$$minorRevisionCount', 0] },
-                                          then: 'minor-revision-requested',
-                                          else: 'under-editorial-review'
-                                        }
-                                      }
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  },
-                  else: { // Single review logic
-                    $let: {
-                      vars: {
-                        singleRecommendation: { $arrayElemAt: ['$completedReviewsArray.recommendation', 0] }
-                      },
-                      in: {
-                        $cond: {
-                          if: { $eq: ['$$singleRecommendation', 'accept'] },
-                          then: 'accepted',
-                          else: {
-                            $cond: {
-                              if: { $eq: ['$$singleRecommendation', 'reject'] },
-                              then: 'rejected',
-                              else: {
-                                $cond: {
-                                  if: { $eq: ['$$singleRecommendation', 'major-revision'] },
-                                  then: 'major-revision-requested',
-                                  else: {
-                                    $cond: {
-                                      if: { $eq: ['$$singleRecommendation', 'minor-revision'] },
-                                      then: 'minor-revision-requested',
-                                      else: '$status' // Keep current status for unclear recommendations
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              },
-              else: '$status'
-            }
-          }
-        }
-      },
-      {
-        $addFields: {
-          // Use dynamic status if we have completed reviews, otherwise keep original status
-          finalStatus: {
-            $cond: {
-              if: { $gte: ['$completedReviews', 1] }, // Updated threshold to 1+ reviews
-              then: '$dynamicStatus',
-              else: '$status'
-            }
-          }
-        }
-      },
-      {
-        $addFields: {
-          status: '$finalStatus',
-          // Transform authors to include firstName and lastName for frontend compatibility
-          authors: {
-            $map: {
-              input: '$authors',
-              as: 'author',
-              in: {
-                firstName: {
-                  $first: {
-                    $split: ['$$author.name', ' ']
-                  }
-                },
-                lastName: {
-                  $let: {
-                    vars: {
-                      nameParts: { $split: ['$$author.name', ' '] }
-                    },
-                    in: {
-                      $cond: {
-                        if: { $gt: [{ $size: '$$nameParts' }, 1] },
-                        then: {
-                          $reduce: {
-                            input: { $slice: ['$$nameParts', 1, { $subtract: [{ $size: '$$nameParts' }, 1] }] },
-                            initialValue: '',
-                            in: {
-                              $concat: [
-                                '$$value',
-                                { $cond: [{ $eq: ['$$value', ''] }, '', ' '] },
-                                '$$this'
-                              ]
-                            }
-                          }
-                        },
-                        else: ''
-                      }
-                    }
-                  }
-                },
-                email: '$$author.email',
-                affiliation: '$$author.affiliation',
-                orcid: '$$author.orcid',
-                isCorresponding: '$$author.isCorresponding'
-              }
-            }
-          }
-        }
-      },
-      {
-        $lookup: {
-          from: 'users',
-          localField: 'submittedBy',
-          foreignField: '_id',
-          as: 'submittedBy'
-        }
-      },
-      {
-        $unwind: {
-          path: '$submittedBy',
-          preserveNullAndEmptyArrays: true
-        }
-      },
-      {
-        $project: {
-          reviews: 0,
-          completedReviewsArray: 0,
-          dynamicStatus: 0,
-          finalStatus: 0,
-          'submittedBy.password': 0,
-          'submittedBy.role': 0
-        }
-      },
-      { $sort: { submissionDate: -1 } },
-      { $skip: skip },
-      { $limit: limit }
-    ];
+    // Get total count for pagination
+    const total = await Manuscript.countDocuments(filter);
 
-    const [manuscripts, total] = await Promise.all([
-      Manuscript.aggregate(pipeline),
-      Manuscript.countDocuments(filter),
-    ]);
-
-    console.log('Manuscripts query result:', {
-      filter,
-      manuscriptsCount: manuscripts.length,
-      total,
-      manuscripts: manuscripts.map(m => ({
-        id: m._id,
-        title: m.title,
-        submittedBy: m.submittedBy,
-        status: m.status
-      }))
-    });
+    // Get manuscripts with pagination
+    const manuscripts = await Manuscript.find(filter)
+      .sort({ submissionDate: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate('submittedBy', 'name email')
+      .populate('assignedEditor', 'name email')
+      .populate('assignedCopyEditor', 'name email')
+      .lean();
 
     return NextResponse.json({
       manuscripts,
       pagination: {
+        total,
         page,
         limit,
-        total,
-        pages: Math.ceil(total / limit),
-      },
+        pages: Math.ceil(total / limit)
+      }
     });
+
   } catch (error) {
-    console.error('Get manuscripts error:', error);
+    console.error('Error fetching manuscripts:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Failed to fetch manuscripts' },
       { status: 500 }
     );
   }
