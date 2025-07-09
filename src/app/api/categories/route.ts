@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/pages/api/auth/[...nextauth]';
-import dbConnect from '@/lib/mongodb';
+import connectToDatabase from '@/lib/mongodb';
 import Category from '@/models/Category';
 import Manuscript from '@/models/Manuscript';
 import mongoose from 'mongoose';
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await dbConnect();
+    await connectToDatabase();
 
     // Check if category with same name exists
     const existingCategory = await Category.findOne({ name });
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    await dbConnect();
+    await connectToDatabase();
     
     const { searchParams } = new URL(request.url);
     const activeOnly = searchParams.get('activeOnly') === 'true';

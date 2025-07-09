@@ -204,7 +204,7 @@ export function HeroSection() {
                             {category.name}
                             {category.articleCount !== undefined && (
                               <span className={styles.categoryCount}>
-                                ({category.articleCount})
+                                {` (${category.articleCount})`}
                               </span>
                             )}
                           </span>
