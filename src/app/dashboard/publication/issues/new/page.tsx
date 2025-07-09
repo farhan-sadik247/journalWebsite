@@ -66,6 +66,8 @@ export default function NewIssuePage() {
       }
     } catch (error) {
       console.error('Error fetching volumes:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -353,9 +355,9 @@ export default function NewIssuePage() {
               <button
                 type="submit"
                 className="btn btn-primary"
-                disabled={isLoading || !formData.volumeId}
+                disabled={isSubmitting || !formData.volumeId}
               >
-                {isLoading ? (
+                {isSubmitting ? (
                   <>Creating...</>
                 ) : (
                   <>
