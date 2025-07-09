@@ -217,12 +217,17 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
   // Function declarations (hoisted)
   async function fetchManuscript() {
     try {
+      setIsLoading(true);
+      setError(null);
+      
       // Add cache-busting to ensure fresh data
       const response = await fetch(`/api/manuscripts/${params.id}?t=${Date.now()}`, {
         cache: 'no-store'
       });
-      if (response.ok) {
-        const data = await response.json();
+
+      const data = await response.json();
+
+      if (response.ok && data.manuscript) {
         console.log('Fetched manuscript data:', {
           id: data.manuscript._id,
           status: data.manuscript.status,
@@ -241,14 +246,27 @@ export default function ManuscriptDetailPage({ params }: { params: { id: string 
         }
         
         setManuscript(data.manuscript);
-      } else if (response.status === 404) {
-        setError('Manuscript not found');
       } else {
-        setError('Failed to load manuscript');
+        // Handle specific error cases
+        if (response.status === 404) {
+          setError('Manuscript not found');
+          toast.error('Manuscript not found');
+        } else if (response.status === 401) {
+          setError('Please sign in to view this manuscript');
+          router.push('/auth/signin');
+        } else if (response.status === 403) {
+          setError('You do not have permission to view this manuscript');
+          toast.error('Access denied');
+        } else {
+          console.error('Failed to load manuscript:', data.error);
+          setError(data.error || 'Failed to load manuscript');
+          toast.error(data.error || 'Failed to load manuscript');
+        }
       }
     } catch (error) {
       console.error('Error fetching manuscript:', error);
-      setError('Failed to load manuscript');
+      setError('Failed to load manuscript. Please try again later.');
+      toast.error('Failed to load manuscript');
     } finally {
       setIsLoading(false);
     }
