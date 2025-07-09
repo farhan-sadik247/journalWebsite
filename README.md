@@ -8,6 +8,12 @@ The Global Journal of Advanced Technology platform is a full-featured academic p
 
 **Motto**: *Innovating the Future, One Breakthrough at a Time*
 
+## Live Demo
+
+🌐 **[View Live Application](https://gjadt.vercel.app/)**
+
+Experience the full functionality of the Academic Journal Management System with our live demo deployment.
+
 ## 🚀 Key Features
 
 - **Multi-role User Management** (Author, Reviewer, Editor, Copy Editor, Admin)
@@ -20,6 +26,61 @@ The Global Journal of Advanced Technology platform is a full-featured academic p
 - **Editorial Board Management**
 - **Analytics and Reporting**
 - **Responsive Design** for all devices
+
+## Technology Stack
+
+### Frontend Technologies
+- **Next.js 13+**: React framework with App Router for server-side rendering and static generation
+- **React 18**: Modern React with hooks and concurrent features
+- **TypeScript**: Type-safe JavaScript for better development experience
+- **SCSS Modules**: Modular CSS with Sass preprocessing for component-scoped styling
+- **Responsive Design**: Mobile-first approach with CSS Grid and Flexbox
+
+### Backend Technologies
+- **Next.js API Routes**: Server-side API endpoints with built-in middleware support
+- **Node.js**: JavaScript runtime for server-side operations
+- **MongoDB**: NoSQL document database for flexible data storage
+- **Mongoose**: MongoDB object modeling for Node.js with schema validation
+
+### Authentication & Security
+- **NextAuth.js**: Complete authentication solution with multiple providers
+- **Google OAuth 2.0**: Secure authentication via Google accounts
+- **JWT (JSON Web Tokens)**: Stateless authentication tokens
+- **bcrypt**: Password hashing for credential-based authentication
+- **CSRF Protection**: Cross-site request forgery prevention
+
+### File Storage & Media
+- **Cloudinary**: Cloud-based image and video management service
+- **Multer**: Middleware for handling multipart/form-data file uploads
+- **File Type Validation**: Server-side file type and size validation
+- **Image Optimization**: Automatic image compression and format conversion
+
+### Email & Communication
+- **Nodemailer**: Email sending library for notifications
+- **SMTP Integration**: Support for various email providers (Gmail, Outlook, etc.)
+- **Email Templates**: Dynamic HTML email templates with variables
+- **Notification System**: Real-time notifications for workflow events
+
+
+### Database Schema
+- **User Management**: Comprehensive user profiles with role-based permissions
+- **Manuscript Workflow**: Complete manuscript lifecycle tracking
+- **Review System**: Peer review assignments and feedback storage
+- **Payment Records**: Transaction history and verification status
+- **Analytics Data**: Usage statistics and performance metrics
+
+### Deployment & Infrastructure
+- **Vercel**: Recommended deployment platform for Next.js applications
+- **MongoDB Atlas**: Cloud-hosted MongoDB database service
+- **Environment Variables**: Secure configuration management
+- **CDN Integration**: Content delivery network for static assets
+
+### API Architecture
+- **RESTful APIs**: Standard HTTP methods for CRUD operations
+- **Middleware Chain**: Request validation, authentication, and error handling
+- **Rate Limiting**: API request throttling for security
+- **Data Validation**: Input sanitization and validation using Joi/Zod
+- **Error Handling**: Consistent error responses across all endpoints
 
 ## 👥 User Roles & Permissions
 
@@ -267,10 +328,7 @@ The Global Journal of Advanced Technology platform is a full-featured academic p
 - Payment Verification: Manual verification of payment receipts
 
 ### Fee Structure
-- Standard publication fees apply
-- Discounts for developing countries
-- Complete waivers for least developed countries
-- Institutional billing options available
+- Fee update by Admin(Fee Config)
 
 ## 🔍 Search & Discovery
 
