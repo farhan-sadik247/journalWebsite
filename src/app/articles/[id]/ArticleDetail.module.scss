@@ -131,12 +131,34 @@
 .metadata {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  align-items: center;
+}
 
-  span {
-    font-size: 0.9rem;
-    font-weight: 500;
+.metadataItem {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  color: var(--gray-600);
+  font-size: var(--font-size-sm);
+
+  svg {
+    width: 16px;
+    height: 16px;
+    color: var(--gray-500);
+  }
+}
+
+.doiLink {
+  color: var(--primary-color);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  
+  &:hover {
+    text-decoration: underline;
   }
 }
 

@@ -19,6 +19,7 @@ import {
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import styles from './ArticleDetail.module.scss';
+import { generateDOIUrl } from '@/lib/doiUtils';
 
 interface Article {
   _id: string;
@@ -214,18 +215,43 @@ export default function ArticleDetailPage({ params }: { params: { id: string } }
       <article className={styles.article}>
         {/* Title and Metadata */}
         <header className={styles.articleHeader}>
+          {/* Article Metadata */}
           <div className={styles.metadata}>
-            <span className={styles.category}>{article.category}</span>
-            {(article.volume || article.issue) && (
-              <span className={styles.publication}>
-                {article.volume && `Vol. ${article.volume}`}
-                {article.volume && article.issue && ', '}
-                {article.issue && `No. ${article.issue}`}
-              </span>
+            <div className={styles.metadataItem}>
+              <FiCalendar />
+              <span>Published: {new Date(article.publishedDate).toLocaleDateString()}</span>
+            </div>
+            <div className={styles.metadataItem}>
+              <FiTag />
+              <span>{article.category}</span>
+            </div>
+            {article.volume && article.issue && (
+              <div className={styles.metadataItem}>
+                <FiFileText />
+                <span>Volume {article.volume}, Issue {article.issue}</span>
+              </div>
             )}
-            {article.pages && (
-              <span className={styles.pages}>Pages: {article.pages}</span>
+            {article.doi && (
+              <div className={styles.metadataItem}>
+                <FiExternalLink />
+                <a 
+                  href={generateDOIUrl(article.doi)} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className={styles.doiLink}
+                >
+                  DOI: {article.doi}
+                </a>
+              </div>
             )}
+            <div className={styles.metadataItem}>
+              <FiEye />
+              <span>{article.metrics?.views || 0} Views</span>
+            </div>
+            <div className={styles.metadataItem}>
+              <FiDownload />
+              <span>{article.metrics?.downloads || 0} Downloads</span>
+            </div>
           </div>
 
           <h1 className={styles.title}>{article.title}</h1>

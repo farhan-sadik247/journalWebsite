@@ -150,6 +150,20 @@ export function HeroSection() {
     return words.slice(0, maxWords).join(' ') + '...';
   };
 
+  const formatArticleInfo = (article: Article) => {
+    const parts = [article.category];
+    
+    if (article.volume && article.issue) {
+      parts.push(`${new Date(article.publishedDate).getFullYear()},${article.volume}(${article.issue})`);
+    }
+    
+    if (article.doi) {
+      parts.push(`DOI: ${article.doi}`);
+    }
+    
+    return parts.join(', ');
+  };
+
   return (
     <section className={styles.hero}>
       <div className="container">
@@ -186,12 +200,14 @@ export function HeroSection() {
                           />
                         </div>
                         <div className={styles.categoryInfo}>
-                          <span className={styles.categoryName}>{category.name}</span>
-                          {category.articleCount !== undefined && (
-                            <span className={styles.categoryCount}>
-                              {category.articleCount}
-                            </span>
-                          )}
+                          <span className={styles.categoryName}>
+                            {category.name}
+                            {category.articleCount !== undefined && (
+                              <span className={styles.categoryCount}>
+                                ({category.articleCount})
+                              </span>
+                            )}
+                          </span>
                         </div>
                       </Link>
                     ))}
@@ -285,7 +301,7 @@ export function HeroSection() {
                       </div>
                       
                       <div className={styles.publicationInfo}>
-                        <span className={styles.category}>{article.category}</span>
+                        <span className={styles.category}>{formatArticleInfo(article)}</span>
                         <span className={styles.year}>{new Date(article.publishedDate).getFullYear()}</span>
                         {article.volume && (
                           <span className={styles.volumeIssue}>
