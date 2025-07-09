@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Filter based on user role and permissions
-    if (session.user.roles?.includes('reviewer')) {
+    if (session.user.roles?.includes('reviewer') || session.user.roles?.includes('copy-editor')) {
       query.reviewerId = session.user.id;
     } else if (session.user.roles?.includes('editor') || session.user.roles?.includes('admin')) {
       // Editors and admins can see all reviews, filter by manuscript when specified
@@ -163,10 +163,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Reviewer not found' }, { status: 400 });
     }
     
-    // Check if user has reviewer role (either in roles array or old role field)
-    const hasReviewerRole = reviewer.roles?.includes('reviewer') || reviewer.role === 'reviewer';
-    if (!hasReviewerRole) {
-      return NextResponse.json({ error: 'User is not a reviewer' }, { status: 400 });
+    // Check if user has reviewer or copy-editor role (either in roles array or old role field)
+    const hasReviewerOrCopyEditorRole =
+      reviewer.roles?.includes('reviewer') ||
+      reviewer.roles?.includes('copy-editor') ||
+      reviewer.role === 'reviewer' ||
+      reviewer.role === 'copy-editor';
+    if (!hasReviewerOrCopyEditorRole) {
+      return NextResponse.json({ error: 'User is not a reviewer or copy-editor' }, { status: 400 });
     }
 
     // Check if review already assigned
