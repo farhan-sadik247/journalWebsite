@@ -12,15 +12,20 @@ export async function POST(
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session?.user?.email) {
+    if (!session?.user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
     }
 
-    // Check if user has editor or admin role
-    if (!['editor', 'admin'].includes(session.user.role)) {
+    // Check if user has editor or admin role in either role or roles array
+    const userRole = session.user.role;
+    const userRoles = session.user.roles || [];
+    const isEditor = userRole === 'editor' || userRoles.includes('editor');
+    const isAdmin = userRole === 'admin' || userRoles.includes('admin');
+
+    if (!isEditor && !isAdmin) {
       return NextResponse.json(
         { error: 'Insufficient permissions' },
         { status: 403 }
