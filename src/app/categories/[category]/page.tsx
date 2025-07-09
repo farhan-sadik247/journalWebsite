@@ -11,14 +11,16 @@ interface Article {
   _id: string;
   title: string;
   abstract: string;
-  authors: Array<{ name: string; email: string; affiliation: string }>;
+  authors: Array<{
+    name: string;
+    affiliation: string;
+  }>;
   category: string;
-  keywords: string[];
   publishedDate: string;
   volume?: number;
   issue?: number;
   pages?: string;
-  doi?: string;
+  keywords: string[];
   metrics?: {
     views: number;
     downloads: number;
@@ -196,34 +198,16 @@ export default function CategoryPage() {
                     )}
                   </div>
 
-                  <div className={styles.articleFooter}>
-                    <div className={styles.metadata}>
-                      <span className={styles.date}>
-                        <FiCalendar />
-                        {formatDate(article.publishedDate)}
-                      </span>
-                      {article.doi && (
-                        <span className={styles.doi}>
-                          DOI: {article.doi}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className={styles.metrics}>
-                      <span>
-                        <FiEye />
-                        {article.metrics?.views || 0}
-                      </span>
-                      <span>
-                        <FiDownload />
-                        {article.metrics?.downloads || 0}
-                      </span>
-                    </div>
+                  <div className={styles.articleMeta}>
+                    <span className={styles.date}>
+                      <FiCalendar />
+                      {new Date(article.publishedDate).toLocaleDateString()}
+                    </span>
+                    <span className={styles.metrics}>
+                      <FiEye /> {article.metrics?.views || 0} views
+                      <FiDownload /> {article.metrics?.downloads || 0} downloads
+                    </span>
                   </div>
-
-                  <Link href={`/articles/${article._id}`} className={styles.readMore}>
-                    Read Article
-                  </Link>
                 </div>
               ))}
             </div>

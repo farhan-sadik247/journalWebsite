@@ -31,16 +31,29 @@ export async function GET(request: NextRequest) {
     const assignedManuscriptIds = assignedReviews.map(review => review.manuscriptId);
 
     // Get manuscripts assigned to this reviewer only (no published manuscripts)
-    const manuscripts = await Manuscript.find({
-      _id: { $in: assignedManuscriptIds }
-    })
-    .populate('authors', 'name email affiliation')
-    .populate('submittedBy', 'name email')
-    .select(
-      'title abstract status category submissionDate authors submittedBy ' +
-      'publishedDate doi volume issue pages lastModified'
-    )
-    .sort({ submissionDate: -1 });
+    const manuscripts = await Manuscript
+      .find({
+        _id: { $in: assignedManuscriptIds },
+        status: { $ne: 'published' }
+      })
+      .select('title abstract authors category status submissionDate publishedDate volume issue pages lastModified')
+      .lean();
+
+    // Transform data for response
+    const transformedManuscripts = manuscripts.map(manuscript => ({
+      _id: manuscript._id,
+      title: manuscript.title,
+      abstract: manuscript.abstract,
+      authors: manuscript.authors,
+      category: manuscript.category,
+      status: manuscript.status,
+      submissionDate: manuscript.submissionDate,
+      publishedDate: manuscript.publishedDate,
+      volume: manuscript.volume,
+      issue: manuscript.issue,
+      pages: manuscript.pages,
+      lastModified: manuscript.lastModified
+    }));
 
     // Get review status for assigned manuscripts
     const manuscriptsWithReviewStatus = await Promise.all(
@@ -64,7 +77,6 @@ export async function GET(request: NextRequest) {
           lastModified: manuscript.lastModified,
           authors: manuscript.authors,
           submittedBy: manuscript.submittedBy,
-          doi: manuscript.doi,
           volume: manuscript.volume,
           issue: manuscript.issue,
           pages: manuscript.pages,

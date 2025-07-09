@@ -178,11 +178,6 @@ const manuscriptSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  doi: {
-    type: String,
-    unique: true,
-    sparse: true, // Allows multiple null values
-  },
   funding: {
     type: String,
     default: '',

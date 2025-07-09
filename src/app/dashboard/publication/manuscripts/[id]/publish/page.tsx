@@ -8,7 +8,6 @@ import {
   FiArrowLeft,
   FiGlobe,
   FiCalendar,
-  FiHash,
   FiBook,
   FiSave,
   FiCheck,
@@ -28,7 +27,6 @@ interface Manuscript {
   status: string;
   copyEditingStage?: string;
   category: string;
-  doi?: string;
   volume?: number;
   issue?: number;
   pages?: string;
@@ -55,9 +53,7 @@ export default function PublishManuscriptPage({ params }: { params: { id: string
   const [selectedVolume, setSelectedVolume] = useState('');
   const [issueNumber, setIssueNumber] = useState('');
   const [pages, setPages] = useState('');
-  const [doi, setDoi] = useState('');
   const [publishedDate, setPublishedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [generateDoi, setGenerateDoi] = useState(true);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -91,10 +87,6 @@ export default function PublishManuscriptPage({ params }: { params: { id: string
         if (ms.volume) setSelectedVolume(ms.volume.toString());
         if (ms.issue) setIssueNumber(ms.issue.toString());
         if (ms.pages) setPages(ms.pages);
-        if (ms.doi) {
-          setDoi(ms.doi);
-          setGenerateDoi(false);
-        }
       } else {
         setError('Manuscript not found');
       }
@@ -111,22 +103,6 @@ export default function PublishManuscriptPage({ params }: { params: { id: string
     }
   };
 
-  const generateDoiString = () => {
-    if (!selectedVolume || !manuscript) return '';
-    
-    const volume = volumes.find(v => v.number.toString() === selectedVolume);
-    if (!volume) return '';
-
-    // Generate DOI in format: 10.1578/gjadt{year}{volume}{issue}{sequence}
-    const year = volume.year;
-    const volNum = String(volume.number).padStart(2, '0'); // Pad to 2 digits
-    const issueNum = String(issueNumber || '1').padStart(2, '0'); // Pad to 2 digits
-    // For preview, show placeholder sequence - actual sequence will be generated server-side
-    const sequencePlaceholder = '001';
-    
-    return `10.1578/gjadt${year}${volNum}${issueNum}${sequencePlaceholder}`;
-  };
-
   const handlePublish = async () => {
     if (!manuscript || !selectedVolume) return;
 
@@ -141,8 +117,6 @@ export default function PublishManuscriptPage({ params }: { params: { id: string
           volume: parseInt(selectedVolume),
           issue: issueNumber ? parseInt(issueNumber) : 1,
           pages,
-          doi: generateDoi ? null : doi, // Only send custom DOI if not auto-generating
-          generateDoi, // Flag to indicate auto-generation
           publishedDate,
           action: 'formal-publish'
         }),
@@ -168,7 +142,6 @@ export default function PublishManuscriptPage({ params }: { params: { id: string
     return manuscript?.copyEditingStage === 'ready-for-publication' &&
            selectedVolume &&
            pages &&
-           (generateDoi || doi) &&
            publishedDate;
   };
 
@@ -303,66 +276,6 @@ export default function PublishManuscriptPage({ params }: { params: { id: string
               </div>
             </section>
 
-            {/* DOI Section */}
-            <section className={styles.section}>
-              <h2>
-                <FiHash />
-                Digital Object Identifier (DOI)
-              </h2>
-              
-              <div className={styles.doiSection}>
-                <div className={styles.doiOptions}>
-                  <label className={styles.radioLabel}>
-                    <input
-                      type="radio"
-                      name="doiOption"
-                      checked={generateDoi}
-                      onChange={() => setGenerateDoi(true)}
-                    />
-                    <span>Auto-generate DOI</span>
-                  </label>
-                  
-                  <label className={styles.radioLabel}>
-                    <input
-                      type="radio"
-                      name="doiOption"
-                      checked={!generateDoi}
-                      onChange={() => setGenerateDoi(false)}
-                    />
-                    <span>Enter custom DOI</span>
-                  </label>
-                </div>
-
-                {generateDoi ? (
-                  <div className={styles.generatedDoi}>
-                    <p>The following DOI will be generated:</p>
-                    <div className={styles.doiPreview}>
-                      {selectedVolume ? generateDoiString() : 'Please select a volume first'}
-                    </div>
-                    <p className={styles.doiNote}>
-                      Format: 10.1578/gjadt{'{year}{volume}{issue}{sequence}'}
-                      <br />
-                      Example: 10.1578/gjadt202511123
-                      <br />
-                      <small>The sequence number will be automatically assigned based on publication order.</small>
-                    </p>
-                  </div>
-                ) : (
-                  <div className={styles.formGroup}>
-                    <label htmlFor="doi">Custom DOI</label>
-                    <input
-                      type="text"
-                      id="doi"
-                      value={doi}
-                      onChange={(e) => setDoi(e.target.value)}
-                      className={styles.formControl}
-                      placeholder="e.g., 10.1234/journal.2024.1.1.001"
-                    />
-                  </div>
-                )}
-              </div>
-            </section>
-
             {/* Publication Preview */}
             <section className={styles.section}>
               <h2>Publication Preview</h2>
@@ -375,7 +288,6 @@ export default function PublishManuscriptPage({ params }: { params: { id: string
                     {selectedVolume && `, ${selectedVolume}`}
                     {issueNumber && `(${issueNumber})`}
                     {pages && `, ${pages}`}
-                    {(generateDoi && selectedVolume) || doi ? `. https://doi.org/${generateDoi ? generateDoiString() : doi}` : ''}
                   </p>
                 </div>
               </div>
@@ -441,10 +353,6 @@ export default function PublishManuscriptPage({ params }: { params: { id: string
                 <div className={styles.checklistItem}>
                   <FiCheck className={pages ? styles.completed : styles.pending} />
                   <span>Page Range Set</span>
-                </div>
-                <div className={styles.checklistItem}>
-                  <FiCheck className={(generateDoi && selectedVolume) || doi ? styles.completed : styles.pending} />
-                  <span>DOI Ready</span>
                 </div>
                 <div className={styles.checklistItem}>
                   <FiCheck className={publishedDate ? styles.completed : styles.pending} />

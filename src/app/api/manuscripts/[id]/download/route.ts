@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/pages/api/auth/[...nextauth]';
 import dbConnect from '@/lib/mongodb';
 import Manuscript from '@/models/Manuscript';
-import mongoose from 'mongoose';
+import { v2 as cloudinary } from 'cloudinary';
 
 export async function GET(
   request: NextRequest,
@@ -11,187 +11,149 @@ export async function GET(
 ) {
   console.log('=== Download endpoint called ===');
   console.log('Manuscript ID:', params.id);
-  
+
   try {
+    // Get user session
     const session = await getServerSession(authOptions);
-    console.log('Session:', session ? 'exists' : 'null');
-    console.log('User ID:', session?.user?.id);
-    console.log('User role:', session?.user?.role);
-    
-    if (!session) {
-      console.log('ERROR: No session found');
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    console.log('Session:', session ? 'exists' : 'does not exist');
+    if (session?.user) {
+      console.log('User ID:', session.user.id);
+      console.log('User role:', session.user.role);
     }
 
-    if (!params.id || !mongoose.Types.ObjectId.isValid(params.id)) {
-      console.log('ERROR: Invalid manuscript ID:', params.id);
-      return NextResponse.json(
-        { error: 'Invalid manuscript ID' },
-        { status: 400 }
-      );
-    }
-
+    // Connect to database
     console.log('Connecting to database...');
     await dbConnect();
     console.log('Database connected successfully');
 
-    // Build filter based on user role and manuscript status
-    const filter: any = { _id: new mongoose.Types.ObjectId(params.id) };
-    
+    // Find manuscript
+    const filter = { _id: params.id };
     console.log('Query filter:', filter);
-    const manuscript = await Manuscript.findOne(filter).lean() as any;
+    const manuscript = await Manuscript.findOne(filter);
     
-    if (manuscript) {
-      // Check access permissions based on manuscript status and user role
-      let hasAccess = false;
-      
-      if (manuscript.status === 'published') {
-        // Published manuscripts can be downloaded by any authenticated user
-        hasAccess = true;
-        console.log('Access granted: Published manuscript, user is authenticated');
-      } else if (['editor', 'admin'].includes(session.user.role)) {
-        // Editors and admins can download all manuscripts regardless of status
-        hasAccess = true;
-        console.log('Access granted: User is editor/admin');
-      } else if (session.user.role === 'author' && manuscript.submittedBy?.toString() === session.user.id) {
-        // Authors can only download their own manuscripts (if not published)
-        hasAccess = true;
-        console.log('Access granted: Author downloading own manuscript');
-      }
-      
-      if (!hasAccess) {
-        console.log('ERROR: Access denied. Status:', manuscript.status, 'Role:', session.user.role);
-        return NextResponse.json(
-          { error: 'Access denied' },
-          { status: 403 }
-        );
-      }
-    }
-    console.log('Manuscript found:', manuscript ? 'yes' : 'no');
-    
-    if (manuscript) {
-      console.log('Manuscript title:', manuscript.title);
-      console.log('Files count:', manuscript.files?.length || 0);
-      console.log('First file info:', manuscript.files?.[0] ? {
-        originalName: manuscript.files[0].originalName,
-        url: manuscript.files[0].url ? 'exists' : 'missing',
-        type: manuscript.files[0].type
-      } : 'no files');
-    }
-
     if (!manuscript) {
-      console.log('ERROR: Manuscript not found with filter:', filter);
-      return NextResponse.json(
-        { error: 'Manuscript not found' },
-        { status: 404 }
-      );
+      console.log('Manuscript not found');
+      return new NextResponse('Manuscript not found', { status: 404 });
     }
 
-    // Select the appropriate file to download based on manuscript status and available files
-    let fileToDownload = null;
-    
-    // Priority 1: Check for latestManuscriptFiles (most recent version)
-    if (manuscript.latestManuscriptFiles?.length > 0) {
-      fileToDownload = manuscript.latestManuscriptFiles[manuscript.latestManuscriptFiles.length - 1];
-      console.log('Selected latest manuscript file');
-    }
-    // Priority 2: For published manuscripts, check galley proofs if no latest files
-    else if (manuscript.status === 'published' && manuscript.productionPhase?.galleyProofs?.length > 0) {
-      const finalPdf = manuscript.productionPhase.galleyProofs.find((file: any) => file.type === 'final-pdf');
-      if (finalPdf) {
-        fileToDownload = finalPdf;
-        console.log('Selected final PDF from galley proofs');
-      } else {
-        // If no final-pdf, get the latest galley proof
-        fileToDownload = manuscript.productionPhase.galleyProofs[manuscript.productionPhase.galleyProofs.length - 1];
-        console.log('Selected latest galley proof');
-      }
-    }
-    // Priority 3: Fall back to original files
-    else {
-      if (!manuscript.files || manuscript.files.length === 0) {
-        console.log('ERROR: No files available for manuscript');
-        return NextResponse.json(
-          { error: 'No files available for download' },
-          { status: 404 }
-        );
-      }
-      
-      // Use the main manuscript file or first available file
-      const manuscriptFile = manuscript.files.find((file: any) => file.type === 'manuscript');
-      fileToDownload = manuscriptFile || manuscript.files[0];
-      console.log('Selected original manuscript file');
-    }
-
-    console.log('Attempting to download file:', {
-      originalName: fileToDownload.originalName,
-      url: fileToDownload.url ? 'exists' : 'missing',
-      type: fileToDownload.type,
-      size: fileToDownload.size,
-      source: manuscript.latestManuscriptFiles?.includes(fileToDownload) ? 'latest manuscript files' : 
-              manuscript.productionPhase?.galleyProofs?.includes(fileToDownload) ? 'galley proofs' : 'original files'
+    console.log('Manuscript found:', {
+      title: manuscript.title,
+      status: manuscript.status,
+      filesCount: manuscript.files?.length || 0,
+      latestFilesCount: manuscript.latestFiles?.length || 0,
+      galleyProofsCount: manuscript.galleyProofs?.length || 0
     });
-    
-    if (fileToDownload.url) {
-      console.log('Downloading file:', fileToDownload.originalName);
-      console.log('Cloudinary URL:', fileToDownload.url);
-      
-      try {
-        // Fetch the file from Cloudinary
-        const response = await fetch(fileToDownload.url);
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch file: ${response.status}`);
-        }
-        
-        const fileBuffer = await response.arrayBuffer();
-        
-        // Ensure the filename has the correct extension
-        let filename = fileToDownload.originalName || 'manuscript.pdf';
-        if (!filename.toLowerCase().endsWith('.pdf') && fileToDownload.originalName?.toLowerCase().includes('pdf')) {
-          filename = filename + '.pdf';
-        }
-        
-        // Create headers for file download
-        const headers = new Headers();
-        headers.set('Content-Type', 'application/pdf');
-        headers.set('Content-Disposition', `attachment; filename="${filename}"`);
-        headers.set('Content-Length', fileBuffer.byteLength.toString());
-        
-        console.log('Sending file with headers:', {
-          filename,
-          contentType: 'application/pdf',
-          size: fileBuffer.byteLength
-        });
-        
-        return new NextResponse(fileBuffer, {
-          status: 200,
-          headers: headers,
-        });
-        
-      } catch (fetchError) {
-        console.error('Error fetching file from Cloudinary:', fetchError);
-        return NextResponse.json(
-          { error: 'Failed to download file from storage' },
-          { status: 500 }
-        );
-      }
-    } else {
-      console.log('ERROR: File URL not available');
-      return NextResponse.json(
-        { error: 'File URL not available' },
-        { status: 404 }
-      );
+
+    // Check authentication first
+    if (!session) {
+      console.log('Access denied: User not authenticated');
+      return new NextResponse('Please sign in to download articles', { status: 401 });
     }
-  } catch (error: any) {
-    console.error('Download manuscript error:', error);
-    console.error('Error stack:', error?.stack);
-    return NextResponse.json(
-      { error: 'Internal server error', details: error?.message || 'Unknown error' },
-      { status: 500 }
+
+    // Check access
+    const isPublished = manuscript.status === 'published';
+    const isAdmin = session.user.role === 'admin';
+    const isAuthor = manuscript.submittedBy.toString() === session.user.id;
+    
+    // Allow access if:
+    // 1. Manuscript is published, or
+    // 2. User is admin, or
+    // 3. User is the author
+    if (!isPublished && !isAdmin && !isAuthor) {
+      console.log('Access denied: Manuscript not published and user has no special access');
+      return new NextResponse('Unauthorized: You do not have access to this manuscript', { status: 403 });
+    }
+
+    console.log('Access granted:', 
+      isPublished ? 'Published manuscript' : 'Unpublished manuscript',
+      isAdmin ? ', user is admin' : '',
+      isAuthor ? ', user is author' : ''
     );
+
+    // Get latest file from either latestFiles or files array
+    let fileToDownload = manuscript.latestFiles?.[0] || manuscript.files?.[0];
+    if (!fileToDownload) {
+      console.log('No file found in either latestFiles or files array');
+      return new NextResponse('No file found', { status: 404 });
+    }
+
+    console.log('Selected file for download:', {
+      originalName: fileToDownload.originalName,
+      type: fileToDownload.type,
+      cloudinaryId: fileToDownload.cloudinaryId,
+      url: fileToDownload.url
+    });
+
+    // Extract file details
+    const originalUrl = fileToDownload.url;
+    const cloudinaryId = fileToDownload.cloudinaryId;
+    const extension = fileToDownload.originalName.split('.').pop()?.toLowerCase() || '';
+
+    console.log('File details:', {
+      originalUrl,
+      cloudinaryId,
+      extension
+    });
+
+    try {
+      // If we have a cloudinaryId, use it directly
+      if (cloudinaryId) {
+        console.log('Using cloudinaryId:', cloudinaryId);
+        
+        const downloadUrl = cloudinary.utils.private_download_url(cloudinaryId, extension, {
+          resource_type: 'image', // Use image type since files are uploaded as images
+          type: 'upload',
+          attachment: true,
+          expires_at: Math.floor(Date.now() / 1000) + 3600
+        });
+
+        if (!downloadUrl) {
+          throw new Error('Failed to generate signed URL');
+        }
+
+        console.log('Generated signed URL:', downloadUrl);
+        console.log('Attempting to fetch file from URL:', downloadUrl);
+
+        // Fetch the file
+        const response = await fetch(downloadUrl);
+        console.log('Fetch response:', {
+          status: response.status,
+          statusText: response.statusText,
+          headers: Object.fromEntries(response.headers.entries())
+        });
+
+        if (!response.ok) {
+          console.log('Fetch error:', {
+            status: response.status,
+            statusText: response.statusText,
+            url: downloadUrl
+          });
+          
+          // Try fallback to original URL if fetch fails
+          console.log('Falling back to original URL:', originalUrl);
+          return NextResponse.redirect(originalUrl);
+        }
+
+        // Stream the file
+        const blob = await response.blob();
+        const headers = new Headers();
+        headers.set('Content-Type', response.headers.get('Content-Type') || 'application/octet-stream');
+        headers.set('Content-Disposition', `attachment; filename="${fileToDownload.originalName}"`);
+        
+        return new NextResponse(blob, { headers });
+      } else {
+        // If no cloudinaryId, redirect to the original URL
+        console.log('No cloudinaryId found, redirecting to original URL:', originalUrl);
+        return NextResponse.redirect(originalUrl);
+      }
+    } catch (error) {
+      console.error('Error generating or fetching signed URL:', error);
+      // Fallback to original URL
+      console.log('Falling back to original URL due to error:', originalUrl);
+      return NextResponse.redirect(originalUrl);
+    }
+  } catch (error) {
+    console.error('Error in download endpoint:', error);
+    return new NextResponse('Internal Server Error', { status: 500 });
   }
 }

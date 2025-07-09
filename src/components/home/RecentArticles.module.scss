@@ -212,15 +212,6 @@
   gap: var(--spacing-sm);
 }
 
-.doi {
-  position: absolute;
-  bottom: var(--spacing-xs);
-  right: var(--spacing-lg);
-  font-size: var(--font-size-xs);
-  color: var(--gray-400);
-  font-family: 'Courier New', monospace;
-}
-
 .browseCta {
   background: linear-gradient(135deg, var(--gray-50), var(--gray-100));
   border-radius: var(--radius-2xl);

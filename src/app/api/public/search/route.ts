@@ -50,17 +50,15 @@ export async function GET(request: NextRequest) {
     // Get articles with pagination
     const articles = await Manuscript.find(filter, {
       title: 1,
-      authors: 1,
       abstract: 1,
-      keywords: 1,
+      authors: 1,
       category: 1,
+      keywords: 1,
       volume: 1,
       issue: 1,
-      doi: 1,
-      publishedDate: 1,
-      downloadCount: 1,
       pages: 1,
-      submittedDate: 1
+      publishedDate: 1,
+      metrics: 1
     })
     .sort({ publishedDate: -1 })
     .skip(skip)

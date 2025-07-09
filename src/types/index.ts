@@ -40,7 +40,6 @@ export interface Manuscript {
   reviewerSuggestions?: string[];
   reviewerExclusions?: string[];
   timeline: TimelineEvent[];
-  doi?: string;
   volume?: number;
   issue?: number;
   pages?: string;

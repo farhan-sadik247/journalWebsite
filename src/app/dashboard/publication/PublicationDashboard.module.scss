@@ -256,19 +256,6 @@
             .publicationInfo {
               font-size: 0.875rem;
 
-              .doi {
-                display: flex;
-                align-items: center;
-                gap: 0.25rem;
-                color: var(--text-secondary);
-                margin-bottom: 0.25rem;
-
-                svg {
-                  width: 12px;
-                  height: 12px;
-                }
-              }
-
               .volumeIssue {
                 display: block;
                 color: var(--text-secondary);

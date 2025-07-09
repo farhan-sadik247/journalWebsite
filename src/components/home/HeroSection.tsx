@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { FiEye, FiDownload, FiChevronDown, FiChevronUp } from 'react-icons/fi';
+import { useSession } from 'next-auth/react';
+import { FiArrowRight, FiDownload, FiEye, FiChevronDown, FiChevronUp } from 'react-icons/fi';
+import { toast } from 'react-hot-toast';
 import styles from './HeroSection.module.scss';
 import { PLACEHOLDER_URLS } from '@/lib/placeholders';
 
@@ -15,7 +17,6 @@ interface Article {
   publishedDate: string;
   volume?: number;
   issue?: number;
-  doi?: string;
   metrics?: {
     views: number;
     downloads: number;
@@ -112,10 +113,11 @@ export function HeroSection() {
       
       if (!response.ok) {
         if (response.status === 401) {
-          alert('Please log in to download articles');
+          toast.error('Please sign in to download articles');
           return;
         }
-        throw new Error('Failed to download article');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to download article');
       }
       
       const blob = await response.blob();
@@ -124,17 +126,25 @@ export function HeroSection() {
       a.style.display = 'none';
       a.href = url;
       
+      // Get the file extension from Content-Type or default to pdf
+      const contentType = response.headers.get('Content-Type') || 'application/pdf';
+      const ext = contentType.split('/').pop()?.split('+')[0] || 'pdf';
+      
       // Clean title for filename
       const cleanTitle = title.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
-      a.download = `${cleanTitle}.pdf`;
+      a.download = `${cleanTitle}.${ext}`;
       
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      
+      // Track download count
+      await fetch(`/api/articles/${articleId}/download-count`, { method: 'POST' });
+      toast.success('Download started');
     } catch (error) {
       console.error('Download error:', error);
-      alert('Failed to download article. Please try again later.');
+      toast.error(error instanceof Error ? error.message : 'Failed to download article. Please try again later.');
     }
   };
 
@@ -155,10 +165,6 @@ export function HeroSection() {
     
     if (article.volume && article.issue) {
       parts.push(`${new Date(article.publishedDate).getFullYear()},${article.volume}(${article.issue})`);
-    }
-    
-    if (article.doi) {
-      parts.push(`DOI: ${article.doi}`);
     }
     
     return parts.join(', ');
@@ -307,9 +313,6 @@ export function HeroSection() {
                           <span className={styles.volumeIssue}>
                             {article.volume}{article.issue ? `(${article.issue})` : ''}
                           </span>
-                        )}
-                        {article.doi && (
-                          <span className={styles.doi}>DOI: {article.doi}</span>
                         )}
                       </div>
                       

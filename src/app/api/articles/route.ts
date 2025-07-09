@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     // If ID is provided, fetch single article
     if (id) {
       const article = await Manuscript.findById(id)
-        .select('title abstract authors category keywords doi volume issue pages publishedDate metrics status')
+        .select('title abstract authors category keywords volume issue pages publishedDate metrics status')
         .lean();
 
       if (!article) {
@@ -100,7 +100,6 @@ export async function GET(request: NextRequest) {
               authors: 1,
               category: 1,
               keywords: 1,
-              doi: 1,
               volume: 1,
               issue: 1,
               pages: 1,
@@ -128,7 +127,7 @@ export async function GET(request: NextRequest) {
 
     const [articlesRaw, total] = await Promise.all([
       Manuscript.find(filter)
-        .select('title abstract authors category keywords doi volume issue pages publishedDate metrics')
+        .select('title abstract authors category keywords volume issue pages publishedDate metrics')
         .sort(sortOrder)
         .skip(actualSkip)
         .limit(actualLimit)
@@ -165,7 +164,7 @@ export async function POST(request: NextRequest) {
     await dbConnect();
 
     const body = await request.json();
-    const { manuscriptId, volumeNumber, issueNumber, doi, pages } = body;
+    const { manuscriptId, volumeNumber, issueNumber, pages } = body;
 
     // Validate inputs
     if (!manuscriptId || !volumeNumber || !issueNumber) {
@@ -210,7 +209,7 @@ export async function POST(request: NextRequest) {
       volume: volumeNumber,
       issue: issueNumber,
       pages: pages || '',
-      doi: doi || `10.1234/journal.${volumeNumber}.${issueNumber}.${Date.now()}`
+      publishedDate: new Date()
     };
 
     // Add article to issue

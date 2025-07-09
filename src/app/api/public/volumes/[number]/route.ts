@@ -32,18 +32,25 @@ export async function GET(
       );
     }
 
-    // Get published manuscripts for each issue in this volume
-    const publishedManuscripts = await Manuscript.find({
-      volume: volumeNumber,
-      status: 'published'
-    })
-    .select('_id title authors abstract pages doi issue')
-    .sort({ issue: 1, publishedDate: 1 })
-    .lean() as any[];
+    // Get published manuscripts for this volume
+    const manuscripts = await Manuscript
+      .find({ volume: volumeNumber, status: 'published' })
+      .select('_id title authors abstract pages issue')
+      .lean();
+
+    // Transform data for response
+    const transformedManuscripts = manuscripts.map(ms => ({
+      _id: ms._id,
+      title: ms.title,
+      authors: ms.authors,
+      abstract: ms.abstract,
+      pages: ms.pages,
+      issue: ms.issue
+    }));
 
     // Group manuscripts by issue
     const issuesWithManuscripts = volume.issues?.map((issue: any) => {
-      const issueManuscripts = publishedManuscripts.filter(
+      const issueManuscripts = transformedManuscripts.filter(
         (ms: any) => ms.issue === issue.number
       );
       
@@ -55,7 +62,7 @@ export async function GET(
           authors: ms.authors,
           abstract: ms.abstract,
           pages: ms.pages,
-          doi: ms.doi
+          issue: ms.issue
         }))
       };
     }).filter((issue: any) => issue.isPublished) || [];

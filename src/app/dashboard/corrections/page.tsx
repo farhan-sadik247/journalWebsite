@@ -12,19 +12,16 @@ interface Correction {
   manuscriptId: {
     _id: string;
     title: string;
-    doi: string;
   };
-  type: 'correction' | 'retraction' | 'expression-of-concern' | 'erratum';
+  type: string;
   title: string;
   description: string;
-  status: 'pending' | 'under-review' | 'approved' | 'rejected' | 'published';
+  status: string;
   submittedBy: {
     name: string;
-    email: string;
   };
   createdAt: string;
   publishedDate?: string;
-  doi?: string;
 }
 
 export default function CorrectionsManagementPage() {
@@ -210,9 +207,6 @@ export default function CorrectionsManagementPage() {
                 <div className={styles.manuscriptInfo}>
                   <h4>Related Article:</h4>
                   <p>{correction.manuscriptId.title}</p>
-                  {correction.manuscriptId.doi && (
-                    <small>DOI: {correction.manuscriptId.doi}</small>
-                  )}
                 </div>
 
                 <div className={styles.description}>
@@ -275,12 +269,6 @@ export default function CorrectionsManagementPage() {
                     >
                       Publish Correction
                     </button>
-                  </div>
-                )}
-
-                {correction.status === 'published' && correction.doi && (
-                  <div className={styles.doiInfo}>
-                    <small>DOI: {correction.doi}</small>
                   </div>
                 )}
               </div>

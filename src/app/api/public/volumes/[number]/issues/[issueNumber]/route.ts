@@ -45,15 +45,22 @@ export async function GET(
       );
     }
 
-    // Get published manuscripts for this specific issue
-    const publishedManuscripts = await Manuscript.find({
-      volume: volumeNumber,
-      issue: issueNumber,
-      status: 'published'
-    })
-    .select('_id title authors abstract pages doi publishedDate metrics')
-    .sort({ publishedDate: 1 })
-    .lean() as any[];
+    // Get manuscripts in this issue
+    const manuscripts = await Manuscript
+      .find({ volume: volumeNumber, issue: issueNumber, status: 'published' })
+      .select('_id title authors abstract pages publishedDate metrics')
+      .lean();
+
+    // Transform data for response
+    const transformedManuscripts = manuscripts.map(ms => ({
+      _id: ms._id,
+      title: ms.title,
+      authors: ms.authors,
+      abstract: ms.abstract,
+      pages: ms.pages,
+      publishedDate: ms.publishedDate,
+      metrics: ms.metrics
+    }));
 
     const responseIssue = {
       _id: issue._id,
@@ -67,16 +74,7 @@ export async function GET(
         year: volume.year,
         title: volume.title
       },
-      manuscripts: publishedManuscripts.map((ms: any) => ({
-        _id: ms._id,
-        title: ms.title,
-        authors: ms.authors,
-        abstract: ms.abstract,
-        pages: ms.pages,
-        doi: ms.doi,
-        publishedDate: ms.publishedDate,
-        metrics: ms.metrics
-      }))
+      manuscripts: transformedManuscripts
     };
 
     return NextResponse.json({ issue: responseIssue });

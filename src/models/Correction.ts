@@ -58,11 +58,6 @@ const correctionSchema = new mongoose.Schema({
   publishedDate: {
     type: Date,
   },
-  doi: {
-    type: String,
-    unique: true,
-    sparse: true,
-  },
   isPublic: {
     type: Boolean,
     default: false,

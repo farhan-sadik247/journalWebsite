@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
     }
 
     const corrections = await Correction.find(query)
-      .populate('manuscriptId', 'title doi')
+      .populate('manuscriptId', 'title')
       .populate('submittedBy', 'name email')
       .populate('reviewedBy', 'name email')
       .sort({ createdAt: -1 })
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
 
     // Populate the response
     await correction.populate([
-      { path: 'manuscriptId', select: 'title doi' },
+      { path: 'manuscriptId', select: 'title' },
       { path: 'submittedBy', select: 'name email' }
     ]);
 

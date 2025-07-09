@@ -4,7 +4,6 @@ import { authOptions } from '@/pages/api/auth/[...nextauth]';
 import connectToDatabase from '@/lib/mongodb';
 import Volume from '@/models/Volume';
 import Manuscript from '@/models/Manuscript';
-import { generateManuscriptDOI, isDOIUnique } from '@/lib/doiUtils';
 
 export async function POST(
   request: NextRequest,
@@ -62,27 +61,11 @@ export async function POST(
       );
     }
 
-    // Generate DOI if it doesn't exist
-    let finalDoi = manuscript.doi;
-    if (!finalDoi) {
-      finalDoi = await generateManuscriptDOI(volumeDoc.year, volume, issue || 1);
-      
-      // Verify DOI uniqueness
-      const isUnique = await isDOIUnique(finalDoi, params.id);
-      if (!isUnique) {
-        return NextResponse.json(
-          { error: 'Generated DOI already exists' },
-          { status: 400 }
-        );
-      }
-    }
-
     // Update manuscript
     const updateData: any = {
       status: 'published',
       publishedDate: new Date(),
-      volume: volume,
-      doi: finalDoi
+      volume: volume
     };
 
     if (issue) updateData.issue = issue;
@@ -97,7 +80,7 @@ export async function POST(
     // Add to timeline
     const timelineEvent = {
       event: 'published',
-      description: `Published in Volume ${volume}${issue ? `, Issue ${issue}` : ''}, pages ${pages}${finalDoi ? ` with DOI: ${finalDoi}` : ''}`,
+      description: `Published in Volume ${volume}${issue ? `, Issue ${issue}` : ''}, pages ${pages}`,
       performedBy: session.user.id,
       date: new Date()
     };
@@ -111,8 +94,7 @@ export async function POST(
       success: true,
       message: 'Manuscript published successfully',
       data: {
-        manuscript: updatedManuscript,
-        doi: finalDoi
+        manuscript: updatedManuscript
       }
     });
 
@@ -155,7 +137,6 @@ export async function GET(
       volume: manuscript.volume,
       issue: manuscript.issue,
       pages: manuscript.pages,
-      doi: manuscript.doi,
       publishedDate: manuscript.publishedDate,
       authors: manuscript.authors,
       category: manuscript.category,

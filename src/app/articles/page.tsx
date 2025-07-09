@@ -10,19 +10,21 @@ interface Article {
   _id: string;
   title: string;
   abstract: string;
-  authors: Array<{ name: string; email: string; affiliation: string }>;
+  authors: Array<{
+    name: string;
+    affiliation: string;
+  }>;
   category: string;
-  keywords: string[];
-  publishedDate: string; // Changed from publicationDate to match API
-  volume?: number; // Made optional and moved from nested object
-  issue?: number; // Made optional and moved from nested object
-  pages?: string; // Made optional and moved from nested object
-  doi?: string; // Made optional and moved from nested object
+  publishedDate: string;
+  volume?: number;
+  issue?: number;
+  pages?: string;
   metrics?: {
     views: number;
     downloads: number;
     citations: number;
   };
+  keywords: string[];
 }
 
 interface Pagination {
@@ -317,11 +319,6 @@ function ArticlesContent() {
                         <FiCalendar />
                         {formatDate(article.publishedDate)}
                       </span>
-                      {article.doi && (
-                        <span className={styles.doi}>
-                          DOI: {article.doi}
-                        </span>
-                      )}
                     </div>
 
                     <div className={styles.metrics}>

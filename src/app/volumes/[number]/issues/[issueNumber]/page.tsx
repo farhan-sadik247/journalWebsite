@@ -35,7 +35,6 @@ interface Manuscript {
   authors: Array<{ name: string }>;
   abstract: string;
   pages?: string;
-  doi?: string;
   publishedDate: string;
   metrics?: {
     views: number;
@@ -187,36 +186,6 @@ export default function IssuePublicPage({
                         : manuscript.abstract
                       }
                     </p>
-
-                    {manuscript.doi && (
-                      <div className={styles.articleDoi}>
-                        <strong>DOI:</strong> 
-                        <a 
-                          href={`https://doi.org/${manuscript.doi}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {manuscript.doi}
-                        </a>
-                      </div>
-                    )}
-
-                    {manuscript.metrics && (
-                      <div className={styles.articleMetrics}>
-                        <div className={styles.metric}>
-                          <FiEye />
-                          <span>{manuscript.metrics.views || 0} views</span>
-                        </div>
-                        <div className={styles.metric}>
-                          <FiDownload />
-                          <span>{manuscript.metrics.downloads || 0} downloads</span>
-                        </div>
-                        <div className={styles.metric}>
-                          <FiFileText />
-                          <span>{manuscript.metrics.citations || 0} citations</span>
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   <div className={styles.articleFooter}>

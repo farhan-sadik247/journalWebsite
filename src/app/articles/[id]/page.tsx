@@ -11,7 +11,6 @@ import {
   FiCalendar, 
   FiUser, 
   FiTag, 
-  FiExternalLink,
   FiBookmark,
   FiShare2,
   FiCopy,
@@ -19,7 +18,6 @@ import {
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import styles from './ArticleDetail.module.scss';
-import { generateDOIUrl } from '@/lib/doiUtils';
 
 interface Article {
   _id: string;
@@ -39,7 +37,6 @@ interface Article {
   volume?: number;
   issue?: number;
   pages?: string;
-  doi?: string;
   metrics?: {
     views: number;
     downloads: number;
@@ -100,18 +97,28 @@ export default function ArticleDetailPage({ params }: { params: { id: string } }
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${article?.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`;
+        // Get the file extension from Content-Type or default to pdf
+        const contentType = response.headers.get('Content-Type') || 'application/pdf';
+        const ext = contentType.split('/').pop()?.split('+')[0] || 'pdf';
+        a.download = `${article?.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.${ext}`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
         toast.success('Download started');
       } else {
-        toast.error('Download failed');
+        // Try to get the error message from the response
+        try {
+          const errorData = await response.json();
+          toast.error(errorData.error || 'Download failed. Please try again later.');
+        } catch (e) {
+          // If we can't parse the error message, show a generic one
+          toast.error('Download failed. Please try again later.');
+        }
       }
     } catch (error) {
       console.error('Download error:', error);
-      toast.error('Download failed');
+      toast.error('Failed to connect to the server. Please check your internet connection and try again.');
     } finally {
       setDownloading(false);
     }
@@ -149,7 +156,7 @@ export default function ArticleDetailPage({ params }: { params: { id: string } }
     const year = new Date(article.publishedDate).getFullYear();
     const journal = 'Journal Name'; // You might want to make this configurable
     
-    return `${authors} (${year}). ${article.title}. ${journal}${article.volume ? `, ${article.volume}` : ''}${article.issue ? `(${article.issue})` : ''}${article.pages ? `, ${article.pages}` : ''}${article.doi ? `. DOI: ${article.doi}` : ''}.`;
+    return `${authors} (${year}). ${article.title}. ${journal}${article.volume ? `, ${article.volume}` : ''}${article.issue ? `(${article.issue})` : ''}${article.pages ? `, ${article.pages}` : ''}.`;
   };
 
   const copyCitation = async () => {
@@ -231,19 +238,6 @@ export default function ArticleDetailPage({ params }: { params: { id: string } }
                 <span>Volume {article.volume}, Issue {article.issue}</span>
               </div>
             )}
-            {article.doi && (
-              <div className={styles.metadataItem}>
-                <FiExternalLink />
-                <a 
-                  href={generateDOIUrl(article.doi)} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className={styles.doiLink}
-                >
-                  DOI: {article.doi}
-                </a>
-              </div>
-            )}
             <div className={styles.metadataItem}>
               <FiEye />
               <span>{article.metrics?.views || 0} Views</span>
@@ -291,20 +285,6 @@ export default function ArticleDetailPage({ params }: { params: { id: string } }
                 day: 'numeric'
               })}</span>
             </div>
-            
-            {article.doi && (
-              <div className={styles.infoItem}>
-                <FiExternalLink className={styles.icon} />
-                <a 
-                  href={`https://doi.org/${article.doi}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={styles.doi}
-                >
-                  DOI: {article.doi}
-                </a>
-              </div>
-            )}
           </div>
 
           {/* Metrics */}

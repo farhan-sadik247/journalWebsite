@@ -31,7 +31,6 @@ interface Manuscript {
   status: string;
   submissionDate: string;
   publishedDate?: string;
-  doi?: string;
   metrics: {
     views: number;
     downloads: number;
@@ -420,18 +419,6 @@ export default function AdvancedSearchPage() {
                       Citations: {manuscript.metrics?.citations || 0}
                     </span>
                   </div>
-
-                  {manuscript.doi && (
-                    <div className={styles.doi}>
-                      <a
-                        href={`https://doi.org/${manuscript.doi}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        DOI: {manuscript.doi} <FiExternalLink />
-                      </a>
-                    </div>
-                  )}
                 </div>
               </div>
             ))}

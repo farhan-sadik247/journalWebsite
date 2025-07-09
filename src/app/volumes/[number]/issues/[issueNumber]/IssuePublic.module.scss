@@ -241,25 +241,6 @@
     margin-bottom: 1rem;
   }
 
-  .articleDoi {
-    margin-bottom: 1rem;
-    font-size: 0.9rem;
-
-    strong {
-      color: #212529;
-      margin-right: 0.5rem;
-    }
-
-    a {
-      color: #007bff;
-      text-decoration: none;
-
-      &:hover {
-        text-decoration: underline;
-      }
-    }
-  }
-
   .articleMetrics {
     display: flex;
     gap: 1.5rem;

@@ -11,23 +11,17 @@ interface Article {
   _id: string;
   title: string;
   abstract: string;
-  authors: Array<{ 
-    name?: string;
-    firstName?: string; 
-    lastName?: string; 
-    email: string; 
+  authors: Array<{
+    name: string;
     affiliation: string;
   }>;
   category: string;
+  publishedDate: string;
   keywords: string[];
-  publicationDate: string;
-  publication: {
-    volume: number;
-    issue: number;
-    pages: string;
-    doi: string;
-  };
-  metrics: {
+  volume?: number;
+  issue?: number;
+  pages?: string;
+  metrics?: {
     views: number;
     downloads: number;
     citations: number;
@@ -88,7 +82,10 @@ export function RecentArticles() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `manuscript-${articleId}.pdf`;
+        // Get the file extension from Content-Type or default to pdf
+        const contentType = response.headers.get('Content-Type') || 'application/pdf';
+        const ext = contentType.split('/').pop()?.split('+')[0] || 'pdf';
+        a.download = `manuscript-${articleId}.${ext}`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -98,11 +95,12 @@ export function RecentArticles() {
         // Refresh the articles to update download count
         fetchFeaturedArticles();
       } else {
-        toast.error('Download failed');
+        const errorData = await response.json().catch(() => ({}));
+        toast.error(errorData.error || 'Download failed. Please try again later.');
       }
     } catch (error) {
       console.error('Download error:', error);
-      toast.error('Download failed');
+      toast.error('Failed to connect to the server. Please check your internet connection and try again.');
     }
   };
 
@@ -126,19 +124,27 @@ export function RecentArticles() {
         <div className={styles.articlesGrid}>
           {loading ? (
             <div className={styles.loading}>Loading most viewed articles...</div>
-          ) : displayMostViewed.length > 0 ? (                  displayMostViewed.map((article) => (
+          ) : displayMostViewed.length > 0 ? (
+            displayMostViewed.map((article) => (
               <article key={article._id} className={styles.articleCard}>
                 <div className={styles.articleHeader}>
                   <span className={styles.category}>{article.category}</span>
+                  {(article.volume || article.issue) && (
+                    <div className={styles.publication}>
+                      {article.volume && `Vol. ${article.volume}`}
+                      {article.volume && article.issue && ', '}
+                      {article.issue && `No. ${article.issue}`}
+                    </div>
+                  )}
                   <div className={styles.articleMeta}>
-                    <div className={styles.metaItem}>
+                    <span className={styles.date}>
                       <FiCalendar />
-                      <span>{new Date(article.publicationDate).toLocaleDateString()}</span>
-                    </div>
-                    <div className={styles.metaItem}>
-                      <FiUser />
-                      <span>{article.authors.length} authors</span>
-                    </div>
+                      {new Date(article.publishedDate).toLocaleDateString()}
+                    </span>
+                    <span className={styles.metrics}>
+                      <FiEye /> {article.metrics?.views || 0} views
+                      <FiDownload /> {article.metrics?.downloads || 0} downloads
+                    </span>
                   </div>
                 </div>
 
@@ -155,7 +161,7 @@ export function RecentArticles() {
                     <span className={styles.authorsLabel}>Authors:</span>
                     {article.authors.slice(0, 2).map((author, index) => (
                       <span key={index} className={styles.author}>
-                        {author.name || `${author.firstName} ${author.lastName}`.trim()}
+                        {author.name}
                         {index < Math.min(article.authors.length, 2) - 1 && ', '}
                       </span>
                     ))}
@@ -204,10 +210,6 @@ export function RecentArticles() {
                     PDF
                   </button>
                 </div>
-              </div>
-
-              <div className={styles.doi}>
-                DOI: {article.publication?.doi || 'N/A'}
               </div>
             </article>
             ))
@@ -236,15 +238,22 @@ export function RecentArticles() {
               <article key={`downloaded-${article._id}`} className={styles.articleCard}>
                 <div className={styles.articleHeader}>
                   <span className={styles.category}>{article.category}</span>
+                  {(article.volume || article.issue) && (
+                    <div className={styles.publication}>
+                      {article.volume && `Vol. ${article.volume}`}
+                      {article.volume && article.issue && ', '}
+                      {article.issue && `No. ${article.issue}`}
+                    </div>
+                  )}
                   <div className={styles.articleMeta}>
-                    <div className={styles.metaItem}>
+                    <span className={styles.date}>
                       <FiCalendar />
-                      <span>{new Date(article.publicationDate).toLocaleDateString()}</span>
-                    </div>
-                    <div className={styles.metaItem}>
-                      <FiUser />
-                      <span>{article.authors.length} authors</span>
-                    </div>
+                      {new Date(article.publishedDate).toLocaleDateString()}
+                    </span>
+                    <span className={styles.metrics}>
+                      <FiEye /> {article.metrics?.views || 0} views
+                      <FiDownload /> {article.metrics?.downloads || 0} downloads
+                    </span>
                   </div>
                 </div>
 
@@ -261,7 +270,7 @@ export function RecentArticles() {
                     <span className={styles.authorsLabel}>Authors:</span>
                     {article.authors.slice(0, 2).map((author, index) => (
                       <span key={index} className={styles.author}>
-                        {author.name || `${author.firstName} ${author.lastName}`.trim()}
+                        {author.name}
                         {index < Math.min(article.authors.length, 2) - 1 && ', '}
                       </span>
                     ))}
@@ -310,10 +319,6 @@ export function RecentArticles() {
                     PDF
                   </button>
                 </div>
-              </div>
-
-              <div className={styles.doi}>
-                DOI: {article.publication?.doi || 'N/A'}
               </div>
             </article>
             ))

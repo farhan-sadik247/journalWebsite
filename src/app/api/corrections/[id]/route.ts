@@ -18,7 +18,7 @@ export async function GET(
     await dbConnect();
 
     const correction = await Correction.findById(params.id)
-      .populate('manuscriptId', 'title doi authors')
+      .populate('manuscriptId', 'title')
       .populate('submittedBy', 'name email')
       .populate('reviewedBy', 'name email')
       .populate('timeline.performedBy', 'name email')
@@ -84,7 +84,7 @@ export async function PATCH(
 
     // Populate the response
     await correction.populate([
-      { path: 'manuscriptId', select: 'title doi' },
+      { path: 'manuscriptId', select: 'title' },
       { path: 'submittedBy', select: 'name email' },
       { path: 'reviewedBy', select: 'name email' }
     ]);

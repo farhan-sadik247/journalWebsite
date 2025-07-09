@@ -24,20 +24,20 @@ export async function GET(request: NextRequest) {
 
     await dbConnect();
 
-    // Get all manuscripts that are relevant for publication workflow
-    const manuscripts = await Manuscript.find({
-      $or: [
-        { status: 'ready-for-publication' },
-        { status: 'published' },
-        { status: 'in-production' },
-        { copyEditingStage: 'author-approved' },
-        { status: 'copy-editing-complete' }
-      ]
-    })
-    .select('_id title authors status copyEditingStage submissionDate lastModified publishedDate category doi volume issue pages latestManuscriptFiles authorCopyEditReview timeline')
-    .populate('submittedBy', 'name email')
-    .sort({ lastModified: -1 })
-    .lean();
+    // Get manuscripts ready for publication
+    const manuscripts = await Manuscript
+      .find({
+        $or: [
+          { status: 'ready-for-publication' },
+          { status: 'published' },
+          { status: 'in-production' },
+          { copyEditingStage: 'author-approved' },
+          { status: 'copy-editing-complete' }
+        ]
+      })
+      .select('_id title authors status copyEditingStage submissionDate lastModified publishedDate category volume issue pages latestManuscriptFiles authorCopyEditReview timeline')
+      .sort({ lastModified: -1 })
+      .lean();
 
     console.log('Publication Dashboard API - Found manuscripts:', {
       total: manuscripts.length,

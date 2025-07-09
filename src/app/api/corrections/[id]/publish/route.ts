@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
+import { getServerSession } from 'next-auth';
 import { authOptions } from '@/pages/api/auth/[...nextauth]';
 import dbConnect from '@/lib/mongodb';
 import Correction from '@/models/Correction';
-import { generateCorrectionDOI } from '@/lib/doiUtils';
 
 export async function POST(
   request: NextRequest,
@@ -13,64 +12,57 @@ export async function POST(
     const session = await getServerSession(authOptions);
     
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
     }
 
-    // Check if user has publishing permissions
-    if (session.user.role !== 'admin' && session.user.role !== 'editor') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    // Check if user has editor or admin role
+    const userRole = session.user.role;
+    const userRoles = session.user.roles || [];
+    const isEditor = userRole === 'editor' || userRoles.includes('editor');
+    const isAdmin = userRole === 'admin' || userRoles.includes('admin');
+
+    if (!isEditor && !isAdmin) {
+      return NextResponse.json(
+        { error: 'Insufficient permissions' },
+        { status: 403 }
+      );
     }
 
     await dbConnect();
 
+    // Get the correction
     const correction = await Correction.findById(params.id);
     if (!correction) {
-      return NextResponse.json({ error: 'Correction not found' }, { status: 404 });
-    }
-
-    if (correction.status !== 'approved') {
       return NextResponse.json(
-        { error: 'Correction must be approved before publishing' },
-        { status: 400 }
+        { error: 'Correction not found' },
+        { status: 404 }
       );
     }
 
-    // Generate DOI for the correction using journal format
-    const currentYear = new Date().getFullYear();
-    const doi = await generateCorrectionDOI(currentYear);
-
-    // Update correction
+    // Update correction status and publish date
     correction.status = 'published';
     correction.publishedDate = new Date();
-    correction.doi = doi;
     correction.isPublic = true;
 
     // Add timeline event
     correction.timeline.push({
       event: 'published',
-      description: `Correction published by ${session.user.name}`,
+      description: 'Correction published',
       performedBy: session.user.id,
+      date: new Date()
     });
 
     await correction.save();
 
-    // Here you would typically:
-    // 1. Send notifications to relevant parties
-    // 2. Update CrossRef with the correction
-    // 3. Update the original manuscript's status
-    // 4. Send email notifications to authors and subscribers
-
-    // Populate the response
-    await correction.populate([
-      { path: 'manuscriptId', select: 'title doi' },
-      { path: 'submittedBy', select: 'name email' },
-      { path: 'reviewedBy', select: 'name email' }
-    ]);
-
     return NextResponse.json({
+      success: true,
       message: 'Correction published successfully',
-      correction: correction,
-      doi: doi
+      data: {
+        correction
+      }
     });
 
   } catch (error) {

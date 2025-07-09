@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
     if (exportResults) {
       // Export all results as CSV
       const manuscripts = await Manuscript.find(mongoQuery)
-        .select('title abstract authors category status submissionDate publishedDate doi metrics keywords')
+        .select('title abstract authors category status submissionDate publishedDate metrics keywords')
         .sort(sortOptions)
         .lean();
 
@@ -103,7 +103,6 @@ export async function GET(request: NextRequest) {
         'Status',
         'Submission Date',
         'Published Date',
-        'DOI',
         'Views',
         'Downloads',
         'Citations',
@@ -117,7 +116,6 @@ export async function GET(request: NextRequest) {
         manuscript.status,
         manuscript.submissionDate ? new Date(manuscript.submissionDate).toISOString().split('T')[0] : '',
         manuscript.publishedDate ? new Date(manuscript.publishedDate).toISOString().split('T')[0] : '',
-        manuscript.doi || '',
         manuscript.metrics?.views || 0,
         manuscript.metrics?.downloads || 0,
         manuscript.metrics?.citations || 0,
@@ -139,7 +137,7 @@ export async function GET(request: NextRequest) {
 
     const [manuscriptsRaw, total] = await Promise.all([
       Manuscript.find(mongoQuery)
-        .select('title abstract authors category status submissionDate publishedDate doi metrics keywords')
+        .select('title abstract authors category status submissionDate publishedDate metrics keywords')
         .sort(sortOptions)
         .skip(skip)
         .limit(limit)
