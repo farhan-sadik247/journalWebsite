@@ -132,12 +132,12 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Create a map of category to count
-    const countMap = new Map(articleCounts.map(item => [item._id.toString(), item.count]));
+    const countMap = new Map(articleCounts.map(item => [item._id, item.count]));
 
     // Add article count to each category
     categories = categories.map(category => ({
       ...category,
-      articleCount: countMap.get(category._id.toString()) || 0
+      articleCount: countMap.get(category.name) || 0
     }));
 
     // Sort by article count if requested

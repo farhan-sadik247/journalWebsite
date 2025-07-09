@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
+import { getServerSession } from 'next-auth';
 import { authOptions } from '@/pages/api/auth/[...nextauth]';
-import dbConnect from '@/lib/mongodb';
-import Manuscript from '@/models/Manuscript';
+import connectToDatabase from '@/lib/mongodb';
 import Volume from '@/models/Volume';
-import { notifyPublicationComplete } from '@/lib/notificationUtils';
+import Manuscript from '@/models/Manuscript';
 import { generateManuscriptDOI, isDOIUnique } from '@/lib/doiUtils';
 
 export async function POST(
@@ -15,154 +14,112 @@ export async function POST(
     const session = await getServerSession(authOptions);
     
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
     }
 
-    // Check if user is editor or admin
-    const hasEditorRole = session.user.roles?.includes('editor') || session.user.role === 'editor';
-    const hasAdminRole = session.user.roles?.includes('admin') || session.user.role === 'admin';
-    
-    if (!hasEditorRole && !hasAdminRole) {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    // Check if user has editor or admin role in either role or roles array
+    const userRole = session.user.role;
+    const userRoles = session.user.roles || [];
+    const isEditor = userRole === 'editor' || userRoles.includes('editor');
+    const isAdmin = userRole === 'admin' || userRoles.includes('admin');
+
+    if (!isEditor && !isAdmin) {
+      return NextResponse.json(
+        { error: 'Insufficient permissions' },
+        { status: 403 }
+      );
     }
 
-    const { volume, issue, pages, doi, publishedDate, action, generateDoi } = await request.json();
+    await connectToDatabase();
 
-    // For direct publish, we don't require volume and pages
-    if (action !== 'direct-publish' && (!volume || !pages || !publishedDate)) {
-      return NextResponse.json({ 
-        error: 'Volume, pages, and published date are required' 
-      }, { status: 400 });
+    const { volume, issue, pages } = await request.json();
+
+    if (!volume) {
+      return NextResponse.json(
+        { error: 'Volume number is required' },
+        { status: 400 }
+      );
     }
 
-    await dbConnect();
+    // Find the volume document
+    const volumeDoc = await Volume.findOne({ number: volume });
+    if (!volumeDoc) {
+      return NextResponse.json(
+        { error: 'Volume not found' },
+        { status: 404 }
+      );
+    }
 
-    const manuscript = await Manuscript.findById(params.id).populate('submittedBy', 'name email');
-
+    // Find the manuscript
+    const manuscript = await Manuscript.findById(params.id);
     if (!manuscript) {
-      return NextResponse.json({ error: 'Manuscript not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Manuscript not found' },
+        { status: 404 }
+      );
     }
 
-    // Check if manuscript is ready for publication
-    const isReadyForPublication = manuscript.status === 'ready-for-publication' || 
-                                  manuscript.copyEditingStage === 'author-approved' ||
-                                  manuscript.draftStatus === 'approved-by-author';
-    
-    if (!isReadyForPublication) {
-      return NextResponse.json({ 
-        error: 'Manuscript must be approved by author before publication' 
-      }, { status: 400 });
-    }
-
-    // For direct publish, skip volume verification
-    if (action !== 'direct-publish') {
-      // Verify volume exists
-      const volumeDoc = await Volume.findOne({ number: volume });
-      if (!volumeDoc) {
-        return NextResponse.json({ error: 'Volume not found' }, { status: 400 });
-      }
-    }
-
-    // Generate DOI if requested
-    let finalDoi = doi;
-    if (generateDoi && volume) {
-      const volumeDoc = await Volume.findOne({ number: volume });
-      if (volumeDoc) {
-        finalDoi = await generateManuscriptDOI(volumeDoc.year, volume, issue || 1);
-      }
-    }
-
-    // Check if DOI already exists
-    if (finalDoi) {
+    // Generate DOI if it doesn't exist
+    let finalDoi = manuscript.doi;
+    if (!finalDoi) {
+      finalDoi = await generateManuscriptDOI(volumeDoc.year, volume, issue || 1);
+      
+      // Verify DOI uniqueness
       const isUnique = await isDOIUnique(finalDoi, params.id);
       if (!isUnique) {
-        return NextResponse.json({ error: 'DOI already exists' }, { status: 400 });
+        return NextResponse.json(
+          { error: 'Generated DOI already exists' },
+          { status: 400 }
+        );
       }
     }
 
-    // Update manuscript with publication information
+    // Update manuscript
     const updateData: any = {
       status: 'published',
-      publishedDate: publishedDate ? new Date(publishedDate) : new Date(),
-      lastModified: new Date(),
+      publishedDate: new Date(),
+      volume: volume,
+      doi: finalDoi
     };
-
-    // Only add volume/pages for formal publication
-    if (action !== 'direct-publish') {
-      updateData.volume = volume;
-      updateData.pages = pages;
-    }
 
     if (issue) updateData.issue = issue;
-    if (finalDoi) updateData.doi = finalDoi;
+    if (pages) updateData.pages = pages;
 
-    // Add timeline event
-    const timelineEvent = {
-      event: 'Manuscript Published',
-      description: action === 'direct-publish' 
-        ? `Published directly to archive${finalDoi ? ` with DOI: ${finalDoi}` : ''}`
-        : `Published in Volume ${volume}${issue ? `, Issue ${issue}` : ''}, pages ${pages}${finalDoi ? ` with DOI: ${finalDoi}` : ''}`,
-      date: new Date(),
-      performedBy: session.user.id
-    };
-
-    updateData.$push = { timeline: timelineEvent };
-
-    const publishedManuscript = await Manuscript.findByIdAndUpdate(
+    const updatedManuscript = await Manuscript.findByIdAndUpdate(
       params.id,
       updateData,
       { new: true }
-    ).populate('submittedBy', 'name email');
+    );
 
-    // Send notification to all authors
-    const volumeInfo = action === 'direct-publish' 
-      ? 'directly to the archive' 
-      : `Volume ${volume}${issue ? `, Issue ${issue}` : ''}`;
-    
-    // Notify primary author (non-blocking)
-    try {
-      await notifyPublicationComplete(
-        manuscript.submittedBy.email,
-        params.id,
-        manuscript.title,
-        volumeInfo
-      );
-    } catch (notificationError) {
-      console.warn('Failed to notify primary author:', notificationError);
-    }
-    
-    // Notify co-authors if they exist (non-blocking)
-    if (manuscript.authors && manuscript.authors.length > 0) {
-      for (const author of manuscript.authors) {
-        if (author.email && author.email !== manuscript.submittedBy.email) {
-          try {
-            await notifyPublicationComplete(
-              author.email,
-              params.id,
-              manuscript.title,
-              volumeInfo
-            );
-          } catch (notificationError) {
-            console.warn(`Failed to notify co-author ${author.email}:`, notificationError);
-          }
-        }
-      }
-    }
+    // Add to timeline
+    const timelineEvent = {
+      event: 'published',
+      description: `Published in Volume ${volume}${issue ? `, Issue ${issue}` : ''}, pages ${pages}${finalDoi ? ` with DOI: ${finalDoi}` : ''}`,
+      performedBy: session.user.id,
+      date: new Date()
+    };
 
-    // Update manuscript metrics
-    await Manuscript.findByIdAndUpdate(params.id, {
-      $inc: { 'metrics.views': 0 } // Initialize if needed
-    });
+    await Manuscript.findByIdAndUpdate(
+      params.id,
+      { $push: { timeline: timelineEvent } }
+    );
 
     return NextResponse.json({
+      success: true,
       message: 'Manuscript published successfully',
-      manuscript: publishedManuscript
+      data: {
+        manuscript: updatedManuscript,
+        doi: finalDoi
+      }
     });
 
   } catch (error) {
     console.error('Error publishing manuscript:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Failed to publish manuscript' },
       { status: 500 }
     );
   }
@@ -179,7 +136,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await dbConnect();
+    await connectToDatabase();
 
     const manuscript = await Manuscript.findById(params.id)
       .populate('submittedBy', 'name email')

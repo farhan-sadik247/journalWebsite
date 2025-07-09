@@ -178,6 +178,11 @@ const manuscriptSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  doi: {
+    type: String,
+    unique: true,
+    sparse: true, // Allows multiple null values
+  },
   funding: {
     type: String,
     default: '',
@@ -201,11 +206,6 @@ const manuscriptSchema = new mongoose.Schema({
     type: String,
   }],
   timeline: [timelineEventSchema],
-  doi: {
-    type: String,
-    unique: true,
-    sparse: true,
-  },
   volume: {
     type: Number,
   },
@@ -563,4 +563,5 @@ manuscriptSchema.pre('save', function(next) {
   next();
 });
 
-export default mongoose.models.Manuscript || mongoose.model('Manuscript', manuscriptSchema);
+const Manuscript = mongoose.models.Manuscript || mongoose.model('Manuscript', manuscriptSchema);
+export default Manuscript;
