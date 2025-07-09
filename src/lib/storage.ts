@@ -12,7 +12,7 @@ export interface StorageUploadResult {
 }
 
 export class CpanelStorage {
-  private baseUrl = process.env.DOMAIN_BASE_URL || 'https://gjadt.org';
+  private baseUrl = process.env.DOMAIN_BASE_URL || 'https://gjadt.vercel.app/';
   private uploadsDir = process.env.UPLOADS_DIR || path.join(process.cwd(), 'public', 'uploads');
 
   constructor() {
@@ -168,7 +168,7 @@ export async function deleteFromStorage(publicId: string): Promise<void> {
 
 export function generateSecureUrl(publicId: string): string {
   // For local/cPanel hosting, files are directly accessible via URL
-  const baseUrl = process.env.DOMAIN_BASE_URL || 'https://gjadt.org';
+  const baseUrl = process.env.DOMAIN_BASE_URL || 'https://gjadt.vercel.app/';
   const cleanId = publicId.replace(/^\/+/, '');
   return `${baseUrl}/uploads/${cleanId}`;
 }

@@ -115,13 +115,13 @@ async function setupStorage(): Promise<void> {
     console.log('\n🎉 Storage setup completed successfully!');
     console.log('\nNext steps:');
     console.log('1. Update your .env.local with the correct FTP credentials:');
-    console.log('   DOMAIN_BASE_URL=https://gjadt.org');
+    console.log('   DOMAIN_BASE_URL=https://gjadt.vercel.app/');
     console.log('   UPLOADS_DIR=./public/uploads');
     console.log('');
     console.log('2. When deploying to cPanel:');
     console.log('   - Upload the entire project to your domain folder');
     console.log('   - Ensure the uploads directory has write permissions (755 or 777)');
-    console.log('   - The files will be accessible at https://gjadt.org/uploads/...');
+    console.log('   - The files will be accessible at https://gjadt.vercel.app/uploads/...');
     console.log('');
     console.log('3. Run the migration script to move existing Cloudinary files:');
     console.log('   npm run migrate:storage');

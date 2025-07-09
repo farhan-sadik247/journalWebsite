@@ -98,10 +98,10 @@ async function runSetup() {
   // Check if FTP credentials are configured
   if (!process.env.FTP_HOST || !process.env.FTP_USER || !process.env.FTP_PASSWORD) {
     console.error('❌ FTP credentials not configured. Please update your .env.local file with:');
-    console.error('- FTP_HOST=ftp.gjadt.org');
+    console.error('- FTP_HOST=ftp.gjadt.vercel.app');
     console.error('- FTP_USER=your-ftp-username');
     console.error('- FTP_PASSWORD=your-ftp-password');
-    console.error('- DOMAIN_BASE_URL=https://gjadt.org');
+    console.error('- DOMAIN_BASE_URL=https://gjadt.vercel.app/');
     process.exit(1);
   }
   

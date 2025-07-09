@@ -6,7 +6,7 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
-    domains: ['res.cloudinary.com', 'lh3.googleusercontent.com', 'gjadt.org'],
+    domains: ['res.cloudinary.com', 'lh3.googleusercontent.com', 'gjadt.vercel.app'],
   },
   // Handle dynamic routes properly for App Router
   experimental: {

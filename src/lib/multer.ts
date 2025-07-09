@@ -42,7 +42,7 @@ export const validateFileSize = (file: File, maxSizeInMB: number): boolean => {
 
 // Generate public URL for uploaded file
 export const generatePublicUrl = (filename: string, folder: string = 'uploads'): string => {
-  const baseUrl = process.env.DOMAIN_BASE_URL || 'https://gjadt.org';
+  const baseUrl = process.env.DOMAIN_BASE_URL || 'https://gjadt.vercel.app/';
   return `${baseUrl}/uploads/${folder}/${filename}`;
 };
 

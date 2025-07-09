@@ -18,7 +18,7 @@ console.log('Domain Base URL:', config.domainBaseUrl);
 
 console.log('\n=== Expected Callback URLs ===');
 console.log('Development:', 'http://localhost:3000/api/auth/callback/google');
-console.log('Production:', 'https://gjadt.org/api/auth/callback/google');
+console.log('Production:', 'https://gjadt.vercel.app/api/auth/callback/google');
 
 console.log('\n=== Action Required ===');
 console.log('1. Go to Google Cloud Console');
@@ -29,4 +29,4 @@ console.log('4. Add both URLs above to "Authorized redirect URIs"');
 console.log('\n=== Test URLs ===');
 console.log('After updating Google Console, test these:');
 console.log('Local:', 'http://localhost:3000/auth/signin');
-console.log('Production:', 'https://gjadt.org/auth/signin');
+console.log('Production:', 'https://gjadt.vercel.app/auth/signin');

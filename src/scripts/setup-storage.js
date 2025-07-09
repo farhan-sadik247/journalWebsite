@@ -118,7 +118,7 @@ async function setupStorage() {
     console.log('2. When deploying to cPanel:');
     console.log('   - Upload the entire project to your domain folder');
     console.log('   - Ensure the uploads directory has write permissions (755 or 777)');
-    console.log('   - The files will be accessible at https://gjadt.org/uploads/...');
+    console.log('   - The files will be accessible at https://gjadt.vercel.app/uploads/...');
     console.log('');
     console.log('3. The system is now ready to use!');
     console.log('4. To migrate existing Cloudinary files, update the migration script');
